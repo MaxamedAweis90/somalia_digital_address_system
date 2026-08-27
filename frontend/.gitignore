@@ -1,1 +1,4 @@
-"node_modules/\n.env\ndist/\n.DS_Store" 
+node_modules/
+.env
+dist/
+.DS_Store
