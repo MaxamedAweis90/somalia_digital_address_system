@@ -1,122 +1,95 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import sdasLogo from "./assets/logo/sdas_logo.png";
 
 function App() {
-  const [count, setCount] = useState(0)
+  const systemModules = [
+    {
+      number: "01",
+      title: "District",
+      description: "Manage administrative districts",
+    },
+    {
+      number: "02",
+      title: "Neighborhood",
+      description: "Organize neighborhoods",
+    },
+    {
+      number: "03",
+      title: "Zone",
+      description: "Manage zones and boundaries",
+    },
+    {
+      number: "04",
+      title: "Address",
+      description: "Register and locate addresses",
+    },
+  ];
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
+    <div className="min-h-screen bg-slate-950 text-white">
+      <div className="flex min-h-screen items-center justify-center px-4 py-10 sm:px-6">
+        <div className="w-full max-w-5xl text-center">
+
+          {/* Logo */}
+          <div className="mx-auto mb-8 flex h-32 w-32 items-center justify-center rounded-2xl bg-white shadow-xl sm:h-36 sm:w-36">
+            <img
+              src={sdasLogo}
+              alt="Somalia Digital Address System logo"
+              className="h-28 w-28 object-contain sm:h-32 sm:w-32"
+            />
+          </div>
+
+          {/* System Name */}
+          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.25em] text-slate-400 sm:text-sm">
+            Somalia Digital Address System
+          </p>
+
+          {/* Welcome Heading */}
+          <h1 className="text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
+            Welcome to SDAS
+          </h1>
+
+          {/* Description */}
+          <p className="mx-auto mt-5 max-w-2xl text-sm leading-7 text-slate-400 sm:text-base lg:text-lg">
+            A digital address management system designed to organize,
+            manage, and locate addresses across Somalia.
+          </p>
+
+          {/* System Modules */}
+          <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {systemModules.map((module) => (
+              <div
+                key={module.number}
+                className="rounded-xl border border-slate-800 bg-slate-900/70 p-5 text-left transition hover:border-slate-700 hover:bg-slate-900"
+              >
+                <span className="text-xs font-medium text-slate-500">
+                  {module.number}
+                </span>
+
+                <h2 className="mt-3 text-base font-semibold text-white">
+                  {module.title}
+                </h2>
+
+                <p className="mt-2 text-sm leading-6 text-slate-400">
+                  {module.description}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          {/* System Status */}
+          <div className="mt-10 inline-flex items-center gap-2 rounded-full border border-slate-800 bg-slate-900 px-4 py-2 text-sm text-slate-400">
+            <span className="h-2 w-2 rounded-full bg-emerald-500" />
+            SDAS Frontend is ready
+          </div>
+
+          {/* Footer */}
+          <p className="mt-8 text-xs text-slate-600">
+            Somalia Digital Address System
           </p>
         </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+      </div>
+    </div>
+  );
 }
 
-export default App
+export default App;
