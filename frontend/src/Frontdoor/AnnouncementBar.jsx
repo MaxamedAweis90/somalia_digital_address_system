@@ -6,9 +6,9 @@ export default function AnnouncementBar() {
 
   return (
     <div className="announce">
-      <span>
-        <b>Dib u dhis Soomaaliya</b>
-        <span className="hidden sm:inline"> · Digital addressing summit · Nov 14 · Mogadishu</span>
+     <span>
+        <b>National Digital Addressing System</b>
+        <span className="hidden sm:inline"> · Official Government Addressing Framework · Mogadishu</span>
       </span>
       <span className="divider">·</span>
       <span className="cta">Get invite →</span>

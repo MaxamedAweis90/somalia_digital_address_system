@@ -19,11 +19,11 @@ export default function Coverage() {
         <div className="map-sig-inner">
           <div>
             <div className="kicker" style={{ color: "#8FC7FF" }}>
-              Coverage
+              Coverage & Districts
             </div>
             <h2>All 18 regions, one addressing grid</h2>
             <p>
-              From the coast of Bosaso to the Jubba valley, Cinwaan lays a single grid over
+              From the coast of Bosaso to the Jubba valley, Somali Digital Address System lays a single grid over
               Somalia so an address in Garowe means exactly as much as one in Baidoa.
             </p>
             <div className="region-list">

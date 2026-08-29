@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import somaliaFlag from "@/assets/images.jpg";
 import sdasLogo from "@/assets/logo/sdas_logo.png";
 
@@ -56,16 +56,18 @@ export default function Login() {
           RIGHT COLUMN - CLEAN STREAMLINED LOGIN FORM
       ====================================================== */}
       <div className="w-full flex flex-col justify-center items-center p-6 sm:p-12 lg:p-16 xl:p-20 min-h-screen bg-white">
-        <div className="w-full max-w-[380px] mx-auto space-y-7">
+        <div className="w-full max-w-95 mx-auto space-y-7">
           {/* Header */}
-          <div className="space-y-4">
-            <img
-              src={sdasLogo}
-              alt="SDAS - Somali Digital Address System"
-              className="h-16 sm:h-20 w-auto object-contain"
-            />
+          <div className="space-y-4 flex justify-center items-center flex-col">
+            <Link to="/" className="inline-block hover:opacity-90 transition-opacity">
+              <img
+                src={sdasLogo}
+                alt="SDAS - Somali Digital Address System"
+                className="h-15 sm:h-20 w-auto object-cover"
+              />
+            </Link>
 
-            <div className="space-y-1">
+            <div className="space-y-1 text-center">
               <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 font-display tracking-tight">
                 Government Official Sign In
               </h2>
