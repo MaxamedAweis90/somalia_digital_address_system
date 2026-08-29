@@ -1,4 +1,10 @@
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  useNavigate,
+} from "react-router-dom";
 
 // ===============================
 // Frontdoor Components
@@ -20,225 +26,129 @@ import "./Frontdoor/frontdoor.css";
 
 import Login from "./pages/auth/Login";
 
-
 // ===============================
-// Frontdoor Page
+// Layout
 // ===============================
 
-function Frontdoor() {
-  return (
-    <div className="min-h-screen">
-
-      <AnnouncementBar />
-
-      <Header />
-
-      <Hero />
-
-      <Features />
-
-      <Coverage />
-
-      <FinalCTA />
-
-      <Footer />
-
-    </div>
-  );
-}
-
+import AppLayout from "./components/layout/AppLayout.jsx";
 
 // ===============================
 // Dashboard
 // ===============================
 
-function Dashboard() {
-  const navigate = useNavigate();
+// import Dashboard from "./pages/Dashboard";
+
+// ===============================
+// Frontdoor
+// ===============================
+
+function Frontdoor() {
   return (
-    <div className="min-h-screen bg-[#F6F8FB]">
-
-      {/* Navbar */}
-      <nav className="flex h-16 items-center justify-between bg-white px-6 border-b border-[#E3E8EF] shadow-xs">
-
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#0056B3] text-xl font-bold text-white shadow-xs">
-            S
-          </div>
-          <h1 className="text-xl font-bold text-[#0A1F35] font-display">
-            SDAS
-          </h1>
-        </div>
-
-        <button
-          onClick={() => navigate("/login")}
-          className="rounded-xl bg-[#0056B3] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[#00458F] shadow-xs cursor-pointer"
-        >
-          Logout
-        </button>
-      </nav>
-
-
-      {/* Dashboard */}
-
-      <main className="p-6">
-
-        <div className="mb-6">
-
-          <h2 className="text-3xl font-bold text-[#172B4D]">
-            Dashboard
-          </h2>
-
-          <p className="mt-2 text-gray-500">
-            Welcome to Somalia Digital Address System.
-          </p>
-
-        </div>
-
-
-        {/* Statistics */}
-
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-
-
-          {/* Districts */}
-
-          <div className="rounded-xl bg-white p-6 shadow-sm">
-
-            <p className="text-sm text-gray-500">
-              Districts
-            </p>
-
-            <h3 className="mt-2 text-3xl font-bold text-[#0056B3]">
-              18
-            </h3>
-
-          </div>
-
-
-          {/* Neighborhoods */}
-
-          <div className="rounded-xl bg-white p-6 shadow-sm">
-
-            <p className="text-sm text-gray-500">
-              Neighborhoods
-            </p>
-
-            <h3 className="mt-2 text-3xl font-bold text-[#0056B3]">
-              120
-            </h3>
-
-          </div>
-
-
-          {/* Addresses */}
-
-          <div className="rounded-xl bg-white p-6 shadow-sm">
-
-            <p className="text-sm text-gray-500">
-              Addresses
-            </p>
-
-            <h3 className="mt-2 text-3xl font-bold text-[#0056B3]">
-              2,450
-            </h3>
-
-          </div>
-
-
-          {/* Zones */}
-
-          <div className="rounded-xl bg-white p-6 shadow-sm">
-
-            <p className="text-sm text-gray-500">
-              Zones
-            </p>
-
-            <h3 className="mt-2 text-3xl font-bold text-[#0056B3]">
-              350
-            </h3>
-
-          </div>
-
-        </div>
-
-
-        {/* Welcome */}
-
-        <div className="mt-6 rounded-xl bg-white p-8 shadow-sm">
-
-          <h3 className="text-xl font-bold text-[#172B4D]">
-            Welcome to SDAS
-          </h3>
-
-          <p className="mt-2 text-gray-500">
-            Somali Digital Address System helps manage
-            digital addresses, districts, neighborhoods,
-            zones, and locations across Somalia.
-          </p>
-
-        </div>
-
-      </main>
-
+    <div className="min-h-screen">
+      <AnnouncementBar />
+      <Header />
+      <Hero />
+      <Features />
+      <Coverage />
+      <FinalCTA />
+      <Footer />
     </div>
   );
 }
 
+// ===============================
+// Dashboard Layout
+// ===============================
+
+function DashboardLayout() {
+  const navigate = useNavigate();
+
+  const handleNavigate = (key) => {
+    // =========================
+    // Logout
+    // =========================
+    if (key === "logout") {
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+
+      // Go to login page
+      navigate("/login", { replace: true });
+
+      return;
+    }
+
+    // =========================
+    // Other Navigation
+    // =========================
+
+    const routes = {
+      dashboard: "/dashboard",
+      districts: "/districts",
+      neighborhoods: "/neighborhoods",
+      zones: "/zones",
+      addresses: "/addresses",
+      search: "/search",
+      users: "/users",
+      settings: "/settings",
+    };
+
+    if (routes[key]) {
+      navigate(routes[key]);
+    }
+  };
+
+  return (
+    <AppLayout
+      active="dashboard"
+      onNavigate={handleNavigate}
+      user={{
+        name: "Admin",
+      }}
+    >
+      {/* <Dashboard /> */}
+    </AppLayout>
+  );
+}
 
 // ===============================
 // App
 // ===============================
 
 export default function App() {
-
   return (
-
     <BrowserRouter>
-
       <Routes>
 
-        {/* =====================
-            Frontdoor
-        ====================== */}
-
+        {/* Frontdoor */}
         <Route
           path="/"
           element={<Frontdoor />}
         />
 
-
-        {/* =====================
-            Login
-        ====================== */}
-
+        {/* Login */}
         <Route
           path="/login"
           element={<Login />}
         />
 
-
-        {/* =====================
-            Dashboard
-        ====================== */}
-
+        {/* Dashboard */}
         <Route
           path="/dashboard"
-          element={<Dashboard />}
+          element={<DashboardLayout />}
         />
 
-
-        {/* =====================
-            Unknown URL
-        ====================== */}
-
+        {/* Unknown URL */}
         <Route
           path="*"
-          element={<Navigate to="/" replace />}
+          element={
+            <Navigate
+              to="/"
+              replace
+            />
+          }
         />
 
       </Routes>
-
     </BrowserRouter>
-
   );
 }
