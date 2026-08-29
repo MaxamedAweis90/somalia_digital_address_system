@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import AddDistrict from "./pages/districts/AddDistrict";
 
 // Frontdoor components
 import AnnouncementBar from "./Frontdoor/AnnouncementBar";
@@ -27,6 +28,10 @@ function Frontdoor() {
       <AnnouncementBar />
       <Header />
       <Hero />
+      <Route
+  path="/districts/add"
+  element={<AddDistrict />}
+/>
       <Features />
       <Coverage />
       <FinalCTA />
