@@ -7,9 +7,9 @@ export default function Footer() {
         <span className="mark">
           <img src={logoImg} alt="Cinwaan logo" />
         </span>
-        Cinwaan
+        SDAS
       </div>
-      <span>© 2026 Cinwaan Technologies · Mogadishu, Somalia</span>
+      <span>© 2026 SOMALI DIGITAL ADDRESS SYSTEM · Mogadishu, Somalia</span>
     </footer>
   );
 }
