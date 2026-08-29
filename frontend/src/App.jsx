@@ -10,7 +10,7 @@ import {
 // Frontdoor Components
 // ===============================
 
-import AnnouncementBar from "./Frontdoor/AnnouncementBar";
+import AnnouncementBar from "./Frontdoor/AnnouncementBar" ;
 import Header from "./Frontdoor/Header";
 import Hero from "./Frontdoor/Hero";
 import Features from "./Frontdoor/Features";
