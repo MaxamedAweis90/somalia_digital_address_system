@@ -51,13 +51,13 @@ const STEPS = [
   },
   {
     num: "02",
-    title: "Get your cinwaan",
+    title: "Get your Somali Digital Address System",
     body: "A short code is generated instantly and linked to the exact coordinate.",
   },
   {
     num: "03",
     title: "Share it anywhere",
-    body: "Give it to a courier, a bank, or a friend — it resolves the same way every time.",
+    body: "Give it to a courier, a bank, or a friend it resolves the same way every time.",
   },
 ];
 
@@ -65,14 +65,14 @@ export default function Features() {
   return (
     <section className="section">
       <div className="section-head">
-        <div className="kicker">Why cinwaan</div>
+        <div className="kicker">Why Somali Digital Address System</div>
         <h2>
           Somalia grew a generation without formal addresses. We're not waiting for street
           signs to catch up.
         </h2>
         <p>
-          Cinwaan generates a short, shareable code for any point on the map — a shop, a
-          compound, a water point — and keeps it tied to the coordinate underneath, so it
+          Cinwaan generates a short, shareable code for any point on the map a shop, a
+          compound, a water point  and keeps it tied to the coordinate underneath, so it
           works the same in Mogadishu, Hargeisa, or Kismayo.
         </p>
       </div>
