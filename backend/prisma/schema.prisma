@@ -21,8 +21,22 @@ model User {
   @@map("user")
 }
 
+model Region {
+  id        String     @id @default(cuid())
+  name      String
+  code      String     @unique
+  status    Status     @default(ACTIVE)
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
+  districts District[]
+
+  @@index([code], map: "region_code_index")
+  @@map("regions")
+}
+
 model District {
   id            String         @id @default(cuid())
+  regionId      String         @map("region_id")
   name          String
   code          String         @unique
   status        Status         @default(ACTIVE)
@@ -30,8 +44,10 @@ model District {
   updatedAt     DateTime       @updatedAt @map("updated_at")
   addresses     Address[]
   neighborhoods Neighborhood[]
+  region        Region         @relation(fields: [regionId], references: [id])
 
   @@index([code], map: "district_code_index")
+  @@index([regionId], map: "district_region_index")
   @@map("districts")
 }
 
