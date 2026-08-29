@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import somaliaFlag from "@/assets/images.jpg";
+import sdasLogo from "@/assets/logo/sdas_logo.png";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -65,16 +66,18 @@ export default function Login() {
           RIGHT COLUMN - CLEAN STREAMLINED LOGIN FORM
       ====================================================== */}
       <div className="w-full flex flex-col justify-center items-center p-6 sm:p-12 lg:p-16 xl:p-20 min-h-screen bg-white">
-        <div className="w-full max-w-95 mx-auto space-y-7">
+        <div className="w-full max-w-[380px] mx-auto space-y-7">
           {/* Header */}
-          <div className="space-y-4 flex justify-center items-center flex-col">
+          <div className="space-y-4">
             <Link to="/" className="inline-block hover:opacity-90 transition-opacity">
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#0056B3] text-2xl font-bold text-white shadow-sm">
-                S
-              </div>
+              <img
+                src={sdasLogo}
+                alt="SDAS - Somali Digital Address System"
+                className="h-16 sm:h-20 w-auto object-contain"
+              />
             </Link>
 
-            <div className="space-y-1 text-center">
+            <div className="space-y-1">
               <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 font-display tracking-tight">
                 Government Official Sign In
               </h2>
@@ -84,13 +87,14 @@ export default function Login() {
             </div>
           </div>
 
-          {/* Form */}
+          {/* Error Message */}
           {error && (
             <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
               {error}
             </div>
           )}
 
+          {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Official Email */}
             <div className="space-y-1.5">
@@ -211,9 +215,9 @@ export default function Login() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-2.5 px-4 rounded-lg bg-[#0056B3] hover:bg-[#00458F] active:bg-[#003B7A] text-white text-sm font-semibold shadow-xs hover:shadow transition duration-150 cursor-pointer flex items-center justify-center gap-1.5"
+              className="w-full py-2.5 px-4 rounded-lg bg-[#0056B3] hover:bg-[#00458F] active:bg-[#003B7A] text-white text-sm font-semibold shadow-xs hover:shadow transition duration-150 cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-60"
             >
-              <span>Sign In →</span>
+              <span>{isLoading ? "Signing in..." : "Sign In →"}</span>
             </button>
           </form>
 
