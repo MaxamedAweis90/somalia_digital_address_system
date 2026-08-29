@@ -1,38 +1,57 @@
-import { PrismaClient } from '@prisma/client';
-import { PrismaPg } from '@prisma/adapter-pg';
-import pg from 'pg';
-import dotenv from 'dotenv';
+import "dotenv/config";
+import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { hashPassword } from "../src/utils/hash.utils.js";
 
-dotenv.config();
+const prisma = new PrismaClient({
+  adapter: new PrismaPg(process.env.DATABASE_URL),
+});
 
-// Abuur Pg Pool iyo Prisma Adapter
-const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
-const adapter = new PrismaPg(pool);
-const prisma = new PrismaClient({ adapter });
+async function withRetry(operation, { retries = 3, delayMs = 2_000 } = {}) {
+  let lastError;
+
+  for (let attempt = 1; attempt <= retries; attempt += 1) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error;
+
+      if (attempt === retries || error.code !== "ETIMEDOUT") {
+        throw error;
+      }
+
+      console.log(`Connection timed out. Retrying (${attempt}/${retries})...`);
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
+  }
+
+  throw lastError;
+}
 
 async function main() {
-  const hashedPassword = await hashPassword('Password123!');
+  const hashedPassword = await hashPassword("Password123!");
 
-  const user = await prisma.user.upsert({
-    where: { email: 'admin@somalia.gov.so' },
-    update: {},
-    create: {
-      name: "ahmed",
-      email: 'admin@somalia.gov.so',
-      password: hashedPassword,
-      updatedAt: new Date(),
-    },
-  });
+  const user = await withRetry(() =>
+    prisma.user.upsert({
+      where: { email: "admin@somalia.gov.so" },
+      update: { role: "SYS_ADMIN" },
+      create: {
+        name: "ahmed",
+        email: "admin@somalia.gov.so",
+        password: hashedPassword,
+        role: "SYS_ADMIN",
+      },
+    })
+  );
 
-  console.log('✅ Seed Data Successfully Loaded! Admin User created:', user.email);
+  console.log("✅ Seed complete. Admin user:", user.email);
 }
 
 main()
-  .catch((e) => {
-    console.error('❌ Error during seeding:', e);
+  .catch((error) => {
+    console.error("❌ Seed failed:", error.message || error);
     process.exit(1);
   })
   .finally(async () => {
-    await pool.end();
     await prisma.$disconnect();
   });

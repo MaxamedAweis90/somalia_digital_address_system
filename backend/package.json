@@ -5,7 +5,8 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "server": "node --watch server.js"
+    "server": "node --watch server.js",
+    "db:seed": "node prisma/seed.js"
   },
   "keywords": [],
   "author": "",

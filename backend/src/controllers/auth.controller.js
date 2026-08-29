@@ -15,7 +15,7 @@ export const registerUser = async (req, res) => {
 
     } catch (err) {
 
-        return res.status(400).json({ success: false, message: error.message });
+        return res.status(400).json({ success: false, message: err.message });
 
 
     }
