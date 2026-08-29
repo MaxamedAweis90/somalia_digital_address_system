@@ -1,6 +1,6 @@
 import logoImg from "@/assets/logo/logo-icon.png";
 
-export default function Logo({ variant = "dark" }) {
+export default function Logo() {
   return (
     <div className="logo">
       <span className="mark">
