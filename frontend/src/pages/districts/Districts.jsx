@@ -8,8 +8,7 @@ const District = () => {
   const [statusFilter, setStatusFilter] = useState("All");
 
   // Temporary district data
-  // Later waxaad API/backend kaga soo qaadan kartaa
-  const districts = [
+  const initialDistricts = [
     {
       id: 1,
       name: "Hodan",
@@ -92,6 +91,16 @@ const District = () => {
     },
   ];
 
+  const [districts, setDistricts] = useState(initialDistricts);
+
+  const handleDelete = (id) => {
+    const confirmDelete = window.confirm(
+      "Are you sure you want to delete this district?"
+    );
+    if (!confirmDelete) return;
+    setDistricts((current) => current.filter((d) => d.id !== id));
+  };
+
   // Search and filter
   const filteredDistricts = useMemo(() => {
     return districts.filter((district) => {
@@ -150,7 +159,7 @@ const District = () => {
 
           {/* ADD DISTRICT */}
           <button
-            onClick={() => navigate("/districts/add")}
+            onClick={() => navigate("add")}
             className="
               h-[39px]
               px-5
@@ -165,6 +174,7 @@ const District = () => {
               active:scale-[0.98]
               self-start
               sm:self-auto
+              cursor-pointer
             "
           >
             + Add District
@@ -367,32 +377,10 @@ const District = () => {
                       <td className="px-5 py-4">
                         <div className="flex items-center justify-end gap-2">
                           
-                          {/* VIEW */}
-                          <button
-                            onClick={() =>
-                              navigate(`/districts/${district.id}`)
-                            }
-                            className="
-                              h-[32px]
-                              rounded-md
-                              border
-                              border-line
-                              bg-white
-                              px-3
-                              text-[11px]
-                              font-semibold
-                              text-ink
-                              transition-all
-                              hover:bg-bg
-                            "
-                          >
-                            View
-                          </button>
-
                           {/* EDIT */}
                           <button
                             onClick={() =>
-                              navigate(`/districts/edit/${district.id}`)
+                              navigate(`edit/${district.id}`)
                             }
                             className="
                               h-[32px]
@@ -404,9 +392,31 @@ const District = () => {
                               text-white
                               transition-all
                               hover:bg-[#0F2B4D]
+                              cursor-pointer
                             "
                           >
                             Edit
+                          </button>
+
+                          {/* DELETE */}
+                          <button
+                            onClick={() => handleDelete(district.id)}
+                            className="
+                              h-[32px]
+                              rounded-md
+                              border
+                              border-red-200
+                              bg-white
+                              px-3
+                              text-[11px]
+                              font-semibold
+                              text-red-600
+                              transition-all
+                              hover:bg-red-50
+                              cursor-pointer
+                            "
+                          >
+                            Delete
                           </button>
 
                         </div>

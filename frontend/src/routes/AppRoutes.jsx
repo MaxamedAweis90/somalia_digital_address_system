@@ -8,6 +8,14 @@ import Login from "@/pages/auth/Login";
 import Dashboard from "@/pages/dashboard/Dashboard";
 import PlaceholderPage from "@/pages/admin/PlaceholderPage";
 
+// District & Zone pages
+import Districts from "@/pages/districts/Districts";
+import AddDistrict from "@/pages/districts/AddDistrict";
+import EditDistrict from "@/pages/districts/EditDistrict";
+import Zones from "@/pages/zones/Zones";
+import AddZone from "@/pages/zones/AddZone";
+import EditZone from "@/pages/zones/EditZone";
+
 import AnnouncementBar from "@/Frontdoor/AnnouncementBar";
 import Header from "@/Frontdoor/Header";
 import Hero from "@/Frontdoor/Hero";
@@ -65,30 +73,25 @@ export default function AppRoutes() {
       >
         <Route index element={<Navigate to="dashboard" replace />} />
         <Route path="dashboard" element={<Dashboard />} />
-        <Route
-          path="districts"
-          element={
-            <PlaceholderPage
-              title="District Management"
-              description="Manage districts, boundaries, and regional administrative codes."
-            />
-          }
-        />
+
+        {/* District routes */}
+        <Route path="districts" element={<Districts />} />
+        <Route path="districts/add" element={<AddDistrict />} />
+        <Route path="districts/edit/:id" element={<EditDistrict />} />
+        <Route path="districts/:id" element={<EditDistrict />} />
+
+        {/* Zone routes */}
+        <Route path="zones" element={<Zones />} />
+        <Route path="zones/add" element={<AddZone />} />
+        <Route path="zones/edit/:id" element={<EditZone />} />
+
+        {/* Other routes */}
         <Route
           path="neighborhoods"
           element={
             <PlaceholderPage
               title="Neighborhood Management"
               description="Manage local neighborhoods and residential sub-zones."
-            />
-          }
-        />
-        <Route
-          path="zones"
-          element={
-            <PlaceholderPage
-              title="Zone Management"
-              description="Configure cadastral zones and geographic sectors."
             />
           }
         />
@@ -150,15 +153,19 @@ export default function AppRoutes() {
       >
         <Route index element={<Navigate to="dashboard" replace />} />
         <Route path="dashboard" element={<Dashboard />} />
-        <Route
-          path="districts"
-          element={
-            <PlaceholderPage
-              title="District Management"
-              description="Manage districts, boundaries, and regional administrative codes."
-            />
-          }
-        />
+
+        {/* District routes */}
+        <Route path="districts" element={<Districts />} />
+        <Route path="districts/add" element={<AddDistrict />} />
+        <Route path="districts/edit/:id" element={<EditDistrict />} />
+        <Route path="districts/:id" element={<EditDistrict />} />
+
+        {/* Zone routes */}
+        <Route path="zones" element={<Zones />} />
+        <Route path="zones/add" element={<AddZone />} />
+        <Route path="zones/edit/:id" element={<EditZone />} />
+
+        {/* Other routes */}
         <Route
           path="neighborhoods"
           element={
@@ -169,20 +176,11 @@ export default function AppRoutes() {
           }
         />
         <Route
-          path="zones"
-          element={
-            <PlaceholderPage
-              title="Zone Management"
-              description="Configure cadastral zones and geographic sectors."
-            />
-          }
-        />
-        <Route
           path="addresses"
           element={
             <PlaceholderPage
               title="Address Registry"
-              description="Register and manage digital addresses."
+              description="Register, verify, and manage digital property addresses."
             />
           }
         />

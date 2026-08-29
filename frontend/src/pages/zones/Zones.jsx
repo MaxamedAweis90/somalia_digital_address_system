@@ -66,7 +66,7 @@ export default function Zone() {
         </div>
 
         <Link
-          to="/admin/zones/add"
+          to="add"
           className="rounded-lg bg-[#0056B3] px-5 py-3 text-center text-sm font-semibold text-white transition hover:bg-[#00458F]"
         >
           + Add Zone
@@ -178,9 +178,9 @@ export default function Zone() {
 
                         <button
                           onClick={() =>
-                            navigate(`/admin/zones/edit/${zone.id}`)
+                            navigate(`edit/${zone.id}`)
                           }
-                          className="rounded-lg border border-blue-200 px-3 py-2 text-xs font-semibold text-[#0056B3] hover:bg-blue-50"
+                          className="rounded-lg border border-blue-200 px-3 py-2 text-xs font-semibold text-[#0056B3] hover:bg-blue-50 cursor-pointer"
                         >
                           Edit
                         </button>
