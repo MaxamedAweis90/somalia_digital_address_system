@@ -1,5 +1,4 @@
-import React from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
 
 // ===============================
 // Frontdoor Components
@@ -54,45 +53,28 @@ function Frontdoor() {
 // ===============================
 
 function Dashboard() {
+  const navigate = useNavigate();
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-[#F6F8FB]">
 
       {/* Navbar */}
-
-      <nav className="flex h-16 items-center justify-between bg-white px-6 shadow-sm">
+      <nav className="flex h-16 items-center justify-between bg-white px-6 border-b border-[#E3E8EF] shadow-xs">
 
         <div className="flex items-center gap-3">
-
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0056B3] text-xl font-bold text-white">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#0056B3] text-xl font-bold text-white shadow-xs">
             S
           </div>
-
-          <h1 className="text-xl font-bold text-[#172B4D]">
+          <h1 className="text-xl font-bold text-[#0A1F35] font-display">
             SDAS
           </h1>
-
         </div>
 
-
         <button
-          onClick={() => {
-            window.location.href = "/login";
-          }}
-          className="
-            rounded-lg
-            bg-[#0056B3]
-            px-5
-            py-2
-            text-sm
-            font-semibold
-            text-white
-            transition
-            hover:bg-[#00458F]
-          "
+          onClick={() => navigate("/login")}
+          className="rounded-xl bg-[#0056B3] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[#00458F] shadow-xs cursor-pointer"
         >
           Logout
         </button>
-
       </nav>
 
 
