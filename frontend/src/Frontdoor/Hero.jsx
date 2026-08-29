@@ -7,10 +7,10 @@ export default function Hero() {
       <section className="hero">
         <h1>
           Every home in Somalia,<br />
-          from GPS point to <span className="accent">cinwaan</span>
+          from GPS point to <span className="accent">Somali Digital Address System (SDAS)</span>
         </h1>
         <p className="sub">
-          Give couriers, banks, and government services a real address to work with — even
+          Give couriers, banks, and government services a real address to work with even
           where streets have no names. One free API turns any coordinate into a short,
           memorable digital address, built for Somalia's mobile-first cities.
         </p>
@@ -37,8 +37,22 @@ export default function Hero() {
         </div>
 
         <div className="cta-row">
-          <a href="#" className="btn-primary">Get your address free</a>
-          <a href="#" className="btn-secondary">See how it works</a>
+          <a
+            href="#"
+            className="btn-primary"
+            style={{ backgroundColor: "#0056B3", borderColor: "#0056B3" }}
+            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#00458F")}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#0056B3")}
+          >
+            Get your address free
+          </a>
+          <a
+            href="#"
+            className="btn-secondary"
+            style={{ borderColor: "#0056B3", color: "#0056B3" }}
+          >
+            See how it works
+          </a>
         </div>
 
         <div className="stats">
@@ -126,7 +140,14 @@ export default function Hero() {
                     <span>Status</span>
                     <b style={{ color: "#1FA69B" }}>Verified</b>
                   </div>
-                  <button className="btn-mini">Share this address</button>
+                  <button
+                    className="btn-mini"
+                    style={{ backgroundColor: "#0056B3", borderColor: "#0056B3" }}
+                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#00458F")}
+                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#0056B3")}
+                  >
+                    Share this address
+                  </button>
                 </div>
               </div>
             </div>

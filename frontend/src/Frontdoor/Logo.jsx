@@ -6,7 +6,7 @@ export default function Logo() {
       <span className="mark">
         <img src={logoImg} alt="Cinwaan logo" />
       </span>
-      Cinwaan
+      Somali Digital Address 
     </div>
   );
 }

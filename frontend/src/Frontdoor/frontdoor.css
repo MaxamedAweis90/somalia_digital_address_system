@@ -101,7 +101,7 @@ nav.links .caret { font-size: 10px; margin-left: 3px; opacity: .6; }
 
 /* ── Buttons ──────────────────────────────────────────── */
 .btn-primary {
-  background: var(--color-night);
+  background:#0056B3;
   color: #fff;
   padding: 10px 20px;
   border-radius: 999px;

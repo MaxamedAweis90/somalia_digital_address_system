@@ -1,82 +1,81 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Logo from "./Logo.jsx";
 
-const NAV_LINKS = ["Platform", "Coverage", "Pricing", "Docs", "Blog"];
+// Official Government Navigation Links
+export const GOVT_NAV_LINKS = [
+  { name: "Address Lookup", path: "/search" },
+  { name: "Developer API", path: "/developers" },
+  { name: "Coverage & Districts", path: "/coverage" },
+  { name: "About SDAS", path: "/about" },
+];
 
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
-
   const navigate = useNavigate();
+
+  const handleNavigation = (path) => {
+    setMenuOpen(false);
+    navigate(path);
+  };
 
   const handleLogin = () => {
     setMenuOpen(false);
     navigate("/login");
   };
 
-  const handleGetStarted = () => {
-    setMenuOpen(false);
-    navigate("/login");
-  };
-
   return (
-    <div>
+    <div className="font-sans antialiased text-[#16233A]">
       {/* Desktop Header */}
-      <header className="site-header">
-
-        <Logo />
+      <header className="w-full flex items-center justify-between gap-6 px-6 lg:px-10 py-3 bg-white border-b border-gray-200">
+        <Link to="/" aria-label="Go to Home">
+          <Logo className="h-14 sm:h-16 lg:h-20 w-auto hover:opacity-80 transition-opacity cursor-pointer duration-200" />
+        </Link>
 
         {/* Navigation */}
-        <nav className="links">
-          {NAV_LINKS.map((link) => (
+        <nav className="hidden md:flex items-center gap-8">
+          {GOVT_NAV_LINKS.map((item) => (
             <a
-              key={link}
-              href="#"
-              onClick={(e) => e.preventDefault()}
+              key={item.name}
+              href={item.path}
+              onClick={(e) => {
+                e.preventDefault();
+                handleNavigation(item.path);
+              }}
+              className="text-sm font-medium text-gray-600 hover:text-[#0056B3] transition"
             >
-              {link}
-
-              {link === "Platform" && (
-                <span className="caret">▾</span>
-              )}
+              {item.name}
             </a>
           ))}
         </nav>
 
         {/* Right Navigation */}
-        <div className="nav-right">
-
+        <div className="hidden md:flex items-center gap-3">
           <button
             type="button"
-            className="login"
+            className="text-sm font-semibold text-[#0056B3] hover:text-[#00458F] px-3 py-2 transition cursor-pointer"
             onClick={handleLogin}
           >
-            Log in
+            Log in (Officers)
           </button>
 
           <button
             type="button"
-            className="btn-primary"
-            onClick={handleGetStarted}
+            className="text-sm font-semibold text-white bg-[#0056B3] hover:bg-[#00458F] active:bg-[#003B7A] rounded-lg px-4 py-2.5 shadow-xs hover:shadow transition cursor-pointer"
+            onClick={() => handleNavigation("/search")}
           >
-            Get Started
+            Find Address
           </button>
-
         </div>
 
         {/* Mobile Menu Button */}
         <button
-          className="mobile-menu-btn"
+          className="md:hidden inline-flex items-center justify-center rounded-lg p-2 hover:bg-gray-100 transition"
           onClick={() => setMenuOpen((v) => !v)}
           aria-label="Toggle menu"
           aria-expanded={menuOpen}
         >
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-          >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
             {menuOpen ? (
               <path
                 d="M6 6l12 12M18 6L6 18"
@@ -98,39 +97,37 @@ export default function Header() {
 
       {/* Mobile Navigation */}
       {menuOpen && (
-        <nav
-          className="mobile-nav"
-          style={{ display: "flex" }}
-        >
-          {NAV_LINKS.map((link) => (
+        <nav className="md:hidden flex flex-col gap-1 px-6 py-4 bg-white border-b border-gray-200">
+          {GOVT_NAV_LINKS.map((item) => (
             <a
-              key={link}
-              href="#"
-              onClick={(e) => e.preventDefault()}
+              key={item.name}
+              href={item.path}
+              onClick={(e) => {
+                e.preventDefault();
+                handleNavigation(item.path);
+              }}
+              className="text-sm font-medium text-gray-700 hover:text-[#0056B3] py-2.5 transition"
             >
-              {link}
+              {item.name}
             </a>
           ))}
 
-          <div className="mobile-actions">
-
+          <div className="flex flex-col gap-2 pt-3 mt-2 border-t border-gray-100">
             <button
               type="button"
-              className="login"
+              className="text-sm font-semibold text-[#0056B3] py-2 text-left cursor-pointer"
               onClick={handleLogin}
             >
-              Log in
+              Log in (Officers)
             </button>
 
             <button
               type="button"
-              className="btn-primary"
-              onClick={handleGetStarted}
-              style={{ justifyContent: "center" }}
+              className="text-sm font-semibold text-white bg-[#0056B3] hover:bg-[#00458F] rounded-lg px-4 py-2.5 justify-center flex transition cursor-pointer"
+              onClick={() => handleNavigation("/search")}
             >
-              Get Started
+              Find Address
             </button>
-
           </div>
         </nav>
       )}
