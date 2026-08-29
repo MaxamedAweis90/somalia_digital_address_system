@@ -1,5 +1,5 @@
-import StatCard from "../components/dashboard/StatCard";
-import RecentActivity from "../components/dashboard/RecentActivity";
+import StatCard from "@/components/dashboard/StatCard";
+import RecentActivity from "@/components/dashboard/RecentActivity";
 
 const stats = [
   {
