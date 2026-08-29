@@ -66,6 +66,51 @@ export default function AppRoutes() {
         <Route index element={<Navigate to="dashboard" replace />} />
         <Route path="dashboard" element={<Dashboard />} />
         <Route
+          path="districts"
+          element={
+            <PlaceholderPage
+              title="District Management"
+              description="Manage districts, boundaries, and regional administrative codes."
+            />
+          }
+        />
+        <Route
+          path="neighborhoods"
+          element={
+            <PlaceholderPage
+              title="Neighborhood Management"
+              description="Manage local neighborhoods and residential sub-zones."
+            />
+          }
+        />
+        <Route
+          path="zones"
+          element={
+            <PlaceholderPage
+              title="Zone Management"
+              description="Configure cadastral zones and geographic sectors."
+            />
+          }
+        />
+        <Route
+          path="addresses"
+          element={
+            <PlaceholderPage
+              title="Address Registry"
+              description="Register, verify, and manage digital property addresses."
+            />
+          }
+        />
+        <Route
+          path="search"
+          element={
+            <PlaceholderPage
+              title="Address Lookup & Search"
+              description="Query and inspect registered digital addresses and geographic coordinates."
+            />
+          }
+        />
+        <Route
           path="users"
           element={
             <PlaceholderPage
@@ -83,6 +128,15 @@ export default function AppRoutes() {
             />
           }
         />
+        <Route
+          path="settings"
+          element={
+            <PlaceholderPage
+              title="System Settings"
+              description="Configure portal preferences, security protocols, and system parameters."
+            />
+          }
+        />
       </Route>
 
       {/* Data Officer routes */}
@@ -97,6 +151,33 @@ export default function AppRoutes() {
         <Route index element={<Navigate to="dashboard" replace />} />
         <Route path="dashboard" element={<Dashboard />} />
         <Route
+          path="districts"
+          element={
+            <PlaceholderPage
+              title="District Management"
+              description="Manage districts, boundaries, and regional administrative codes."
+            />
+          }
+        />
+        <Route
+          path="neighborhoods"
+          element={
+            <PlaceholderPage
+              title="Neighborhood Management"
+              description="Manage local neighborhoods and residential sub-zones."
+            />
+          }
+        />
+        <Route
+          path="zones"
+          element={
+            <PlaceholderPage
+              title="Zone Management"
+              description="Configure cadastral zones and geographic sectors."
+            />
+          }
+        />
+        <Route
           path="addresses"
           element={
             <PlaceholderPage
@@ -106,11 +187,20 @@ export default function AppRoutes() {
           }
         />
         <Route
-          path="districts"
+          path="search"
           element={
             <PlaceholderPage
-              title="District Management"
-              description="Manage districts, neighborhoods, and zones."
+              title="Address Lookup & Search"
+              description="Query and inspect registered digital addresses and geographic coordinates."
+            />
+          }
+        />
+        <Route
+          path="settings"
+          element={
+            <PlaceholderPage
+              title="Officer Settings"
+              description="Configure officer account and display preferences."
             />
           }
         />
