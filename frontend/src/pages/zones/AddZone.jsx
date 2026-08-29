@@ -28,7 +28,7 @@ export default function AddZone() {
 
     alert("Zone added successfully!");
 
-    navigate("/admin/zones");
+    navigate(-1);
   };
 
   return (
@@ -37,12 +37,13 @@ export default function AddZone() {
       {/* Header */}
       <div className="mb-6">
 
-        <Link
-          to="/admin/zones"
-          className="text-sm font-medium text-[#0056B3] hover:underline"
+        <button
+          type="button"
+          onClick={() => navigate(-1)}
+          className="text-sm font-medium text-[#0056B3] hover:underline cursor-pointer"
         >
           ← Back to Zones
-        </Link>
+        </button>
 
         <h1 className="mt-4 text-3xl font-bold text-[#172B4D]">
           Add Zone

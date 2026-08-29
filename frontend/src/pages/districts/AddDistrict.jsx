@@ -1,15 +1,12 @@
 import { useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
-const EditDistrict = () => {
+const AddDistrict = () => {
   const navigate = useNavigate();
-  const { id } = useParams();
 
-  // Existing district data
-  // Later waxaad API/backend kaga beddeli kartaa
   const [formData, setFormData] = useState({
-    districtName: "Hodan",
-    districtCode: "HDN",
+    districtName: "",
+    districtCode: "",
     active: true,
   });
 
@@ -71,7 +68,7 @@ const EditDistrict = () => {
     return isValid;
   };
 
-  // Submit updated district
+  // Submit new district
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -80,19 +77,18 @@ const EditDistrict = () => {
     try {
       setLoading(true);
 
-      const updatedDistrict = {
-        id,
+      const newDistrict = {
+        id: Date.now(),
         ...formData,
       };
 
-      // Backend API integration later
-      console.log("Updated District:", updatedDistrict);
+      console.log("Created District:", newDistrict);
 
       await new Promise((resolve) => setTimeout(resolve, 800));
 
-      navigate("/districts");
+      navigate(-1);
     } catch (error) {
-      console.error("Error updating district:", error);
+      console.error("Error creating district:", error);
     } finally {
       setLoading(false);
     }
@@ -110,14 +106,17 @@ const EditDistrict = () => {
             BREADCRUMB
         ========================= */}
         <div className="flex items-center gap-2 text-[11px] font-medium text-ink-soft mb-6">
-          <span className="hover:text-blue cursor-pointer">
+          <span
+            onClick={() => navigate("/dashboard")}
+            className="hover:text-blue cursor-pointer"
+          >
             Dashboard
           </span>
 
           <span className="text-gray-400">›</span>
 
           <span
-            onClick={() => navigate("/districts")}
+            onClick={() => navigate(-1)}
             className="hover:text-blue cursor-pointer"
           >
             Districts
@@ -125,8 +124,8 @@ const EditDistrict = () => {
 
           <span className="text-gray-400">›</span>
 
-          <span className="text-ink">
-            Edit District
+          <span className="text-ink font-semibold">
+            Add District
           </span>
         </div>
 
@@ -135,8 +134,11 @@ const EditDistrict = () => {
         ========================= */}
         <div className="mb-6">
           <h1 className="font-display text-[25px] font-semibold tracking-tight text-ink">
-            Edit District
+            Add District
           </h1>
+          <p className="mt-1 text-[13px] text-ink-soft">
+            Create a new administrative district in the registry.
+          </p>
         </div>
 
         {/* =========================
@@ -163,7 +165,7 @@ const EditDistrict = () => {
             </h2>
 
             <p className="mt-1 text-[13px] text-ink-soft">
-              Update the official information for this administrative district.
+              Enter the official information for this new administrative district.
             </p>
           </div>
 
@@ -255,8 +257,6 @@ const EditDistrict = () => {
                     bg-white
                     px-3
                     text-[13px]
-                    font-medium
-                    tracking-wide
                     text-ink
                     outline-none
                     transition-all
@@ -271,75 +271,57 @@ const EditDistrict = () => {
                   `}
                 />
 
-                {errors.districtCode ? (
-                  <div className="flex items-center gap-1 mt-2">
-                    <span className="text-red-500 text-xs">ⓘ</span>
-
-                    <p className="text-[10px] font-medium text-red-500">
-                      {errors.districtCode}
-                    </p>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-1 mt-2">
-                    <span className="text-red-500 text-xs">ⓘ</span>
-
-                    <p className="text-[10px] font-medium text-red-500">
-                      District code must be unique
-                    </p>
-                  </div>
+                {errors.districtCode && (
+                  <p className="mt-1.5 text-[11px] text-red-500">
+                    {errors.districtCode}
+                  </p>
                 )}
               </div>
 
               {/* =========================
-                  ACTIVE STATUS
+                  STATUS TOGGLE
               ========================= */}
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between pt-4 border-t border-line">
                 <div>
-                  <h3 className="text-[12px] font-semibold text-ink">
+                  <label
+                    htmlFor="activeToggle"
+                    className="text-[13px] font-semibold text-ink block cursor-pointer"
+                  >
                     Active Status
-                  </h3>
-
-                  <p className="mt-1 text-[13px] text-ink-soft">
-                    Set whether this district is currently active in the registry.
+                  </label>
+                  <p className="text-[12px] text-ink-soft mt-0.5">
+                    Enable or disable this district in the system
                   </p>
                 </div>
 
-                {/* Toggle */}
                 <button
                   type="button"
+                  id="activeToggle"
+                  role="switch"
+                  aria-checked={formData.active}
                   onClick={handleToggle}
-                  aria-label="Toggle district active status"
                   className={`
                     relative
-                    flex-shrink-0
-                    w-[38px]
-                    h-[21px]
+                    inline-flex
+                    h-6
+                    w-11
+                    items-center
                     rounded-full
                     transition-colors
-                    duration-200
-                    ${
-                      formData.active
-                        ? "bg-blue-deep"
-                        : "bg-gray-300"
-                    }
+                    cursor-pointer
+                    ${formData.active ? "bg-blue-600" : "bg-gray-300"}
                   `}
                 >
                   <span
                     className={`
-                      absolute
-                      top-[3px]
-                      w-[15px]
-                      h-[15px]
+                      inline-block
+                      h-4
+                      w-4
+                      transform
                       rounded-full
                       bg-white
-                      shadow-sm
                       transition-transform
-                      duration-200
-                      ${
-                        formData.active
-                          ? "translate-x-[20px]"
-                          : "translate-x-[3px]"
-                      }
+                      ${formData.active ? "translate-x-6" : "translate-x-1"}
                     `}
                   />
                 </button>
@@ -349,59 +331,49 @@ const EditDistrict = () => {
             {/* =========================
                 CARD FOOTER
             ========================= */}
-            <div className="border-t border-line px-5 py-5">
-              <div className="flex justify-end gap-3">
-                {/* CANCEL */}
-                <button
-                  type="button"
-                  onClick={handleCancel}
-                  disabled={loading}
-                  className="
-                    min-w-[82px]
-                    h-[39px]
-                    rounded-lg
-                    border
-                    border-[#AEB9C7]
-                    bg-white
-                    px-5
-                    text-[12px]
-                    font-semibold
-                    text-ink
-                    transition-all
-                    hover:bg-gray-50
-                    disabled:opacity-50
-                    disabled:cursor-not-allowed
-                  "
-                >
-                  Cancel
-                </button>
+            <div className="flex items-center justify-end gap-3 px-5 py-4 bg-[#FBFBFC] border-t border-line">
+              <button
+                type="button"
+                onClick={handleCancel}
+                disabled={loading}
+                className="
+                  h-[36px]
+                  px-4
+                  rounded-lg
+                  border
+                  border-line
+                  bg-white
+                  text-[12px]
+                  font-semibold
+                  text-ink-soft
+                  hover:bg-bg
+                  transition-all
+                  cursor-pointer
+                "
+              >
+                Cancel
+              </button>
 
-                {/* UPDATE */}
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="
-                    min-w-[125px]
-                    h-[39px]
-                    rounded-lg
-                    bg-blue-deep
-                    px-5
-                    text-[12px]
-                    font-semibold
-                    text-white
-                    shadow-cta
-                    transition-all
-                    hover:bg-[#0F2B4D]
-                    active:scale-[0.98]
-                    disabled:opacity-60
-                    disabled:cursor-not-allowed
-                  "
-                >
-                  {loading
-                    ? "Updating..."
-                    : "Update District"}
-                </button>
-              </div>
+              <button
+                type="submit"
+                disabled={loading}
+                className="
+                  h-[36px]
+                  px-5
+                  rounded-lg
+                  bg-blue-deep
+                  text-[12px]
+                  font-semibold
+                  text-white
+                  hover:bg-[#0F2B4D]
+                  transition-all
+                  shadow-cta
+                  cursor-pointer
+                  disabled:opacity-50
+                "
+              >
+                {loading ? "Saving..." : "Add District"}
+              </button>
             </div>
           </form>
         </div>
@@ -410,4 +382,4 @@ const EditDistrict = () => {
   );
 };
 
-export default EditDistrict;
+export default AddDistrict;

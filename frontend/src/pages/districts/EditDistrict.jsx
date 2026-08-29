@@ -91,7 +91,7 @@ const EditDistrict = () => {
 
       await new Promise((resolve) => setTimeout(resolve, 800));
 
-      navigate("/districts");
+      navigate(-1);
     } catch (error) {
       console.error("Error updating district:", error);
     } finally {
