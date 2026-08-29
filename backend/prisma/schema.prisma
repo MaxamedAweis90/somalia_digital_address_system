@@ -1,22 +1,45 @@
 datasource db {
   provider = "postgresql"
-  
 }
 
 generator client {
   provider = "prisma-client-js"
 }
 
+// ==========================================
+// ENUMS
+// ==========================================
+
+enum UserRole {
+  SYS_ADMIN
+  DATA_OFFICER
+}
+
+enum Status {
+  ACTIVE
+  INACTIVE
+}
+
+enum ActionType {
+  CREATE
+  UPDATE
+  DELETE
+}
+
+// ==========================================
+// AUTHENTICATION & USER MODELS
+// ==========================================
 model User {
-  id            String    @id @default(cuid())
+  id            String     @id @default(cuid())
   name          String
-  email         String    @unique
-  emailVerified Boolean   @default(false)
+  email         String     @unique
+  emailVerified Boolean    @default(false)
   image         String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
   sessions      Session[]
   accounts      Account[]
+  auditLogs     AuditLog[]
 
   @@map("user")
 }
@@ -63,4 +86,93 @@ model Verification {
   updatedAt  DateTime @updatedAt
 
   @@map("verification")
+}
+
+// ==========================================
+// DOMAIN MODELS
+// ==========================================
+
+model District {
+  id        String   @id @default(cuid())
+  name      String
+  code      String   @unique
+  status    Status   @default(ACTIVE)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  neighborhoods Neighborhood[]
+  addresses     Address[]
+
+  @@map("districts")
+  @@index([code], name: "district_code_index")
+}
+
+model Neighborhood {
+  id         String   @id @default(cuid())
+  districtId String   @map("district_id")
+  name       String
+  code       String   @unique
+  status     Status   @default(ACTIVE)
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  district  District  @relation(fields: [districtId], references: [id])
+  zones     Zone[]
+  addresses Address[]
+
+  @@map("neighborhoods")
+  @@index([code, districtId], name: "neighborhood_code_and_district_index")
+}
+
+model Zone {
+  id             String                  @id @default(cuid())
+  neighborhoodId String                  @map("neighborhood_id")
+  name           String
+  code           String                  @unique
+  status         Status                  @default(ACTIVE)
+// Restrict to MultiPolygon or Polygon using SRID 4326 (standard GPS coordinates)
+  geometry       Unsupported("geometry(MultiPolygon, 4326)")
+  createdAt      DateTime                @default(now()) @map("created_at")
+  updatedAt      DateTime                @updatedAt @map("updated_at")
+
+  neighborhood Neighborhood @relation(fields: [neighborhoodId], references: [id])
+  addresses    Address[]
+
+  @@map("zones")
+  @@index([code, neighborhoodId], name: "zone_code_and_neighborhood_index")
+}
+
+model Address {
+  id             String   @id @default(cuid())
+  addressCode    String   @unique @map("address_code")
+  districtId     String   @map("district_id")
+  neighborhoodId String   @map("neighborhood_id")
+  zoneId         String   @map("zone_id")
+  houseNumber    BigInt   @map("house_number")
+  streetName     String   @map("street_name")
+  description    String
+  status         Status   @default(ACTIVE)
+  location       String
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  district     District     @relation(fields: [districtId], references: [id])
+  neighborhood Neighborhood @relation(fields: [neighborhoodId], references: [id])
+  zone         Zone         @relation(fields: [zoneId], references: [id])
+
+  @@map("addresses")
+  @@index([addressCode, districtId, neighborhoodId, zoneId], name: "address_code_and_location_index")
+}
+
+model AuditLog {
+  id         String     @id @default(cuid())
+  userId     String     @map("user_id")
+  action     String
+  actionType ActionType @map("action_type")
+  entityId   String     @map("entity_id")
+  timestamp  DateTime   @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("audit_logs")
 }
