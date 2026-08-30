@@ -10,9 +10,9 @@ import {
 
 const RegionRouter = Router();
 
-// Read operations: Available to both SYS_ADMIN and DATA_OFFICER for cascading dropdowns
-RegionRouter.get("/", authorize("SYS_ADMIN", "DATA_OFFICER"), getRegions);
-RegionRouter.get("/:id", authorize("SYS_ADMIN", "DATA_OFFICER"), getRegionById);
+// Read operations: Available to SYS_ADMIN, DATA_OFFICER, and DATA_COLLECTOR for cascading dropdowns
+RegionRouter.get("/", authorize("SYS_ADMIN", "DATA_OFFICER", "DATA_COLLECTOR"), getRegions);
+RegionRouter.get("/:id", authorize("SYS_ADMIN", "DATA_OFFICER", "DATA_COLLECTOR"), getRegionById);
 
 // Write operations: Strictly restricted to SYS_ADMIN
 RegionRouter.post("/", authorize("SYS_ADMIN"), createRegion);

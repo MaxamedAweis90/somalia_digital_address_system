@@ -210,8 +210,8 @@ Three-tier workflow: Admin → parent task → Officer → child tasks → Colle
 | Issue | Focus | Status |
 |-------|-------|--------|
 | **Issue 1** | Full implementation plan, API list, permissions, test scenarios | ✅ Done |
-| **Issue 2** | Schema, `DATA_COLLECTOR` role, parent/child CRUD APIs | Not started |
-| **Issue 3** | Officer review, merge, collector portal, admin UI updates | Not started |
+| **Issue 2** | Schema, `DATA_COLLECTOR` role, parent/child CRUD APIs | ✅ Done |
+| **Issue 3** | Officer review, merge, collector portal, admin UI updates | ✅ Done |
 
 See the planning doc for checkbox task lists, dependencies, and E2E scenarios.
 
