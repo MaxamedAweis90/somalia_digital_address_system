@@ -1,5 +1,7 @@
 import { prisma } from "../db.js";
 
+const VALID_ACTION_TYPES = ["CREATE", "UPDATE", "DELETE"];
+
 export const AuditLogService = {
   /**
    * Helper function to log system activities.
@@ -11,25 +13,30 @@ export const AuditLogService = {
    * @returns {Promise<Object>} The created audit log entry
    */
   createAuditLog: async ({ userId, action, actionType, entityId }) => {
-    if (!userId) {
+    if (!userId || typeof userId !== "string" || !userId.trim()) {
       throw new Error("User ID is required for audit logging");
     }
-    if (!action?.trim()) {
+    if (!action || typeof action !== "string" || !action.trim()) {
       throw new Error("Action description is required");
     }
     if (!actionType) {
       throw new Error("Action type is required");
     }
-    if (!entityId) {
+    if (!entityId || typeof entityId !== "string" || !entityId.trim()) {
       throw new Error("Entity ID is required");
+    }
+
+    const uppercaseActionType = String(actionType).toUpperCase();
+    if (!VALID_ACTION_TYPES.includes(uppercaseActionType)) {
+      throw new Error(`Invalid action type: must be one of ${VALID_ACTION_TYPES.join(", ")}`);
     }
 
     return prisma.auditLog.create({
       data: {
-        userId,
+        userId: userId.trim(),
         action: action.trim(),
-        actionType,
-        entityId,
+        actionType: uppercaseActionType,
+        entityId: entityId.trim(),
       },
     });
   },
@@ -44,17 +51,33 @@ export const AuditLogService = {
    * @returns {Promise<{logs: Array, pagination: Object}>} Paginated logs and metadata
    */
   getAuditLogs: async ({ page = 1, limit = 10, actionType, search }) => {
-    const skip = (page - 1) * limit;
-    const take = Number(limit);
+    // Robust parsing for numbers to prevent NaN/invalid inputs
+    let parsedPage = parseInt(page, 10);
+    let parsedLimit = parseInt(limit, 10);
+
+    if (isNaN(parsedPage) || parsedPage < 1) {
+      parsedPage = 1;
+    }
+    if (isNaN(parsedLimit) || parsedLimit < 1) {
+      parsedLimit = 10;
+    }
+
+    const skip = (parsedPage - 1) * parsedLimit;
+    const take = parsedLimit;
 
     // Build filter criteria
     const where = {};
 
     if (actionType) {
-      where.actionType = actionType;
+      const uppercaseActionType = String(actionType).toUpperCase();
+      if (VALID_ACTION_TYPES.includes(uppercaseActionType)) {
+        where.actionType = uppercaseActionType;
+      } else {
+        throw new Error(`Invalid action type filter: must be one of ${VALID_ACTION_TYPES.join(", ")}`);
+      }
     }
 
-    if (search?.trim()) {
+    if (search && typeof search === "string" && search.trim()) {
       const searchPattern = search.trim();
       where.OR = [
         { action: { contains: searchPattern, mode: "insensitive" } },
@@ -93,9 +116,9 @@ export const AuditLogService = {
       logs,
       pagination: {
         total,
-        page: Number(page),
-        limit: take,
-        totalPages: Math.ceil(total / take),
+        page: parsedPage,
+        limit: parsedLimit,
+        totalPages: Math.ceil(total / parsedLimit),
       },
     };
   },
