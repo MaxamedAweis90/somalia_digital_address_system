@@ -1,19 +1,34 @@
-import React from "react";
-
 export default function StatusBadge({ status }) {
-  const styles =
-    status === "Verified" || status === "Active"
-      ? "bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-200"
-      : "bg-slate-100 text-slate-600 ring-1 ring-inset ring-slate-200";
+  const normalized = (status || "ACTIVE").toUpperCase();
+  const isActive = normalized === "ACTIVE" || status === "Verified";
 
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${styles}`}
+      className={`
+        inline-flex
+        items-center
+        rounded-full
+        px-3
+        py-1
+        text-[10px]
+        font-semibold
+        ${
+          isActive
+            ? "bg-green-50 text-green-600 border border-green-100"
+            : "bg-gray-100 text-gray-500 border border-gray-200"
+        }
+      `}
     >
-      {status === "Active" && (
-        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-      )}
-      {status}
+      <span
+        className={`
+          mr-1.5
+          h-1.5
+          w-1.5
+          rounded-full
+          ${isActive ? "bg-green-500" : "bg-gray-400"}
+        `}
+      />
+      {isActive ? "Active" : "Inactive"}
     </span>
   );
 }

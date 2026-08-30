@@ -101,6 +101,85 @@ async function main() {
     createdCount += 1;
   }
   console.log(`✅ ${createdCount} official Somali regions successfully seeded.`);
+
+  const defaultSettings = [
+    {
+      key: "system_name",
+      label: "System Name",
+      value: "Somalia Digital Address System",
+      description: "Official name displayed across the portal.",
+      category: "general",
+      type: "STRING",
+    },
+    {
+      key: "support_email",
+      label: "Support Email",
+      value: "support@somalia.gov.so",
+      description: "Contact email for registry support.",
+      category: "general",
+      type: "STRING",
+    },
+    {
+      key: "dac_house_number_pad",
+      label: "DAC House Number Padding",
+      value: "4",
+      description: "Number of digits used for the house segment in DAC codes.",
+      category: "addressing",
+      type: "NUMBER",
+    },
+    {
+      key: "public_lookup_enabled",
+      label: "Public Address Lookup",
+      value: "true",
+      description: "Allow citizens to search addresses on the public portal.",
+      category: "addressing",
+      type: "BOOLEAN",
+    },
+    {
+      key: "default_map_latitude",
+      label: "Default Map Latitude",
+      value: "2.0469",
+      description: "Default map center latitude (Mogadishu).",
+      category: "maps",
+      type: "NUMBER",
+    },
+    {
+      key: "default_map_longitude",
+      label: "Default Map Longitude",
+      value: "45.3186",
+      description: "Default map center longitude (Mogadishu).",
+      category: "maps",
+      type: "NUMBER",
+    },
+    {
+      key: "maintenance_mode",
+      label: "Maintenance Mode",
+      value: "false",
+      description: "When enabled, non-admin users see a maintenance notice.",
+      category: "system",
+      type: "BOOLEAN",
+    },
+  ];
+
+  for (const setting of defaultSettings) {
+    await withRetry(() =>
+      prisma.appSetting.upsert({
+        where: { key: setting.key },
+        update: {
+          label: setting.label,
+          description: setting.description,
+          category: setting.category,
+          type: setting.type,
+        },
+        create: {
+          ...setting,
+          isSystem: true,
+        },
+      })
+    );
+  }
+
+  console.log(`✅ ${defaultSettings.length} system settings seeded.`);
 }
 
 main()
