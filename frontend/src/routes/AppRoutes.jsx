@@ -19,6 +19,10 @@ import Zones from "@/pages/zones/Zones";
 import AddZone from "@/pages/zones/AddZone";
 import EditZone from "@/pages/zones/EditZone";
 import ViewZone from "@/pages/zones/ViewZone";
+import Addresses from "@/pages/addresses/Addresses";
+import AddAddress from "@/pages/addresses/AddAddress";
+import EditAddress from "@/pages/addresses/EditAddress";
+import ViewAddress from "@/pages/addresses/ViewAddress";
 import Neighborhoods from "@/pages/neighborhoods/Neighborhoods";
 import AddNeighborhood from "@/pages/neighborhoods/AddNeighborhood";
 import EditNeighborhood from "@/pages/neighborhoods/EditNeighborhood";
@@ -108,16 +112,13 @@ export default function AppRoutes() {
         <Route path="zones/view/:id" element={<ViewZone />} />
         <Route path="zones/edit/:id" element={<EditZone />} />
 
+        {/* Address routes */}
+        <Route path="addresses" element={<Addresses />} />
+        <Route path="addresses/add" element={<AddAddress />} />
+        <Route path="addresses/view/:id" element={<ViewAddress />} />
+        <Route path="addresses/edit/:id" element={<EditAddress />} />
+
         {/* Other routes */}
-        <Route
-          path="addresses"
-          element={
-            <PlaceholderPage
-              title="Address Registry"
-              description="Register, verify, and manage digital property addresses."
-            />
-          }
-        />
         <Route
           path="search"
           element={
@@ -182,16 +183,13 @@ export default function AppRoutes() {
         <Route path="zones/view/:id" element={<ViewZone />} />
         <Route path="zones/edit/:id" element={<EditZone />} />
 
+        {/* Address routes */}
+        <Route path="addresses" element={<Addresses />} />
+        <Route path="addresses/add" element={<AddAddress />} />
+        <Route path="addresses/view/:id" element={<ViewAddress />} />
+        <Route path="addresses/edit/:id" element={<EditAddress />} />
+
         {/* Other routes */}
-        <Route
-          path="addresses"
-          element={
-            <PlaceholderPage
-              title="Address Registry"
-              description="Register, verify, and manage digital property addresses."
-            />
-          }
-        />
         <Route
           path="search"
           element={
