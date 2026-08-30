@@ -19,8 +19,8 @@ AddressRouter.get(
 AddressRouter.get("/", authorize("SYS_ADMIN", "DATA_OFFICER"), getAddresses);
 AddressRouter.get("/:id", authorize("SYS_ADMIN", "DATA_OFFICER"), getAddressById);
 
-AddressRouter.post("/", authorize("SYS_ADMIN", "DATA_OFFICER"), createAddress);
-AddressRouter.put("/:id", authorize("SYS_ADMIN", "DATA_OFFICER"), updateAddress);
-AddressRouter.delete("/:id", authorize("SYS_ADMIN", "DATA_OFFICER"), deleteAddress);
+AddressRouter.post("/", authorize("SYS_ADMIN"), createAddress);
+AddressRouter.put("/:id", authorize("SYS_ADMIN"), updateAddress);
+AddressRouter.delete("/:id", authorize("SYS_ADMIN"), deleteAddress);
 
 export default AddressRouter;

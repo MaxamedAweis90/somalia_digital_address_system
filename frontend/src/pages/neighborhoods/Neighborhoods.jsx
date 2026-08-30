@@ -4,6 +4,7 @@ import { getNeighborhoods, deleteNeighborhood } from "@/api/neighborhoodApi";
 import { useAuth } from "@/context/AuthContext";
 import { ROLES } from "@/constants/roles";
 import { Loader2 } from "lucide-react";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 
 export default function Neighborhoods() {
   const navigate = useNavigate();
@@ -15,6 +16,8 @@ export default function Neighborhoods() {
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   const fetchNeighborhoods = async () => {
     try {
@@ -34,17 +37,23 @@ export default function Neighborhoods() {
     fetchNeighborhoods();
   }, []);
 
-  const handleDelete = async (id) => {
-    const confirmDelete = window.confirm(
-      "Are you sure you want to delete this neighborhood?"
-    );
-    if (!confirmDelete) return;
+  const handleDelete = (item) => {
+    setDeleteTarget(item);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
 
     try {
-      await deleteNeighborhood(id);
-      setNeighborhoods((current) => current.filter((n) => n.id !== id));
+      setDeleting(true);
+      setError(null);
+      await deleteNeighborhood(deleteTarget.id);
+      setNeighborhoods((current) => current.filter((n) => n.id !== deleteTarget.id));
+      setDeleteTarget(null);
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to delete neighborhood");
+      setError(err.response?.data?.message || "Failed to delete neighborhood");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -72,6 +81,20 @@ export default function Neighborhoods() {
 
   return (
     <div className="min-h-screen bg-bg font-sans">
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        title="Delete Neighborhood"
+        message={`Are you sure you want to delete "${deleteTarget?.name || "this neighborhood"}"? This action cannot be undone.`}
+        confirmLabel="Delete"
+        variant="danger"
+        loading={deleting}
+        loadingLabel="Deleting..."
+        onConfirm={confirmDelete}
+        onCancel={() => {
+          if (!deleting) setDeleteTarget(null);
+        }}
+      />
+
       <div className="px-4 sm:px-6 lg:px-5 pt-5 pb-10">
         {/* =========================
             BREADCRUMB
@@ -365,7 +388,7 @@ export default function Neighborhoods() {
 
                               {/* DELETE */}
                               <button
-                                onClick={() => handleDelete(item.id)}
+                                onClick={() => handleDelete(item)}
                                 className="
                                   h-[32px]
                                   rounded-md

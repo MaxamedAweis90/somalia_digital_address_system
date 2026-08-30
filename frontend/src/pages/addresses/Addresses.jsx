@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getAddresses, deleteAddress } from "@/api/addressApi";
 import { Loader2 } from "lucide-react";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 
 export default function Addresses() {
   const navigate = useNavigate();
@@ -11,6 +12,8 @@ export default function Addresses() {
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   const fetchAddresses = async () => {
     try {
@@ -37,17 +40,23 @@ export default function Addresses() {
     fetchAddresses();
   };
 
-  const handleDelete = async (id) => {
-    const confirmDelete = window.confirm(
-      "Are you sure you want to delete this address?"
-    );
-    if (!confirmDelete) return;
+  const handleDelete = (item) => {
+    setDeleteTarget(item);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
 
     try {
-      await deleteAddress(id);
-      setAddresses((current) => current.filter((item) => item.id !== id));
+      setDeleting(true);
+      setError(null);
+      await deleteAddress(deleteTarget.id);
+      setAddresses((current) => current.filter((address) => address.id !== deleteTarget.id));
+      setDeleteTarget(null);
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to delete address");
+      setError(err.response?.data?.message || "Failed to delete address");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -64,6 +73,20 @@ export default function Addresses() {
 
   return (
     <div className="min-h-screen bg-bg font-sans">
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        title="Delete Address"
+        message={`Are you sure you want to delete "${deleteTarget?.addressCode || "this address"}"? This action cannot be undone.`}
+        confirmLabel="Delete"
+        variant="danger"
+        loading={deleting}
+        loadingLabel="Deleting..."
+        onConfirm={confirmDelete}
+        onCancel={() => {
+          if (!deleting) setDeleteTarget(null);
+        }}
+      />
+
       <div className="px-4 sm:px-6 lg:px-5 pt-5 pb-10">
         <div className="flex items-center gap-2 text-[11px] font-medium text-ink-soft mb-6">
           <span
@@ -306,7 +329,7 @@ export default function Addresses() {
                               Edit
                             </button>
                             <button
-                              onClick={() => handleDelete(item.id)}
+                              onClick={() => handleDelete(item)}
                               className="h-[32px] rounded-md border border-red-200 bg-white px-3 text-[11px] font-semibold text-red-600 hover:bg-red-50 cursor-pointer"
                             >
                               Delete

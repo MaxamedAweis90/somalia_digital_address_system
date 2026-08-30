@@ -9,6 +9,7 @@ import {
 } from "@/api/settingsApi";
 import Breadcrumb from "@/components/ui/Breadcrumb";
 import PageHeader from "@/components/ui/PageHeader";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { useAuth } from "@/context/AuthContext";
 import { ROLES } from "@/constants/roles";
 
@@ -153,6 +154,8 @@ export default function Settings() {
     category: "general",
     type: "STRING",
   });
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   const fetchSettings = async () => {
     try {
@@ -190,28 +193,49 @@ export default function Settings() {
       });
       fetchSettings();
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to create setting");
+      setError(err.response?.data?.message || "Failed to create setting");
     } finally {
       setCreating(false);
     }
   };
 
-  const handleDelete = async (setting) => {
+  const handleDelete = (setting) => {
     if (setting.isSystem) return;
+    setDeleteTarget(setting);
+  };
 
-    const confirmDelete = window.confirm(`Delete setting "${setting.label}"?`);
-    if (!confirmDelete) return;
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
 
     try {
-      await deleteSetting(setting.id);
+      setDeleting(true);
+      setError(null);
+      await deleteSetting(deleteTarget.id);
+      setDeleteTarget(null);
       fetchSettings();
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to delete setting");
+      setError(err.response?.data?.message || "Failed to delete setting");
+    } finally {
+      setDeleting(false);
     }
   };
 
   return (
     <div className="min-h-full bg-bg font-sans">
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        title="Delete Setting"
+        message={`Delete setting "${deleteTarget?.label}"? This action cannot be undone.`}
+        confirmLabel="Delete"
+        variant="danger"
+        loading={deleting}
+        loadingLabel="Deleting..."
+        onConfirm={confirmDelete}
+        onCancel={() => {
+          if (!deleting) setDeleteTarget(null);
+        }}
+      />
+
       <div className="px-4 sm:px-6 lg:px-5 pt-5 pb-10">
         <Breadcrumb
           items={[
