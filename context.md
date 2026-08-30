@@ -30,6 +30,7 @@ $$\text{District} \longrightarrow \text{Neighborhood} \longrightarrow \text{Zone
 |---|---|---|---|---|
 | **Authentication & Session** | FR-01: JWT Auth, HTTP-Only Cookie | `POST /auth/login`, `POST /auth/logout`, `GET /auth/me` | Fully connected in `Login.jsx` & `AuthContext.jsx` | Completed |
 | **Role-Based Routing** | FR-02: Super Admin vs Data Officer | Granular RBAC Middleware (`protect`, `authorize`) | `RoleRoute.jsx`, `SysAdminLayout.jsx`, `DataOfficerLayout.jsx` | Completed |
+| **Regions Management** | Administrative Parent Layer | `GET, POST, PUT, DELETE /admin/regions` | `Regions.jsx`, `AddRegion.jsx`, `EditRegion.jsx` | Fully connected (Validated against 18 official regions) |
 | **Districts Management** | FR-03: District CRUD + Delete Protection | `GET, POST, PUT, DELETE /admin/districts` | `Districts.jsx`, `AddDistrict.jsx`, `EditDistrict.jsx` | Fully connected (Read-only for Officer) |
 | **Neighborhoods Management** | FR-04: Neighborhood CRUD linked to District | `GET, POST, PUT, DELETE /admin/neighborhoods` | `Neighborhoods.jsx`, `AddNeighborhood.jsx`, `EditNeighborhood.jsx` | Fully connected (Read-only for Officer) |
 | **Zones Management** | FR-05: Zone CRUD linked to Neighborhood | Database Model exists in Prisma (`Zone`) | UI prototype screens created (`Zones.jsx`, `AddZone.jsx`, `EditZone.jsx`) | **Pending Backend API Routes** |
