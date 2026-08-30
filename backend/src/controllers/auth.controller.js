@@ -23,19 +23,25 @@ export const registerUser = async (req, res) => {
 }
 
 export const loginUser = async (req, res) => {
-    try {
+  try {
+    console.log("REQ BODY DATA:", req.body);
 
-        const { email, password } = req.body;
+    const { email, password } = req.body || {};
 
-        const { user, token } = await AuthService.loginUser(email, password);
-        sethAuthCookie(res, token);
+    const { user, token } = await AuthService.loginUser({ email, password });
+    sethAuthCookie(res, token);
 
-        return res.status(200).json({ success: true, message: "Logged in successfully", user });
-
-    } catch (error) {
-
-        return res.status(400).json({ success: false, message: error.message });
-    }
+    return res.status(200).json({
+      success: true,
+      message: "Logged in successfully",
+      user,
+    });
+  } catch (error) {
+    return res.status(400).json({
+      success: false,
+      message: error.message,
+    });
+  }
 };
 
 export const logoutUser = (req, res) => {

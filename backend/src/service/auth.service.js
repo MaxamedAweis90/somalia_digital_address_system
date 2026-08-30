@@ -11,6 +11,10 @@ const publicUserSelect = {
 
 export const AuthService = {
   registerUser: async ({ name, email, password, role }) => {
+    if (!email || !password) {
+      throw new Error("Email and password are required");
+    }
+
     const existingUser = await prisma.user.findUnique({
       where: { email },
     });
@@ -40,9 +44,15 @@ export const AuthService = {
     return { user: newUser, token };
   },
 
-  loginUser: async (email, password) => {
+  // Halkan la saxay: destructured { email, password } si uu object-ka req.body u qaato
+  loginUser: async ({ email, password }) => {
+    if (!email || !password) {
+      throw new Error("Email and password are required");
+    }
+
+    const normalizedEmail = String(email).trim().toLowerCase();
     const user = await prisma.user.findUnique({
-      where: { email },
+      where: { email: normalizedEmail },
     });
 
     if (!user) {
@@ -73,6 +83,10 @@ export const AuthService = {
   },
 
   getUserProfile: async (userId) => {
+    if (!userId) {
+      throw new Error("User ID is required");
+    }
+
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: publicUserSelect,
