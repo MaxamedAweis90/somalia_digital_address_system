@@ -22,6 +22,10 @@ import Neighborhoods from "@/pages/neighborhoods/Neighborhoods";
 import AddNeighborhood from "@/pages/neighborhoods/AddNeighborhood";
 import EditNeighborhood from "@/pages/neighborhoods/EditNeighborhood";
 
+import DataOfficers from "@/pages/data-officers/DataOfficers";
+import AddDataOfficer from "@/pages/data-officers/AddDataOfficer";
+import EditDataOfficer from "@/pages/data-officers/EditDataOfficer";
+
 import AnnouncementBar from "@/Frontdoor/AnnouncementBar";
 import Header from "@/Frontdoor/Header";
 import Hero from "@/Frontdoor/Hero";
@@ -130,6 +134,9 @@ export default function AppRoutes() {
             />
           }
         />
+        <Route path="data-officers" element={<DataOfficers />} />
+        <Route path="data-officers/add" element={<AddDataOfficer />} />
+        <Route path="data-officers/edit/:id" element={<EditDataOfficer />} />
         <Route
           path="audit-logs"
           element={
