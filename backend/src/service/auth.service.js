@@ -93,13 +93,14 @@ export const AuthService = {
   // ---------------------------------------------------------------------
   createLoginOtp: async (userId) => {
     const code = generateOtpCode();
+    const model = prisma.loginOtp || prisma.loginOtps;
 
-    await prisma.loginOtp.updateMany({
+    await model.updateMany({
       where: { userId, consumed: false },
       data: { consumed: true },
     });
 
-    await prisma.loginOtp.create({
+    await model.create({
       data: {
         userId,
         codeHash: hashOtp(code),
@@ -124,7 +125,9 @@ export const AuthService = {
       throw new Error("Invalid email or verification code.");
     }
 
-    const otpRecord = await prisma.loginOtp.findFirst({
+    const model = prisma.loginOtp || prisma.loginOtps;
+
+    const otpRecord = await model.findFirst({
       where: { userId: user.id, consumed: false },
       orderBy: { createdAt: "desc" },
     });
@@ -134,7 +137,7 @@ export const AuthService = {
     }
 
     if (otpRecord.attempts >= MAX_ATTEMPTS) {
-      await prisma.loginOtp.update({
+      await model.update({
         where: { id: otpRecord.id },
         data: { consumed: true },
       });
@@ -146,14 +149,14 @@ export const AuthService = {
     }
 
     if (!verifyOtpHash(String(code).trim(), otpRecord.codeHash)) {
-      await prisma.loginOtp.update({
+      await model.update({
         where: { id: otpRecord.id },
         data: { attempts: { increment: 1 } },
       });
       throw new Error("Incorrect verification code.");
     }
 
-    await prisma.loginOtp.update({
+    await model.update({
       where: { id: otpRecord.id },
       data: { consumed: true },
     });
@@ -180,8 +183,9 @@ export const AuthService = {
       return { code: null, cooldownMs: RESEND_COOLDOWN_MS };
     }
 
+    const model = prisma.loginOtp || prisma.loginOtps;
     const windowStart = new Date(Date.now() - RESEND_WINDOW_MS);
-    const recentCodes = await prisma.loginOtp.findMany({
+    const recentCodes = await model.findMany({
       where: { userId: user.id, createdAt: { gte: windowStart } },
       orderBy: { createdAt: "desc" },
     });
@@ -202,12 +206,12 @@ export const AuthService = {
 
     const code = generateOtpCode();
 
-    await prisma.loginOtp.updateMany({
+    await model.updateMany({
       where: { userId: user.id, consumed: false },
       data: { consumed: true },
     });
 
-    await prisma.loginOtp.create({
+    await model.create({
       data: {
         userId: user.id,
         codeHash: hashOtp(code),

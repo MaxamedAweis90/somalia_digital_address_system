@@ -13,6 +13,7 @@ import {
   Settings,
   LogOut,
   UserCog,
+  Users,
   Globe,
   PanelLeftClose,
   PanelLeftOpen,
@@ -29,6 +30,7 @@ const navItems = [
   { to: "/admin/assignments", label: "Assignments", icon: ClipboardList },
   { to: "/admin/search", label: "Search", icon: Search },
   { to: "/admin/data-officers", label: "Data Officers", icon: UserCog },
+  { to: "/admin/data-collectors", label: "Data Collectors", icon: Users },
   { to: "/admin/audit-logs", label: "Audit Logs", icon: ShieldCheck },
 ];
 

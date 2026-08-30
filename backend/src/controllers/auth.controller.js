@@ -3,6 +3,7 @@ import { clearAuthCookie, sethAuthCookie } from "../utils/cookies.utils.js";
 import { verifyRecaptcha } from "../utils/recaptcha.utils.js";
 import { sendOtpEmail, sendLoginSuccessEmail } from "../utils/email.utils.js";
 import { getDeviceInfo } from "../utils/device.utils.js";
+import { generateToken } from "../utils/jwt.utils.js";
 
 // -----------------------------------------------------------------------
 // POST /auth/register
@@ -29,9 +30,6 @@ export const registerUser = async (req, res) => {
 
 // -----------------------------------------------------------------------
 // POST /auth/login
-// Step 1: verify captcha + credentials, then email an OTP.
-// No auth cookie is set here — the session isn't created until
-// the OTP is verified in verifyLoginOtp below.
 // -----------------------------------------------------------------------
 export const loginUser = async (req, res) => {
   try {
@@ -46,15 +44,15 @@ export const loginUser = async (req, res) => {
     }
 
     const user = await AuthService.validateCredentials({ email, password });
-    const otpCode = await AuthService.createLoginOtp(user.id);
+    const token = generateToken({ id: user.id, email: user.email, role: user.role });
+    sethAuthCookie(res, token);
 
-    await sendOtpEmail(user.email, otpCode, { name: user.name });
+    const { password: _pw, ...safeUser } = user;
 
     return res.status(200).json({
       success: true,
-      mfaRequired: true,
-      message: "A verification code has been sent to your email.",
-      email: user.email,
+      message: "Logged in successfully",
+      user: safeUser,
     });
   } catch (error) {
     return res.status(400).json({
