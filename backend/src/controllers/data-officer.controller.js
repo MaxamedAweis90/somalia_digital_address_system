@@ -1,4 +1,5 @@
 import { DataOfficerService } from "../service/data-officer.service.js";
+import { AuditLogService } from "../service/auditLog.service.js";
 import {
   getErrorMessage,
   getHttpStatus,
@@ -14,6 +15,14 @@ function sendError(res, error) {
 export const createDataOfficer = async (req, res) => {
   try {
     const dataOfficer = await DataOfficerService.createDataOfficer(req.body);
+
+    // Audit Log Integration
+    await AuditLogService.createAuditLog({
+      userId: req.user.id,
+      action: `Created data officer account for ${dataOfficer.name} (${dataOfficer.email})`,
+      actionType: "CREATE",
+      entityId: dataOfficer.id,
+    });
 
     return res.status(201).json({
       success: true,
@@ -60,6 +69,14 @@ export const updateDataOfficer = async (req, res) => {
       req.body
     );
 
+    // Audit Log Integration
+    await AuditLogService.createAuditLog({
+      userId: req.user.id,
+      action: `Updated data officer account: ${dataOfficer.name} (${dataOfficer.email})`,
+      actionType: "UPDATE",
+      entityId: dataOfficer.id,
+    });
+
     return res.status(200).json({
       success: true,
       message: "Data officer updated successfully",
@@ -77,6 +94,14 @@ export const deleteDataOfficer = async (req, res) => {
       req.user.id
     );
 
+    // Audit Log Integration
+    await AuditLogService.createAuditLog({
+      userId: req.user.id,
+      action: `Deleted data officer account with ID ${req.params.id}`,
+      actionType: "DELETE",
+      entityId: req.params.id,
+    });
+
     return res.status(200).json({
       success: true,
       message: "Data officer deleted successfully",
@@ -90,6 +115,14 @@ export const deleteDataOfficer = async (req, res) => {
 export const regenerateDataOfficerPassword = async (req, res) => {
   try {
     const result = await DataOfficerService.regeneratePassword(req.params.id);
+
+    // Audit Log Integration
+    await AuditLogService.createAuditLog({
+      userId: req.user.id,
+      action: `Regenerated temporary password for data officer: ${result.officer.name} (${result.officer.email})`,
+      actionType: "UPDATE",
+      entityId: result.officer.id,
+    });
 
     return res.status(200).json({
       success: true,

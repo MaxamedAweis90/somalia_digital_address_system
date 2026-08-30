@@ -27,3 +27,7 @@ export const authorize =
 
     next();
   };
+
+export const authenticateToken = protect;
+export const requireAdmin = authorize("SYS_ADMIN");
+

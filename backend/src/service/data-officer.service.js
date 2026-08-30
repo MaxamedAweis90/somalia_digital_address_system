@@ -20,8 +20,12 @@ const dataOfficerSelect = {
 };
 
 async function findDataOfficerOrThrow(id) {
+  if (!id || typeof id !== "string" || !id.trim()) {
+    throw new Error("Data officer ID is required");
+  }
+
   const user = await prisma.user.findUnique({
-    where: { id },
+    where: { id: id.trim() },
     select: dataOfficerSelect,
   });
 
@@ -114,15 +118,21 @@ export const DataOfficerService = {
   },
 
   deleteDataOfficer: async (id, actorId) => {
-    if (id === actorId) {
+    if (!id || typeof id !== "string" || !id.trim()) {
+      throw new Error("Data officer ID is required");
+    }
+    if (!actorId || typeof actorId !== "string" || !actorId.trim()) {
+      throw new Error("Actor ID is required");
+    }
+    if (id.trim() === actorId.trim()) {
       throw new Error("You cannot delete your own account");
     }
 
     await findDataOfficerOrThrow(id);
 
-    await prisma.user.delete({ where: { id } });
+    await prisma.user.delete({ where: { id: id.trim() } });
 
-    return { id };
+    return { id: id.trim() };
   },
 
   regeneratePassword: async (id) => {

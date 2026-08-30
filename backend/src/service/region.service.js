@@ -77,8 +77,12 @@ export const RegionService = {
   },
 
   getRegionById: async (id) => {
+    if (!id || typeof id !== "string" || !id.trim()) {
+      throw new Error("Region ID is required");
+    }
+
     const region = await prisma.region.findUnique({
-      where: { id },
+      where: { id: id.trim() },
       select: {
         ...regionSelect,
         districts: {
@@ -101,7 +105,11 @@ export const RegionService = {
   },
 
   updateRegion: async (id, { name, code, status }) => {
-    const existing = await prisma.region.findUnique({ where: { id } });
+    if (!id || typeof id !== "string" || !id.trim()) {
+      throw new Error("Region ID is required");
+    }
+
+    const existing = await prisma.region.findUnique({ where: { id: id.trim() } });
 
     if (!existing) {
       throw new Error("Region not found");
@@ -120,7 +128,7 @@ export const RegionService = {
     validateStatus(status);
 
     return prisma.region.update({
-      where: { id },
+      where: { id: id.trim() },
       data: {
         ...(name !== undefined && { name: name.trim() }),
         ...(code !== undefined && { code: code.trim().toUpperCase() }),
@@ -131,8 +139,12 @@ export const RegionService = {
   },
 
   deleteRegion: async (id) => {
+    if (!id || typeof id !== "string" || !id.trim()) {
+      throw new Error("Region ID is required");
+    }
+
     const region = await prisma.region.findUnique({
-      where: { id },
+      where: { id: id.trim() },
       include: { _count: { select: { districts: true } } },
     });
 
@@ -146,8 +158,8 @@ export const RegionService = {
       );
     }
 
-    await prisma.region.delete({ where: { id } });
+    await prisma.region.delete({ where: { id: id.trim() } });
 
-    return { id };
+    return { id: id.trim() };
   },
 };

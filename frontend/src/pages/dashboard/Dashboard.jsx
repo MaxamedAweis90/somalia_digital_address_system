@@ -15,6 +15,19 @@ function formatCount(value) {
 }
 
 export default function Dashboard() {
+  return (
+    <div className="min-h-screen bg-bg font-sans px-4 sm:px-6 lg:px-5 pt-5 pb-10 space-y-6">
+      {/* Dashboard Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">
+            Dashboard Overview
+          </h1>
+
+          <p className="mt-1 text-sm text-gray-500">
+            Real-time infrastructure metrics and addressing status.
+          </p>
+        </div>
   const navigate = useNavigate();
   const { user } = useAuth();
   const basePath = user?.role === ROLES.SYS_ADMIN ? "/admin" : "/officer";

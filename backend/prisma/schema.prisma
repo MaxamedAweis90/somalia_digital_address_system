@@ -7,26 +7,41 @@ datasource db {
 }
 
 model User {
-  id            String     @id @default(cuid())
-  name          String
-  email         String     @unique
-  password      String
-  role          UserRole   @default(DATA_OFFICER)
-  supervisorId  String?    @map("supervisor_id")
-  emailVerified Boolean    @default(false)
-  image         String?
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
-  auditLogs     AuditLog[]
-  supervisor    User?      @relation("UserSupervision", fields: [supervisorId], references: [id])
-  supervisees   User[]     @relation("UserSupervision")
-  assignmentsAssigned Assignment[] @relation("AssignmentAssignee")
-  assignmentsCreated  Assignment[] @relation("AssignmentCreator")
-  assignmentsReviewed Assignment[] @relation("AssignmentReviewer")
-  assignmentsOfficerReviewed Assignment[] @relation("AssignmentOfficerReviewer")
+  id                          String       @id @default(cuid())
+  name                        String
+  email                       String       @unique
+  password                    String
+  role                        UserRole     @default(DATA_OFFICER)
+  supervisorId                String?      @map("supervisor_id")
+  emailVerified               Boolean      @default(false)
+  image                       String?
+  createdAt                   DateTime     @default(now())
+  updatedAt                   DateTime     @updatedAt
+  auditLogs                   AuditLog[]
+  loginOtps                   LoginOtp[]
+  supervisor                  User?        @relation("UserSupervision", fields: [supervisorId], references: [id])
+  supervisees                 User[]       @relation("UserSupervision")
+  assignmentsAssigned         Assignment[] @relation("AssignmentAssignee")
+  assignmentsCreated          Assignment[] @relation("AssignmentCreator")
+  assignmentsReviewed         Assignment[] @relation("AssignmentReviewer")
+  assignmentsOfficerReviewed  Assignment[] @relation("AssignmentOfficerReviewer")
 
   @@index([supervisorId], map: "user_supervisor_index")
   @@map("user")
+}
+
+model LoginOtp {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  codeHash  String   @map("code_hash")
+  expiresAt DateTime @map("expires_at")
+  attempts  Int      @default(0)
+  consumed  Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, consumed], map: "login_otp_user_consumed_index")
+  @@map("login_otps")
 }
 
 model Region {
@@ -60,17 +75,17 @@ model District {
 }
 
 model Neighborhood {
-  id         String                  @id @default(cuid())
-  districtId String                  @map("district_id")
-  name       String
-  code       String                  @unique
-  status     Status                  @default(ACTIVE)
-  geometry   Unsupported("geometry")?
-  createdAt  DateTime                @default(now()) @map("created_at")
-  updatedAt  DateTime                @updatedAt @map("updated_at")
-  addresses  Address[]
-  district   District                @relation(fields: [districtId], references: [id])
-  zones      Zone[]
+  id          String                  @id @default(cuid())
+  districtId  String                  @map("district_id")
+  name        String
+  code        String                  @unique
+  status      Status                  @default(ACTIVE)
+  geometry    Unsupported("geometry")?
+  createdAt   DateTime                @default(now()) @map("created_at")
+  updatedAt   DateTime                @updatedAt @map("updated_at")
+  addresses   Address[]
+  district    District                @relation(fields: [districtId], references: [id])
+  zones       Zone[]
   assignments Assignment[]
 
   @@index([code, districtId], map: "neighborhood_code_and_district_index")
