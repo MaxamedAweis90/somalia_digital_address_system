@@ -180,6 +180,198 @@ async function main() {
   }
 
   console.log(`✅ ${defaultSettings.length} system settings seeded.`);
+
+  const banaadir = await withRetry(() =>
+    prisma.region.findUnique({ where: { code: "BND" } })
+  );
+
+  if (banaadir) {
+    const district = await withRetry(() =>
+      prisma.district.upsert({
+        where: { code: "HOD" },
+        update: { name: "Hodan", status: "ACTIVE", regionId: banaadir.id },
+        create: {
+          name: "Hodan",
+          code: "HOD",
+          status: "ACTIVE",
+          regionId: banaadir.id,
+        },
+      })
+    );
+
+    const neighborhoodGeometry = {
+      type: "Polygon",
+      coordinates: [
+        [
+          [45.308, 2.038],
+          [45.328, 2.038],
+          [45.328, 2.056],
+          [45.308, 2.056],
+          [45.308, 2.038],
+        ],
+      ],
+    };
+
+    const existingNeighborhood = await withRetry(() =>
+      prisma.neighborhood.findUnique({ where: { code: "TLX" } })
+    );
+
+    const neighborhoodId = existingNeighborhood?.id || "seed-neighborhood-taleex";
+
+    if (existingNeighborhood) {
+      await withRetry(() =>
+        prisma.$executeRaw`
+          UPDATE neighborhoods
+          SET
+            district_id = ${district.id},
+            name = 'Taleex',
+            status = 'ACTIVE'::"Status",
+            geometry = ST_SetSRID(ST_GeomFromGeoJSON(${JSON.stringify(neighborhoodGeometry)}), 4326),
+            updated_at = CURRENT_TIMESTAMP
+          WHERE id = ${neighborhoodId}
+        `
+      );
+    } else {
+      await withRetry(() =>
+        prisma.$executeRaw`
+          INSERT INTO neighborhoods (
+            id,
+            district_id,
+            name,
+            code,
+            status,
+            geometry,
+            created_at,
+            updated_at
+          )
+          VALUES (
+            ${neighborhoodId},
+            ${district.id},
+            'Taleex',
+            'TLX',
+            'ACTIVE'::"Status",
+            ST_SetSRID(ST_GeomFromGeoJSON(${JSON.stringify(neighborhoodGeometry)}), 4326),
+            CURRENT_TIMESTAMP,
+            CURRENT_TIMESTAMP
+          )
+        `
+      );
+    }
+
+    const zoneGeometry = {
+      type: "Polygon",
+      coordinates: [
+        [
+          [45.312, 2.042],
+          [45.322, 2.042],
+          [45.322, 2.052],
+          [45.312, 2.052],
+          [45.312, 2.042],
+        ],
+      ],
+    };
+
+    const existingZone = await withRetry(() =>
+      prisma.zone.findUnique({ where: { code: "Z01" } })
+    );
+
+    const zoneId = existingZone?.id || "seed-zone-z01";
+
+    if (existingZone) {
+      await withRetry(() =>
+        prisma.$executeRaw`
+          UPDATE zones
+          SET
+            neighborhood_id = ${neighborhoodId},
+            name = 'Zone 01',
+            status = 'ACTIVE'::"Status",
+            geometry = ST_SetSRID(ST_GeomFromGeoJSON(${JSON.stringify(zoneGeometry)}), 4326),
+            updated_at = CURRENT_TIMESTAMP
+          WHERE id = ${zoneId}
+        `
+      );
+    } else {
+      await withRetry(() =>
+        prisma.$executeRaw`
+          INSERT INTO zones (
+            id,
+            neighborhood_id,
+            name,
+            code,
+            status,
+            geometry,
+            created_at,
+            updated_at
+          )
+          VALUES (
+            ${zoneId},
+            ${neighborhoodId},
+            'Zone 01',
+            'Z01',
+            'ACTIVE'::"Status",
+            ST_SetSRID(ST_GeomFromGeoJSON(${JSON.stringify(zoneGeometry)}), 4326),
+            CURRENT_TIMESTAMP,
+            CURRENT_TIMESTAMP
+          )
+        `
+      );
+    }
+
+    await withRetry(() =>
+      prisma.assignment.upsert({
+        where: { id: "seed-assignment-define-zones" },
+        update: {
+          type: "DEFINE_ZONES",
+          status: "ASSIGNED",
+          neighborhoodId,
+          zoneId: null,
+          assignedToId: officerUser.id,
+          assignedById: adminUser.id,
+          payload: { zones: [] },
+          notes: "Define remaining zones inside the Taleex neighborhood boundary.",
+        },
+        create: {
+          id: "seed-assignment-define-zones",
+          type: "DEFINE_ZONES",
+          status: "ASSIGNED",
+          neighborhoodId,
+          assignedToId: officerUser.id,
+          assignedById: adminUser.id,
+          payload: { zones: [] },
+          notes: "Define remaining zones inside the Taleex neighborhood boundary.",
+        },
+      })
+    );
+
+    await withRetry(() =>
+      prisma.assignment.upsert({
+        where: { id: "seed-assignment-register-addresses" },
+        update: {
+          type: "REGISTER_ADDRESSES",
+          status: "ASSIGNED",
+          neighborhoodId,
+          zoneId,
+          assignedToId: officerUser.id,
+          assignedById: adminUser.id,
+          payload: { addresses: [] },
+          notes: "Register sample residential addresses inside Zone 01.",
+        },
+        create: {
+          id: "seed-assignment-register-addresses",
+          type: "REGISTER_ADDRESSES",
+          status: "ASSIGNED",
+          neighborhoodId,
+          zoneId,
+          assignedToId: officerUser.id,
+          assignedById: adminUser.id,
+          payload: { addresses: [] },
+          notes: "Register sample residential addresses inside Zone 01.",
+        },
+      })
+    );
+
+    console.log("✅ Demo neighborhood, zone, and assignments seeded for Hodan / Taleex.");
+  }
 }
 
 main()

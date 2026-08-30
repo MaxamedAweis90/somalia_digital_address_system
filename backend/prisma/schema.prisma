@@ -55,15 +55,16 @@ model District {
 }
 
 model Neighborhood {
-  id         String    @id @default(cuid())
-  districtId String    @map("district_id")
+  id         String                  @id @default(cuid())
+  districtId String                  @map("district_id")
   name       String
-  code       String    @unique
-  status     Status    @default(ACTIVE)
-  createdAt  DateTime  @default(now()) @map("created_at")
-  updatedAt  DateTime  @updatedAt @map("updated_at")
+  code       String                  @unique
+  status     Status                  @default(ACTIVE)
+  geometry   Unsupported("geometry")?
+  createdAt  DateTime                @default(now()) @map("created_at")
+  updatedAt  DateTime                @updatedAt @map("updated_at")
   addresses  Address[]
-  district   District  @relation(fields: [districtId], references: [id])
+  district   District                @relation(fields: [districtId], references: [id])
   zones      Zone[]
   assignments Assignment[]
 
@@ -82,6 +83,7 @@ model Zone {
   updatedAt      DateTime                @updatedAt @map("updated_at")
   addresses      Address[]
   neighborhood   Neighborhood            @relation(fields: [neighborhoodId], references: [id])
+  assignments    Assignment[]
 
   @@index([code, neighborhoodId], map: "zone_code_and_neighborhood_index")
   @@map("zones")
@@ -170,6 +172,7 @@ model AppSetting {
 
 enum AssignmentType {
   DEFINE_ZONES
+  REGISTER_ADDRESSES
 }
 
 enum AssignmentStatus {
@@ -185,6 +188,7 @@ model Assignment {
   type            AssignmentType   @default(DEFINE_ZONES)
   status          AssignmentStatus @default(ASSIGNED)
   neighborhoodId  String           @map("neighborhood_id")
+  zoneId          String?          @map("zone_id")
   assignedToId    String           @map("assigned_to_id")
   assignedById    String           @map("assigned_by_id")
   payload         Json             @default("{\"zones\":[]}")
@@ -197,11 +201,13 @@ model Assignment {
   createdAt       DateTime         @default(now()) @map("created_at")
   updatedAt       DateTime         @updatedAt @map("updated_at")
   neighborhood    Neighborhood     @relation(fields: [neighborhoodId], references: [id])
+  zone            Zone?            @relation(fields: [zoneId], references: [id])
   assignedTo      User             @relation("AssignmentAssignee", fields: [assignedToId], references: [id])
   assignedBy      User             @relation("AssignmentCreator", fields: [assignedById], references: [id])
   reviewedBy      User?            @relation("AssignmentReviewer", fields: [reviewedById], references: [id])
 
   @@index([assignedToId, status], map: "assignment_assignee_status_index")
   @@index([neighborhoodId], map: "assignment_neighborhood_index")
+  @@index([zoneId], map: "assignment_zone_index")
   @@map("assignments")
 }

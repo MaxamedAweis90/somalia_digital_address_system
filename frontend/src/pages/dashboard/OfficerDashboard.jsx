@@ -3,10 +3,13 @@ import { useNavigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { getMyAssignments } from "@/api/assignmentApi";
 import AssignmentStatusBadge, {
+  AssignmentTypeBadge,
   formatAssignmentLocation,
+  getAssignmentDraftCount,
 } from "@/components/assignments/AssignmentStatusBadge";
 import Breadcrumb from "@/components/ui/Breadcrumb";
 import PageHeader from "@/components/ui/PageHeader";
+import OfficerWorkflowGuide from "@/components/assignments/OfficerWorkflowGuide";
 
 export default function OfficerDashboard() {
   const navigate = useNavigate();
@@ -48,7 +51,7 @@ export default function OfficerDashboard() {
 
         <PageHeader
           title="My Assignments"
-          description="Complete assigned neighborhood zone-mapping tasks. Save drafts as you work and submit when ready."
+          description="Complete assigned field tasks for zone definition or address registration."
         />
 
         {error && (
@@ -79,11 +82,13 @@ export default function OfficerDashboard() {
           </div>
         </div>
 
+        <OfficerWorkflowGuide />
+
         <div className="rounded-xl border border-line bg-white shadow-card-sm overflow-hidden">
           <div className="border-b border-line px-5 py-4">
             <h2 className="text-[16px] font-semibold text-ink">Assigned Work</h2>
             <p className="mt-1 text-[12px] text-ink-soft">
-              Open a task to define zone boundaries for the assigned neighborhood.
+              Open a task to work on the assigned neighborhood or zone.
             </p>
           </div>
 
@@ -92,13 +97,16 @@ export default function OfficerDashboard() {
               <thead>
                 <tr className="border-b border-line bg-[#FBFCFE]">
                   <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
-                    Neighborhood
+                    Type
+                  </th>
+                  <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
+                    Location
                   </th>
                   <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
                     Status
                   </th>
                   <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
-                    Draft Zones
+                    Draft Items
                   </th>
                   <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
                     Due
@@ -108,7 +116,7 @@ export default function OfficerDashboard() {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={4} className="px-5 py-12 text-center">
+                    <td colSpan={5} className="px-5 py-12 text-center">
                       <Loader2 className="mx-auto h-5 w-5 animate-spin text-blue" />
                     </td>
                   </tr>
@@ -119,6 +127,9 @@ export default function OfficerDashboard() {
                       onClick={() => navigate(`/officer/assignments/${assignment.id}`)}
                       className="border-b border-line last:border-b-0 hover:bg-[#FBFCFE] transition-colors cursor-pointer"
                     >
+                      <td className="px-5 py-4">
+                        <AssignmentTypeBadge type={assignment.type} />
+                      </td>
                       <td className="px-5 py-4">
                         <p className="text-[12px] font-semibold text-ink">
                           {formatAssignmentLocation(assignment)}
@@ -133,7 +144,7 @@ export default function OfficerDashboard() {
                         <AssignmentStatusBadge status={assignment.status} />
                       </td>
                       <td className="px-5 py-4 text-[12px] text-ink">
-                        {assignment.payload?.zones?.length || 0}
+                        {getAssignmentDraftCount(assignment)}
                       </td>
                       <td className="px-5 py-4 text-[12px] text-ink-soft">
                         {assignment.dueAt
@@ -144,10 +155,10 @@ export default function OfficerDashboard() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={4} className="px-5 py-12 text-center">
+                    <td colSpan={5} className="px-5 py-12 text-center">
                       <p className="text-[13px] font-medium text-ink">No assignments yet</p>
                       <p className="mt-1 text-[12px] text-ink-soft">
-                        Your administrator will assign neighborhood zone-mapping tasks here.
+                        Your administrator will assign field tasks here.
                       </p>
                     </td>
                   </tr>
