@@ -228,7 +228,7 @@ async function main() {
       })
     );
 
-    const neighborhoodGeometry = {
+    const zoneGeometry = {
       type: "Polygon",
       coordinates: [
         [
@@ -241,29 +241,29 @@ async function main() {
       ],
     };
 
-    const existingNeighborhood = await withRetry(() =>
-      prisma.neighborhood.findUnique({ where: { code: "TLX" } })
+    const existingZone = await withRetry(() =>
+      prisma.zone.findUnique({ where: { code: "TLX" } })
     );
 
-    const neighborhoodId = existingNeighborhood?.id || "seed-neighborhood-taleex";
+    const zoneId = existingZone?.id || "seed-zone-taleex";
 
-    if (existingNeighborhood) {
+    if (existingZone) {
       await withRetry(() =>
         prisma.$executeRaw`
-          UPDATE neighborhoods
+          UPDATE zones
           SET
             district_id = ${district.id},
             name = 'Taleex',
             status = 'ACTIVE'::"Status",
-            geometry = ST_SetSRID(ST_GeomFromGeoJSON(${JSON.stringify(neighborhoodGeometry)}), 4326),
+            geometry = ST_SetSRID(ST_GeomFromGeoJSON(${JSON.stringify(zoneGeometry)}), 4326),
             updated_at = CURRENT_TIMESTAMP
-          WHERE id = ${neighborhoodId}
+          WHERE id = ${zoneId}
         `
       );
     } else {
       await withRetry(() =>
         prisma.$executeRaw`
-          INSERT INTO neighborhoods (
+          INSERT INTO zones (
             id,
             district_id,
             name,
@@ -274,12 +274,12 @@ async function main() {
             updated_at
           )
           VALUES (
-            ${neighborhoodId},
+            ${zoneId},
             ${district.id},
             'Taleex',
             'TLX',
             'ACTIVE'::"Status",
-            ST_SetSRID(ST_GeomFromGeoJSON(${JSON.stringify(neighborhoodGeometry)}), 4326),
+            ST_SetSRID(ST_GeomFromGeoJSON(${JSON.stringify(zoneGeometry)}), 4326),
             CURRENT_TIMESTAMP,
             CURRENT_TIMESTAMP
           )
@@ -287,7 +287,7 @@ async function main() {
       );
     }
 
-    const zoneGeometry = {
+    const zoneBlockGeometry = {
       type: "Polygon",
       coordinates: [
         [
@@ -300,31 +300,31 @@ async function main() {
       ],
     };
 
-    const existingZone = await withRetry(() =>
-      prisma.zone.findUnique({ where: { code: "Z01" } })
+    const existingZoneBlock = await withRetry(() =>
+      prisma.zoneBlock.findUnique({ where: { code: "Z01" } })
     );
 
-    const zoneId = existingZone?.id || "seed-zone-z01";
+    const zoneBlockId = existingZoneBlock?.id || "seed-zone-block-z01";
 
-    if (existingZone) {
+    if (existingZoneBlock) {
       await withRetry(() =>
         prisma.$executeRaw`
-          UPDATE zones
+          UPDATE zone_blocks
           SET
-            neighborhood_id = ${neighborhoodId},
-            name = 'Zone 01',
+            zone_id = ${zoneId},
+            name = 'Block 01',
             status = 'ACTIVE'::"Status",
-            geometry = ST_SetSRID(ST_GeomFromGeoJSON(${JSON.stringify(zoneGeometry)}), 4326),
+            geometry = ST_SetSRID(ST_GeomFromGeoJSON(${JSON.stringify(zoneBlockGeometry)}), 4326),
             updated_at = CURRENT_TIMESTAMP
-          WHERE id = ${zoneId}
+          WHERE id = ${zoneBlockId}
         `
       );
     } else {
       await withRetry(() =>
         prisma.$executeRaw`
-          INSERT INTO zones (
+          INSERT INTO zone_blocks (
             id,
-            neighborhood_id,
+            zone_id,
             name,
             code,
             status,
@@ -333,12 +333,12 @@ async function main() {
             updated_at
           )
           VALUES (
+            ${zoneBlockId},
             ${zoneId},
-            ${neighborhoodId},
-            'Zone 01',
+            'Block 01',
             'Z01',
             'ACTIVE'::"Status",
-            ST_SetSRID(ST_GeomFromGeoJSON(${JSON.stringify(zoneGeometry)}), 4326),
+            ST_SetSRID(ST_GeomFromGeoJSON(${JSON.stringify(zoneBlockGeometry)}), 4326),
             CURRENT_TIMESTAMP,
             CURRENT_TIMESTAMP
           )
@@ -348,59 +348,59 @@ async function main() {
 
     await withRetry(() =>
       prisma.assignment.upsert({
-        where: { id: "seed-assignment-define-zones" },
+        where: { id: "seed-assignment-define-zone-blocks" },
         update: {
-          type: "DEFINE_ZONES",
+          type: "DEFINE_ZONE_BLOCKS",
           tier: "PARENT",
           status: "ASSIGNED",
-          neighborhoodId,
-          zoneId: null,
+          zoneId,
+          zoneBlockId: null,
           assignedToId: officerUser.id,
           assignedById: adminUser.id,
-          payload: { zones: [] },
-          notes: "Define remaining zones inside the Taleex neighborhood boundary.",
+          payload: { zoneBlocks: [] },
+          notes: "Define remaining zone blocks inside the Taleex zone boundary.",
         },
         create: {
-          id: "seed-assignment-define-zones",
-          type: "DEFINE_ZONES",
+          id: "seed-assignment-define-zone-blocks",
+          type: "DEFINE_ZONE_BLOCKS",
           tier: "PARENT",
           status: "ASSIGNED",
-          neighborhoodId,
+          zoneId,
           assignedToId: officerUser.id,
           assignedById: adminUser.id,
-          payload: { zones: [] },
-          notes: "Define remaining zones inside the Taleex neighborhood boundary.",
+          payload: { zoneBlocks: [] },
+          notes: "Define remaining zone blocks inside the Taleex zone boundary.",
         },
       })
     );
 
     await withRetry(() =>
       prisma.assignment.upsert({
-        where: { id: "seed-child-define-zones-east" },
+        where: { id: "seed-child-define-zone-blocks-east" },
         update: {
-          type: "DEFINE_ZONES",
+          type: "DEFINE_ZONE_BLOCKS",
           tier: "CHILD",
           status: "ASSIGNED",
-          parentAssignmentId: "seed-assignment-define-zones",
-          neighborhoodId,
+          parentAssignmentId: "seed-assignment-define-zone-blocks",
+          zoneId,
           assignedToId: collectorOne.id,
           assignedById: officerUser.id,
           mergeOrder: 1,
-          payload: { zones: [] },
-          notes: "East sector zone boundaries.",
+          payload: { zoneBlocks: [] },
+          notes: "East sector zone block boundaries.",
         },
         create: {
-          id: "seed-child-define-zones-east",
-          type: "DEFINE_ZONES",
+          id: "seed-child-define-zone-blocks-east",
+          type: "DEFINE_ZONE_BLOCKS",
           tier: "CHILD",
           status: "ASSIGNED",
-          parentAssignmentId: "seed-assignment-define-zones",
-          neighborhoodId,
+          parentAssignmentId: "seed-assignment-define-zone-blocks",
+          zoneId,
           assignedToId: collectorOne.id,
           assignedById: officerUser.id,
           mergeOrder: 1,
-          payload: { zones: [] },
-          notes: "East sector zone boundaries.",
+          payload: { zoneBlocks: [] },
+          notes: "East sector zone block boundaries.",
         },
       })
     );
@@ -412,29 +412,29 @@ async function main() {
           type: "REGISTER_ADDRESSES",
           tier: "PARENT",
           status: "ASSIGNED",
-          neighborhoodId,
           zoneId,
+          zoneBlockId,
           assignedToId: officerUser.id,
           assignedById: adminUser.id,
           payload: { addresses: [] },
-          notes: "Register sample residential addresses inside Zone 01.",
+          notes: "Register sample residential addresses inside Block 01.",
         },
         create: {
           id: "seed-assignment-register-addresses",
           type: "REGISTER_ADDRESSES",
           tier: "PARENT",
           status: "ASSIGNED",
-          neighborhoodId,
           zoneId,
+          zoneBlockId,
           assignedToId: officerUser.id,
           assignedById: adminUser.id,
           payload: { addresses: [] },
-          notes: "Register sample residential addresses inside Zone 01.",
+          notes: "Register sample residential addresses inside Block 01.",
         },
       })
     );
 
-    console.log("✅ Demo neighborhood, zone, collectors, and assignments seeded for Hodan / Taleex.");
+    console.log("✅ Demo zone, zone block, collectors, and assignments seeded for Hodan / Taleex.");
   }
 }
 

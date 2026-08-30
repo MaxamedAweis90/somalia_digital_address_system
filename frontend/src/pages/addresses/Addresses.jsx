@@ -242,10 +242,10 @@ export default function Addresses() {
                     District
                   </th>
                   <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
-                    Neighborhood
+                    Zone
                   </th>
                   <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
-                    Zone
+                    Zone Block
                   </th>
                   <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
                     Street
@@ -287,10 +287,10 @@ export default function Addresses() {
                           {item.district?.name || "—"}
                         </td>
                         <td className="px-5 py-4 text-[12px] text-ink">
-                          {item.neighborhood?.name || "—"}
+                          {item.zone?.name || "—"}
                         </td>
                         <td className="px-5 py-4 text-[12px] text-ink">
-                          {item.zone?.name || "—"}
+                          {item.zoneBlock?.name || "—"}
                         </td>
                         <td className="px-5 py-4 text-[12px] text-ink">
                           {item.streetName}

@@ -3,8 +3,8 @@ import { useNavigate, useParams } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { getAddressById, previewAddressCode, updateAddress } from "@/api/addressApi";
 import { getDistricts } from "@/api/districtApi";
-import { getNeighborhoods } from "@/api/neighborhoodApi";
 import { getZones } from "@/api/zoneApi";
+import { getZoneBlocks } from "@/api/zoneBlockApi";
 import LocationMapPicker from "@/components/addresses/LocationMapPicker";
 import { parseLocation } from "@/utils/location";
 
@@ -14,8 +14,8 @@ export default function EditAddress() {
 
   const [formData, setFormData] = useState({
     districtId: "",
-    neighborhoodId: "",
     zoneId: "",
+    zoneBlockId: "",
     streetName: "",
     description: "",
     active: true,
@@ -24,13 +24,13 @@ export default function EditAddress() {
 
   const [position, setPosition] = useState(null);
   const [districts, setDistricts] = useState([]);
-  const [neighborhoods, setNeighborhoods] = useState([]);
   const [zones, setZones] = useState([]);
+  const [zoneBlocks, setZoneBlocks] = useState([]);
   const [dacPreview, setDacPreview] = useState("");
-  const [initialZoneId, setInitialZoneId] = useState("");
+  const [initialZoneBlockId, setInitialZoneBlockId] = useState("");
   const [loadingPage, setLoadingPage] = useState(true);
-  const [loadingNeighborhoods, setLoadingNeighborhoods] = useState(false);
   const [loadingZones, setLoadingZones] = useState(false);
+  const [loadingZoneBlocks, setLoadingZoneBlocks] = useState(false);
 
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
@@ -49,30 +49,30 @@ export default function EditAddress() {
         const districtList = districtsRes.data.data || [];
         setDistricts(districtList);
 
-        let neighborhoodList = [];
-        if (address.districtId) {
-          const neighborhoodsRes = await getNeighborhoods(address.districtId);
-          neighborhoodList = neighborhoodsRes.data.data || [];
-        }
-        setNeighborhoods(neighborhoodList);
-
         let zoneList = [];
-        if (address.neighborhoodId) {
-          const zonesRes = await getZones(address.neighborhoodId);
+        if (address.districtId) {
+          const zonesRes = await getZones(address.districtId);
           zoneList = zonesRes.data.data || [];
         }
         setZones(zoneList);
 
+        let zoneBlockList = [];
+        if (address.zoneId) {
+          const zoneBlocksRes = await getZoneBlocks(address.zoneId);
+          zoneBlockList = zoneBlocksRes.data.data || [];
+        }
+        setZoneBlocks(zoneBlockList);
+
         setFormData({
           districtId: address.districtId,
-          neighborhoodId: address.neighborhoodId,
           zoneId: address.zoneId,
+          zoneBlockId: address.zoneBlockId,
           streetName: address.streetName || "",
           description: address.description || "",
           active: (address.status || "ACTIVE").toUpperCase() === "ACTIVE",
           addressCode: address.addressCode,
         });
-        setInitialZoneId(address.zoneId);
+        setInitialZoneBlockId(address.zoneBlockId);
         setDacPreview(address.addressCode);
         setPosition(parseLocation(address.location));
       } catch (err) {
@@ -88,27 +88,8 @@ export default function EditAddress() {
   useEffect(() => {
     if (loadingPage || !formData.districtId) return;
 
-    setLoadingNeighborhoods(true);
-    getNeighborhoods(formData.districtId)
-      .then((res) => {
-        const data = res.data.data || [];
-        setNeighborhoods(data);
-        setFormData((prev) => {
-          const stillValid = data.some((n) => n.id === prev.neighborhoodId);
-          return {
-            ...prev,
-            neighborhoodId: stillValid ? prev.neighborhoodId : data[0]?.id || "",
-          };
-        });
-      })
-      .finally(() => setLoadingNeighborhoods(false));
-  }, [formData.districtId, loadingPage]);
-
-  useEffect(() => {
-    if (loadingPage || !formData.neighborhoodId) return;
-
     setLoadingZones(true);
-    getZones(formData.neighborhoodId)
+    getZones(formData.districtId)
       .then((res) => {
         const data = res.data.data || [];
         setZones(data);
@@ -121,20 +102,39 @@ export default function EditAddress() {
         });
       })
       .finally(() => setLoadingZones(false));
-  }, [formData.neighborhoodId, loadingPage]);
+  }, [formData.districtId, loadingPage]);
 
   useEffect(() => {
-    if (!formData.zoneId) return;
+    if (loadingPage || !formData.zoneId) return;
 
-    if (formData.zoneId === initialZoneId) {
+    setLoadingZoneBlocks(true);
+    getZoneBlocks(formData.zoneId)
+      .then((res) => {
+        const data = res.data.data || [];
+        setZoneBlocks(data);
+        setFormData((prev) => {
+          const stillValid = data.some((block) => block.id === prev.zoneBlockId);
+          return {
+            ...prev,
+            zoneBlockId: stillValid ? prev.zoneBlockId : data[0]?.id || "",
+          };
+        });
+      })
+      .finally(() => setLoadingZoneBlocks(false));
+  }, [formData.zoneId, loadingPage]);
+
+  useEffect(() => {
+    if (!formData.zoneBlockId) return;
+
+    if (formData.zoneBlockId === initialZoneBlockId) {
       setDacPreview(formData.addressCode);
       return;
     }
 
-    previewAddressCode(formData.zoneId)
+    previewAddressCode(formData.zoneBlockId)
       .then((res) => setDacPreview(res.data.data?.addressCode || ""))
       .catch(() => setDacPreview(""));
-  }, [formData.zoneId, formData.addressCode, initialZoneId]);
+  }, [formData.zoneBlockId, formData.addressCode, initialZoneBlockId]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -150,8 +150,8 @@ export default function EditAddress() {
     const newErrors = {};
     let isValid = true;
 
-    if (!formData.zoneId) {
-      newErrors.zoneId = "Please select a zone";
+    if (!formData.zoneBlockId) {
+      newErrors.zoneBlockId = "Please select a zone block";
       isValid = false;
     }
     if (!formData.streetName.trim()) {
@@ -177,8 +177,8 @@ export default function EditAddress() {
 
       await updateAddress(id, {
         districtId: formData.districtId,
-        neighborhoodId: formData.neighborhoodId,
         zoneId: formData.zoneId,
+        zoneBlockId: formData.zoneBlockId,
         streetName: formData.streetName.trim(),
         description: formData.description.trim(),
         latitude: position.latitude,
@@ -205,7 +205,7 @@ export default function EditAddress() {
     );
   }
 
-  const zoneChanged = formData.zoneId !== initialZoneId;
+  const zoneBlockChanged = formData.zoneBlockId !== initialZoneBlockId;
 
   return (
     <div className="min-h-screen bg-bg font-sans">
@@ -227,7 +227,7 @@ export default function EditAddress() {
             Edit Address
           </h1>
           <p className="mt-1 text-[13px] text-ink-soft">
-            Update property details. Changing the zone will assign a new house number and DAC.
+            Update property details. Changing the zone block will assign a new house number and DAC.
           </p>
         </div>
 
@@ -247,14 +247,14 @@ export default function EditAddress() {
                 <p className="mt-1 text-[18px] font-bold tracking-wide text-ink font-mono">
                   {dacPreview || formData.addressCode}
                 </p>
-                {zoneChanged && (
+                {zoneBlockChanged && (
                   <p className="mt-1 text-[11px] text-amber-700">
-                    Zone changed — a new house number will be assigned on save.
+                    Zone block changed — a new house number will be assigned on save.
                   </p>
                 )}
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div>
                   <label htmlFor="districtId" className="block text-[12px] font-semibold text-ink mb-2">
                     District
@@ -269,26 +269,6 @@ export default function EditAddress() {
                     {districts.map((d) => (
                       <option key={d.id} value={d.id}>
                         {d.name} ({d.code})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label htmlFor="neighborhoodId" className="block text-[12px] font-semibold text-ink mb-2">
-                    Neighborhood
-                  </label>
-                  <select
-                    id="neighborhoodId"
-                    name="neighborhoodId"
-                    value={formData.neighborhoodId}
-                    onChange={handleChange}
-                    disabled={loadingNeighborhoods}
-                    className="w-full h-[38px] rounded-lg border border-[#B9C2CE] bg-white px-3 text-[13px] outline-none cursor-pointer"
-                  >
-                    {neighborhoods.map((n) => (
-                      <option key={n.id} value={n.id}>
-                        {n.name} ({n.code})
                       </option>
                     ))}
                   </select>
@@ -312,7 +292,27 @@ export default function EditAddress() {
                       </option>
                     ))}
                   </select>
-                  {errors.zoneId && <p className="mt-1.5 text-[11px] text-red-500">{errors.zoneId}</p>}
+                </div>
+
+                <div>
+                  <label htmlFor="zoneBlockId" className="block text-[12px] font-semibold text-ink mb-2">
+                    Zone Block
+                  </label>
+                  <select
+                    id="zoneBlockId"
+                    name="zoneBlockId"
+                    value={formData.zoneBlockId}
+                    onChange={handleChange}
+                    disabled={loadingZoneBlocks}
+                    className="w-full h-[38px] rounded-lg border border-[#B9C2CE] bg-white px-3 text-[13px] outline-none cursor-pointer"
+                  >
+                    {zoneBlocks.map((block) => (
+                      <option key={block.id} value={block.id}>
+                        {block.name} ({block.code})
+                      </option>
+                    ))}
+                  </select>
+                  {errors.zoneBlockId && <p className="mt-1.5 text-[11px] text-red-500">{errors.zoneBlockId}</p>}
                 </div>
               </div>
 

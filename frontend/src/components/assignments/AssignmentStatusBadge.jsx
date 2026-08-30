@@ -31,16 +31,16 @@ export default function AssignmentStatusBadge({ status }) {
 }
 
 export function formatAssignmentLocation(assignment) {
-  const neighborhood = assignment?.neighborhood;
-  const district = neighborhood?.district;
-  const region = district?.region;
   const zone = assignment?.zone;
+  const district = zone?.district;
+  const region = district?.region;
+  const zoneBlock = assignment?.zoneBlock;
 
-  if (!neighborhood) return "—";
+  if (!zone) return "—";
 
   const parts = [
-    zone ? `${zone.name} (${zone.code})` : null,
-    neighborhood.name,
+    zoneBlock ? `${zoneBlock.name} (${zoneBlock.code})` : null,
+    zone.name,
     district?.name,
     region?.name,
   ].filter(Boolean);
@@ -49,22 +49,22 @@ export function formatAssignmentLocation(assignment) {
 }
 
 const typeLabels = {
-  DEFINE_ZONES: "Define Zones",
+  DEFINE_ZONE_BLOCKS: "Define Zone Blocks",
   REGISTER_ADDRESSES: "Register Addresses",
 };
 
 const typeStyles = {
-  DEFINE_ZONES: "bg-violet-50 text-violet-700 border-violet-200",
+  DEFINE_ZONE_BLOCKS: "bg-violet-50 text-violet-700 border-violet-200",
   REGISTER_ADDRESSES: "bg-cyan-50 text-cyan-700 border-cyan-200",
 };
 
 export function AssignmentTypeBadge({ type }) {
-  const normalized = (type || "DEFINE_ZONES").toUpperCase();
+  const normalized = (type || "DEFINE_ZONE_BLOCKS").toUpperCase();
 
   return (
     <span
       className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${
-        typeStyles[normalized] || typeStyles.DEFINE_ZONES
+        typeStyles[normalized] || typeStyles.DEFINE_ZONE_BLOCKS
       }`}
     >
       {typeLabels[normalized] || normalized}
@@ -77,9 +77,9 @@ export function getAssignmentDraftCount(assignment) {
     return assignment.payload?.addresses?.length || 0;
   }
 
-  return assignment.payload?.zones?.length || 0;
+  return assignment.payload?.zoneBlocks?.length || 0;
 }
 
 export function getAssignmentDraftLabel(assignment) {
-  return assignment?.type === "REGISTER_ADDRESSES" ? "Draft Addresses" : "Draft Zones";
+  return assignment?.type === "REGISTER_ADDRESSES" ? "Draft Addresses" : "Draft Zone Blocks";
 }

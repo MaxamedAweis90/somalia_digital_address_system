@@ -1,9 +1,9 @@
 import { prisma } from "../db.js";
 import { validatePolygonGeometry } from "../utils/geojson.utils.js";
 import {
-  assertZonesDoNotOverlap,
-  assertZonesWithinNeighborhood,
-  isPointWithinZone,
+  assertZoneBlocksDoNotOverlap,
+  assertZoneBlocksWithinZone,
+  isPointWithinZoneBlock,
 } from "../utils/geo.validation.utils.js";
 import {
   assertAdminParentAccess,
@@ -13,7 +13,7 @@ import {
   assertUserRole,
 } from "../utils/assignment-access.utils.js";
 import { AddressService } from "./address.service.js";
-import { ZoneService } from "./zone.service.js";
+import { ZoneBlockService } from "./zone-block.service.js";
 
 const userSelect = {
   id: true,
@@ -23,7 +23,7 @@ const userSelect = {
 };
 
 const assignmentInclude = {
-  neighborhood: {
+  zone: {
     include: {
       district: {
         include: {
@@ -34,13 +34,13 @@ const assignmentInclude = {
       },
     },
   },
-  zone: {
+  zoneBlock: {
     select: {
       id: true,
       name: true,
       code: true,
       status: true,
-      neighborhoodId: true,
+      zoneId: true,
     },
   },
   assignedTo: { select: userSelect },
@@ -65,7 +65,7 @@ const assignmentInclude = {
 
 const COLLECTOR_EDITABLE = ["ASSIGNED", "IN_PROGRESS", "REJECTED"];
 const DEFAULT_PAYLOAD = {
-  DEFINE_ZONES: { zones: [] },
+  DEFINE_ZONE_BLOCKS: { zoneBlocks: [] },
   REGISTER_ADDRESSES: { addresses: [] },
 };
 
@@ -73,16 +73,20 @@ function isValidCoordinate(value) {
   return typeof value === "number" && Number.isFinite(value);
 }
 
-function normalizeZonePayload(payload) {
-  if (!payload || typeof payload !== "object") return { zones: [] };
-  const zones = Array.isArray(payload.zones) ? payload.zones : [];
+function normalizeZoneBlockPayload(payload) {
+  if (!payload || typeof payload !== "object") return { zoneBlocks: [] };
+  const zoneBlocks = Array.isArray(payload.zoneBlocks)
+    ? payload.zoneBlocks
+    : Array.isArray(payload.zones)
+      ? payload.zones
+      : [];
   return {
-    zones: zones.map((zone, index) => ({
-      clientId: zone.clientId || `zone-${index + 1}`,
-      name: zone.name?.trim() || "",
-      code: zone.code?.trim().toUpperCase() || "",
-      status: zone.status === "INACTIVE" ? "INACTIVE" : "ACTIVE",
-      geometry: zone.geometry || null,
+    zoneBlocks: zoneBlocks.map((zoneBlock, index) => ({
+      clientId: zoneBlock.clientId || `block-${index + 1}`,
+      name: zoneBlock.name?.trim() || "",
+      code: zoneBlock.code?.trim().toUpperCase() || "",
+      status: zoneBlock.status === "INACTIVE" ? "INACTIVE" : "ACTIVE",
+      geometry: zoneBlock.geometry || null,
     })),
   };
 }
@@ -109,20 +113,22 @@ function normalizeAddressPayload(payload) {
 
 function normalizePayload(type, payload) {
   if (type === "REGISTER_ADDRESSES") return normalizeAddressPayload(payload);
-  return normalizeZonePayload(payload);
+  return normalizeZoneBlockPayload(payload);
 }
 
-function validateDraftZones(zones, { requireGeometry = false } = {}) {
-  if (!zones.length) throw new Error("Add at least one zone before submitting");
+function validateDraftZoneBlocks(zoneBlocks, { requireGeometry = false } = {}) {
+  if (!zoneBlocks.length) throw new Error("Add at least one zone block before submitting");
   const codes = new Set();
-  zones.forEach((zone, index) => {
-    const label = `Zone ${index + 1}`;
-    if (!zone.name) throw new Error(`${label}: name is required`);
-    if (!zone.code) throw new Error(`${label}: code is required`);
-    if (codes.has(zone.code)) throw new Error(`Duplicate zone code "${zone.code}" in draft`);
-    codes.add(zone.code);
-    if (requireGeometry) validatePolygonGeometry(zone.geometry);
-    else if (zone.geometry) validatePolygonGeometry(zone.geometry);
+  zoneBlocks.forEach((zoneBlock, index) => {
+    const label = `Zone block ${index + 1}`;
+    if (!zoneBlock.name) throw new Error(`${label}: name is required`);
+    if (!zoneBlock.code) throw new Error(`${label}: code is required`);
+    if (codes.has(zoneBlock.code)) {
+      throw new Error(`Duplicate zone block code "${zoneBlock.code}" in draft`);
+    }
+    codes.add(zoneBlock.code);
+    if (requireGeometry) validatePolygonGeometry(zoneBlock.geometry);
+    else if (zoneBlock.geometry) validatePolygonGeometry(zoneBlock.geometry);
   });
 }
 
@@ -147,66 +153,70 @@ function validateDraftAddresses(addresses, { requireCoordinates = false } = {}) 
   });
 }
 
-async function assertNeighborhood(neighborhoodId) {
-  const neighborhood = await prisma.neighborhood.findUnique({
-    where: { id: neighborhoodId },
+async function assertZone(zoneId) {
+  const zone = await prisma.zone.findUnique({
+    where: { id: zoneId },
     select: { id: true },
   });
-  if (!neighborhood) throw new Error("Neighborhood not found");
-}
-
-async function assertZoneForAssignment(zoneId) {
-  const rows = await prisma.$queryRaw`
-    SELECT z.id, z.neighborhood_id AS "neighborhoodId", z.status,
-      (z.geometry IS NOT NULL) AS "hasGeometry"
-    FROM zones z WHERE z.id = ${zoneId} LIMIT 1
-  `;
-  const zone = rows[0];
   if (!zone) throw new Error("Zone not found");
-  if (zone.status !== "ACTIVE") throw new Error("Zone must be active to register addresses");
-  if (!zone.hasGeometry) {
-    throw new Error("Zone must have a boundary polygon before address registration can be assigned");
-  }
-  return zone;
 }
 
-async function assertNoCodeConflicts(neighborhoodId, zones) {
-  const codes = zones.map((z) => z.code);
+async function assertZoneBlockForAssignment(zoneBlockId) {
+  const rows = await prisma.$queryRaw`
+    SELECT zb.id, zb.zone_id AS "zoneId", zb.status,
+      (zb.geometry IS NOT NULL) AS "hasGeometry"
+    FROM zone_blocks zb WHERE zb.id = ${zoneBlockId} LIMIT 1
+  `;
+  const zoneBlock = rows[0];
+  if (!zoneBlock) throw new Error("Zone block not found");
+  if (zoneBlock.status !== "ACTIVE") {
+    throw new Error("Zone block must be active to register addresses");
+  }
+  if (!zoneBlock.hasGeometry) {
+    throw new Error(
+      "Zone block must have a boundary polygon before address registration can be assigned"
+    );
+  }
+  return zoneBlock;
+}
+
+async function assertNoCodeConflicts(zoneId, zoneBlocks) {
+  const codes = zoneBlocks.map((zb) => zb.code);
   if (!codes.length) return;
-  const existing = await prisma.zone.findMany({
-    where: { neighborhoodId, code: { in: codes } },
+  const existing = await prisma.zoneBlock.findMany({
+    where: { zoneId, code: { in: codes } },
     select: { code: true },
   });
   if (existing.length) {
     throw new Error(
-      `Zone code(s) already exist in this neighborhood: ${existing.map((z) => z.code).join(", ")}`
+      `Zone block code(s) already exist in this zone: ${existing.map((z) => z.code).join(", ")}`
     );
   }
 }
 
-async function assertAddressesWithinZone(zoneId, addresses) {
+async function assertAddressesWithinZoneBlock(zoneBlockId, addresses) {
   for (const address of addresses) {
-    const within = await isPointWithinZone({
+    const within = await isPointWithinZoneBlock({
       latitude: address.latitude,
       longitude: address.longitude,
-      zoneId,
+      zoneBlockId,
     });
     if (!within) {
-      throw new Error(`Address "${address.streetName}" is outside the assigned zone boundary`);
+      throw new Error(`Address "${address.streetName}" is outside the assigned zone block boundary`);
     }
   }
 }
 
-async function validateDefineZonesSubmission(neighborhoodId, zones) {
-  validateDraftZones(zones, { requireGeometry: true });
-  await assertNoCodeConflicts(neighborhoodId, zones);
-  await assertZonesWithinNeighborhood(zones, neighborhoodId);
-  await assertZonesDoNotOverlap(zones);
+async function validateDefineZoneBlocksSubmission(zoneId, zoneBlocks) {
+  validateDraftZoneBlocks(zoneBlocks, { requireGeometry: true });
+  await assertNoCodeConflicts(zoneId, zoneBlocks);
+  await assertZoneBlocksWithinZone(zoneBlocks, zoneId);
+  await assertZoneBlocksDoNotOverlap(zoneBlocks);
 }
 
-async function validateRegisterAddressesSubmission(zoneId, addresses) {
+async function validateRegisterAddressesSubmission(zoneBlockId, addresses) {
   validateDraftAddresses(addresses, { requireCoordinates: true });
-  await assertAddressesWithinZone(zoneId, addresses);
+  await assertAddressesWithinZoneBlock(zoneBlockId, addresses);
 }
 
 async function syncParentStatus(parentId) {
@@ -271,30 +281,32 @@ function assertAssignmentAccess(assignment, user) {
 
 export const AssignmentService = {
   createAssignment: async (
-    { type = "DEFINE_ZONES", neighborhoodId, zoneId, assignedToId, notes, dueAt },
+    { type = "DEFINE_ZONE_BLOCKS", zoneId, zoneBlockId, assignedToId, notes, dueAt },
     actorId
   ) => {
     if (!assignedToId) throw new Error("Data officer is required");
     await assertUserRole(assignedToId, "DATA_OFFICER");
 
-    const assignmentType = type || "DEFINE_ZONES";
-    if (!["DEFINE_ZONES", "REGISTER_ADDRESSES"].includes(assignmentType)) {
+    const assignmentType = type || "DEFINE_ZONE_BLOCKS";
+    if (!["DEFINE_ZONE_BLOCKS", "REGISTER_ADDRESSES"].includes(assignmentType)) {
       throw new Error("Invalid assignment type");
     }
 
-    let resolvedNeighborhoodId = neighborhoodId;
-    let resolvedZoneId = null;
-    let initialPayload = DEFAULT_PAYLOAD.DEFINE_ZONES;
+    let resolvedZoneId = zoneId;
+    let resolvedZoneBlockId = null;
+    let initialPayload = DEFAULT_PAYLOAD.DEFINE_ZONE_BLOCKS;
 
-    if (assignmentType === "DEFINE_ZONES") {
-      if (!neighborhoodId) throw new Error("Neighborhood is required for zone definition assignments");
-      await assertNeighborhood(neighborhoodId);
-      initialPayload = DEFAULT_PAYLOAD.DEFINE_ZONES;
+    if (assignmentType === "DEFINE_ZONE_BLOCKS") {
+      if (!zoneId) throw new Error("Zone is required for zone block definition assignments");
+      await assertZone(zoneId);
+      initialPayload = DEFAULT_PAYLOAD.DEFINE_ZONE_BLOCKS;
     } else {
-      if (!zoneId) throw new Error("Zone is required for address registration assignments");
-      const zone = await assertZoneForAssignment(zoneId);
-      resolvedNeighborhoodId = zone.neighborhoodId;
-      resolvedZoneId = zone.id;
+      if (!zoneBlockId) {
+        throw new Error("Zone block is required for address registration assignments");
+      }
+      const zoneBlock = await assertZoneBlockForAssignment(zoneBlockId);
+      resolvedZoneId = zoneBlock.zoneId;
+      resolvedZoneBlockId = zoneBlock.id;
       initialPayload = DEFAULT_PAYLOAD.REGISTER_ADDRESSES;
     }
 
@@ -302,8 +314,8 @@ export const AssignmentService = {
       data: {
         type: assignmentType,
         tier: "PARENT",
-        neighborhoodId: resolvedNeighborhoodId,
         zoneId: resolvedZoneId,
+        zoneBlockId: resolvedZoneBlockId,
         assignedToId,
         assignedById: actorId,
         notes: notes?.trim() || null,
@@ -332,15 +344,15 @@ export const AssignmentService = {
     const initialPayload =
       parent.type === "REGISTER_ADDRESSES"
         ? DEFAULT_PAYLOAD.REGISTER_ADDRESSES
-        : DEFAULT_PAYLOAD.DEFINE_ZONES;
+        : DEFAULT_PAYLOAD.DEFINE_ZONE_BLOCKS;
 
     const child = await prisma.assignment.create({
       data: {
         type: parent.type,
         tier: "CHILD",
         parentAssignmentId: parent.id,
-        neighborhoodId: parent.neighborhoodId,
         zoneId: parent.zoneId,
+        zoneBlockId: parent.zoneBlockId,
         assignedToId,
         assignedById: officerId,
         notes: notes?.trim() || null,
@@ -437,7 +449,7 @@ export const AssignmentService = {
     if (assignment.type === "REGISTER_ADDRESSES") {
       validateDraftAddresses(normalized.addresses, { requireCoordinates: false });
     } else {
-      validateDraftZones(normalized.zones, { requireGeometry: false });
+      validateDraftZoneBlocks(normalized.zoneBlocks, { requireGeometry: false });
     }
 
     return prisma.assignment.update({
@@ -461,10 +473,10 @@ export const AssignmentService = {
 
     const normalized = normalizePayload(assignment.type, assignment.payload);
     if (assignment.type === "REGISTER_ADDRESSES") {
-      if (!assignment.zoneId) throw new Error("Assignment zone is missing");
-      await validateRegisterAddressesSubmission(assignment.zoneId, normalized.addresses);
+      if (!assignment.zoneBlockId) throw new Error("Assignment zone block is missing");
+      await validateRegisterAddressesSubmission(assignment.zoneBlockId, normalized.addresses);
     } else {
-      await validateDefineZonesSubmission(assignment.neighborhoodId, normalized.zones);
+      await validateDefineZoneBlocksSubmission(assignment.zoneId, normalized.zoneBlocks);
     }
 
     return prisma.assignment.update({
@@ -554,13 +566,15 @@ export const AssignmentService = {
           normalizePayload(child.type, child.payload).addresses
         ),
       };
-      if (!parent.zoneId) throw new Error("Parent assignment zone is missing");
-      await validateRegisterAddressesSubmission(parent.zoneId, mergedPayload.addresses);
+      if (!parent.zoneBlockId) throw new Error("Parent assignment zone block is missing");
+      await validateRegisterAddressesSubmission(parent.zoneBlockId, mergedPayload.addresses);
     } else {
       mergedPayload = {
-        zones: children.flatMap((child) => normalizePayload(child.type, child.payload).zones),
+        zoneBlocks: children.flatMap(
+          (child) => normalizePayload(child.type, child.payload).zoneBlocks
+        ),
       };
-      await validateDefineZonesSubmission(parent.neighborhoodId, mergedPayload.zones);
+      await validateDefineZoneBlocksSubmission(parent.zoneId, mergedPayload.zoneBlocks);
     }
 
     return prisma.assignment.update({
@@ -584,10 +598,10 @@ export const AssignmentService = {
 
     const normalized = normalizePayload(parent.type, parent.payload);
     if (parent.type === "REGISTER_ADDRESSES") {
-      if (!parent.zoneId) throw new Error("Assignment zone is missing");
-      await validateRegisterAddressesSubmission(parent.zoneId, normalized.addresses);
+      if (!parent.zoneBlockId) throw new Error("Assignment zone block is missing");
+      await validateRegisterAddressesSubmission(parent.zoneBlockId, normalized.addresses);
     } else {
-      await validateDefineZonesSubmission(parent.neighborhoodId, normalized.zones);
+      await validateDefineZoneBlocksSubmission(parent.zoneId, normalized.zoneBlocks);
     }
 
     return prisma.assignment.update({
@@ -614,11 +628,11 @@ export const AssignmentService = {
     const normalized = normalizePayload(assignment.type, assignment.payload);
 
     if (assignment.type === "REGISTER_ADDRESSES") {
-      if (!assignment.zoneId) throw new Error("Assignment zone is missing");
-      await validateRegisterAddressesSubmission(assignment.zoneId, normalized.addresses);
+      if (!assignment.zoneBlockId) throw new Error("Assignment zone block is missing");
+      await validateRegisterAddressesSubmission(assignment.zoneBlockId, normalized.addresses);
 
       const createdAddresses = await AddressService.createAddressesFromDraftBatch(
-        assignment.zoneId,
+        assignment.zoneBlockId,
         normalized.addresses
       );
 
@@ -636,16 +650,16 @@ export const AssignmentService = {
       return { assignment: updated, createdAddresses };
     }
 
-    await validateDefineZonesSubmission(assignment.neighborhoodId, normalized.zones);
-    const createdZones = [];
-    for (const zone of normalized.zones) {
-      createdZones.push(
-        await ZoneService.createZone({
-          neighborhoodId: assignment.neighborhoodId,
-          name: zone.name,
-          code: zone.code,
-          status: zone.status,
-          geometry: zone.geometry,
+    await validateDefineZoneBlocksSubmission(assignment.zoneId, normalized.zoneBlocks);
+    const createdZoneBlocks = [];
+    for (const zoneBlock of normalized.zoneBlocks) {
+      createdZoneBlocks.push(
+        await ZoneBlockService.createZoneBlock({
+          zoneId: assignment.zoneId,
+          name: zoneBlock.name,
+          code: zoneBlock.code,
+          status: zoneBlock.status,
+          geometry: zoneBlock.geometry,
         })
       );
     }
@@ -661,7 +675,7 @@ export const AssignmentService = {
       include: assignmentInclude,
     });
 
-    return { assignment: updated, createdZones };
+    return { assignment: updated, createdZoneBlocks };
   },
 
   rejectAssignment: async (id, reviewerId, rejectionReason) => {

@@ -1,14 +1,14 @@
-import { NeighborhoodService } from "../service/neighborhood.service.js";
+import { ZoneBlockService } from "../service/zone-block.service.js";
 import { getErrorMessage } from "../utils/prisma-error.utils.js";
 
-export const createNeighborhood = async (req, res) => {
+export const createZoneBlock = async (req, res) => {
   try {
-    const neighborhood = await NeighborhoodService.createNeighborhood(req.body);
+    const zoneBlock = await ZoneBlockService.createZoneBlock(req.body);
 
     return res.status(201).json({
       success: true,
-      message: "Neighborhood created successfully",
-      data: neighborhood,
+      message: "Zone block created successfully",
+      data: zoneBlock,
     });
   } catch (error) {
     const status = error.message.includes("not found") ? 404 : 400;
@@ -19,15 +19,13 @@ export const createNeighborhood = async (req, res) => {
   }
 };
 
-export const getNeighborhoods = async (req, res) => {
+export const getZoneBlocks = async (req, res) => {
   try {
-    const neighborhoods = await NeighborhoodService.getNeighborhoods(
-      req.query.districtId
-    );
+    const zoneBlocks = await ZoneBlockService.getZoneBlocks(req.query.zoneId);
 
     return res.status(200).json({
       success: true,
-      data: neighborhoods,
+      data: zoneBlocks,
     });
   } catch (error) {
     return res.status(500).json({
@@ -37,18 +35,16 @@ export const getNeighborhoods = async (req, res) => {
   }
 };
 
-export const getNeighborhoodById = async (req, res) => {
+export const getZoneBlockById = async (req, res) => {
   try {
-    const neighborhood = await NeighborhoodService.getNeighborhoodById(
-      req.params.id
-    );
+    const zoneBlock = await ZoneBlockService.getZoneBlockById(req.params.id);
 
     return res.status(200).json({
       success: true,
-      data: neighborhood,
+      data: zoneBlock,
     });
   } catch (error) {
-    const status = error.message === "Neighborhood not found" ? 404 : 400;
+    const status = error.message === "Zone block not found" ? 404 : 400;
     return res.status(status).json({
       success: false,
       message: getErrorMessage(error),
@@ -56,17 +52,14 @@ export const getNeighborhoodById = async (req, res) => {
   }
 };
 
-export const updateNeighborhood = async (req, res) => {
+export const updateZoneBlock = async (req, res) => {
   try {
-    const neighborhood = await NeighborhoodService.updateNeighborhood(
-      req.params.id,
-      req.body
-    );
+    const zoneBlock = await ZoneBlockService.updateZoneBlock(req.params.id, req.body);
 
     return res.status(200).json({
       success: true,
-      message: "Neighborhood updated successfully",
-      data: neighborhood,
+      message: "Zone block updated successfully",
+      data: zoneBlock,
     });
   } catch (error) {
     const status = error.message.includes("not found") ? 404 : 400;
@@ -77,17 +70,17 @@ export const updateNeighborhood = async (req, res) => {
   }
 };
 
-export const deleteNeighborhood = async (req, res) => {
+export const deleteZoneBlock = async (req, res) => {
   try {
-    const result = await NeighborhoodService.deleteNeighborhood(req.params.id);
+    const result = await ZoneBlockService.deleteZoneBlock(req.params.id);
 
     return res.status(200).json({
       success: true,
-      message: "Neighborhood deleted successfully",
+      message: "Zone block deleted successfully",
       data: result,
     });
   } catch (error) {
-    const status = error.message === "Neighborhood not found" ? 404 : 400;
+    const status = error.message === "Zone block not found" ? 404 : 400;
     return res.status(status).json({
       success: false,
       message: getErrorMessage(error),

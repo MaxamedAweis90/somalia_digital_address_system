@@ -4,12 +4,12 @@ export function formatHouseNumber(houseNumber) {
   return String(houseNumber).padStart(4, "0");
 }
 
-export function buildDacPreview({ districtCode, neighborhoodCode, zoneCode, houseNumber }) {
-  if (!districtCode || !neighborhoodCode || !zoneCode || !houseNumber) {
+export function buildDacPreview({ districtCode, zoneCode, zoneBlockCode, houseNumber }) {
+  if (!districtCode || !zoneCode || !zoneBlockCode || !houseNumber) {
     return "";
   }
 
-  return `${districtCode}-${neighborhoodCode}-${zoneCode}-${formatHouseNumber(houseNumber)}`.toUpperCase();
+  return `${districtCode}-${zoneCode}-${zoneBlockCode}-${formatHouseNumber(houseNumber)}`.toUpperCase();
 }
 
 export function isValidDacFormat(code) {

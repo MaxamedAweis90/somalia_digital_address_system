@@ -191,8 +191,8 @@ export default function ZoneMapEditor({
       <div className="flex flex-wrap items-center gap-4 text-[11px] text-ink-soft">
         <p>
           {editable
-            ? "Use the map tools to draw a zone boundary polygon. One polygon per zone."
-            : "Zone boundary preview."}
+            ? "Use the map tools to draw a zone block boundary polygon inside the parent zone."
+            : "Zone block boundary preview."}
         </p>
         {boundaryGeometry && (
           <span className="inline-flex items-center gap-1.5">

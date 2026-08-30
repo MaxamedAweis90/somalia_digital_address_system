@@ -262,7 +262,7 @@ const District = () => {
                     District Code
                   </th>
                   <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
-                    Neighborhoods
+                    Zones
                   </th>
                   <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
                     Status
@@ -291,7 +291,7 @@ const District = () => {
                 ) : filteredDistricts.length > 0 ? (
                   filteredDistricts.map((district) => {
                     const isActive = (district.status || "ACTIVE").toUpperCase() === "ACTIVE";
-                    const neighborhoodCount = district._count?.neighborhoods ?? district.neighborhoods ?? 0;
+                    const zoneCount = district._count?.zones ?? district.zones ?? 0;
                     const formattedDate = district.updatedAt
                       ? new Date(district.updatedAt).toLocaleDateString()
                       : district.updated || "—";
@@ -325,7 +325,7 @@ const District = () => {
                         {/* NEIGHBORHOODS */}
                         <td className="px-5 py-4">
                           <span className="text-[13px] text-ink">
-                            {neighborhoodCount}
+                            {zoneCount}
                           </span>
                         </td>
 

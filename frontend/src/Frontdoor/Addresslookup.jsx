@@ -91,12 +91,12 @@ export default function AddressLookup() {
                 <p className="font-medium text-gray-900">{result.district?.name}</p>
               </div>
               <div>
-                <p className="text-gray-500">Neighborhood</p>
-                <p className="font-medium text-gray-900">{result.neighborhood?.name}</p>
-              </div>
-              <div>
                 <p className="text-gray-500">Zone</p>
                 <p className="font-medium text-gray-900">{result.zone?.name}</p>
+              </div>
+              <div>
+                <p className="text-gray-500">Zone Block</p>
+                <p className="font-medium text-gray-900">{result.zoneBlock?.name}</p>
               </div>
               <div>
                 <p className="text-gray-500">Street</p>

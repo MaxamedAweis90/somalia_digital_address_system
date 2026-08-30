@@ -21,7 +21,7 @@ export const createZone = async (req, res) => {
 
 export const getZones = async (req, res) => {
   try {
-    const zones = await ZoneService.getZones(req.query.neighborhoodId);
+    const zones = await ZoneService.getZones(req.query.districtId);
 
     return res.status(200).json({
       success: true,

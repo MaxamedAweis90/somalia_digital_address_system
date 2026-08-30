@@ -1,17 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getNeighborhoods, deleteNeighborhood } from "@/api/neighborhoodApi";
+import { getZoneBlocks, deleteZoneBlock } from "@/api/zoneBlockApi";
 import { useAuth } from "@/context/AuthContext";
 import { ROLES } from "@/constants/roles";
 import { Loader2 } from "lucide-react";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 
-export default function Neighborhoods() {
+export default function ZoneBlocks() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const isAdmin = user?.role === ROLES.SYS_ADMIN;
 
-  const [neighborhoods, setNeighborhoods] = useState([]);
+  const [zoneBlocks, setZoneBlocks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -19,26 +19,26 @@ export default function Neighborhoods() {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
 
-  const fetchNeighborhoods = async () => {
+  const fetchZoneBlocks = async () => {
     try {
       setLoading(true);
       setError(null);
-      const res = await getNeighborhoods();
-      setNeighborhoods(res.data.data || []);
+      const res = await getZoneBlocks();
+      setZoneBlocks(res.data.data || []);
     } catch (err) {
-      console.error("Failed to load neighborhoods:", err);
-      setError(err.response?.data?.message || "Failed to load neighborhoods from server");
+      console.error("Failed to load zone blocks:", err);
+      setError(err.response?.data?.message || "Failed to load zone blocks");
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchNeighborhoods();
+    fetchZoneBlocks();
   }, []);
 
-  const handleDelete = (item) => {
-    setDeleteTarget(item);
+  const handleDelete = (zoneBlock) => {
+    setDeleteTarget(zoneBlock);
   };
 
   const confirmDelete = async () => {
@@ -47,29 +47,30 @@ export default function Neighborhoods() {
     try {
       setDeleting(true);
       setError(null);
-      await deleteNeighborhood(deleteTarget.id);
-      setNeighborhoods((current) => current.filter((n) => n.id !== deleteTarget.id));
+      await deleteZoneBlock(deleteTarget.id);
+      setZoneBlocks((current) => current.filter((item) => item.id !== deleteTarget.id));
       setDeleteTarget(null);
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to delete neighborhood");
+      setError(err.response?.data?.message || "Failed to delete zone block");
     } finally {
       setDeleting(false);
     }
   };
 
-  // Search and filter
-  const filteredNeighborhoods = useMemo(() => {
-    return neighborhoods.filter((item) => {
-      const name = item.name || "";
-      const code = item.code || "";
-      const districtName = item.district?.name || "";
+  const filteredZoneBlocks = useMemo(() => {
+    return zoneBlocks.filter((zoneBlock) => {
+      const name = zoneBlock.name || "";
+      const code = zoneBlock.code || "";
+      const districtName = zoneBlock.zone?.district?.name || "";
+      const zoneName = zoneBlock.zone?.name || "";
 
       const matchesSearch =
         name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        districtName.toLowerCase().includes(searchTerm.toLowerCase());
+        districtName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        zoneName.toLowerCase().includes(searchTerm.toLowerCase());
 
-      const status = (item.status || "ACTIVE").toUpperCase();
+      const status = (zone.status || "ACTIVE").toUpperCase();
       const matchesStatus =
         statusFilter === "All" ||
         (statusFilter === "Active" && status === "ACTIVE") ||
@@ -77,14 +78,14 @@ export default function Neighborhoods() {
 
       return matchesSearch && matchesStatus;
     });
-  }, [neighborhoods, searchTerm, statusFilter]);
+  }, [zoneBlocks, searchTerm, statusFilter]);
 
   return (
     <div className="min-h-screen bg-bg font-sans">
       <ConfirmDialog
         open={Boolean(deleteTarget)}
-        title="Delete Neighborhood"
-        message={`Are you sure you want to delete "${deleteTarget?.name || "this neighborhood"}"? This action cannot be undone.`}
+        title="Delete Zone Block"
+        message={`Are you sure you want to delete "${deleteTarget?.name || "this zone block"}"? This action cannot be undone.`}
         confirmLabel="Delete"
         variant="danger"
         loading={deleting}
@@ -96,9 +97,6 @@ export default function Neighborhoods() {
       />
 
       <div className="px-4 sm:px-6 lg:px-5 pt-5 pb-10">
-        {/* =========================
-            BREADCRUMB
-        ========================= */}
         <div className="flex items-center gap-2 text-[11px] font-medium text-ink-soft mb-6">
           <span
             onClick={() => navigate("../dashboard")}
@@ -106,28 +104,20 @@ export default function Neighborhoods() {
           >
             Dashboard
           </span>
-
           <span className="text-gray-400">›</span>
-
-          <span className="text-ink font-semibold">
-            Neighborhoods
-          </span>
+          <span className="text-ink font-semibold">Zone Blocks</span>
         </div>
 
-        {/* =========================
-            PAGE HEADER
-        ========================= */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <div>
             <h1 className="font-display text-[25px] font-semibold tracking-tight text-ink">
-              Neighborhoods
+              Zone Blocks
             </h1>
             <p className="mt-1 text-[13px] text-ink-soft">
-              Manage and view all municipal neighborhoods and residential areas.
+              Manage cadastral zone blocks and geographic sectors within zones.
             </p>
           </div>
 
-          {/* ADD NEIGHBORHOOD - ONLY SHOWN TO SYS_ADMIN */}
           {isAdmin && (
             <button
               onClick={() => navigate("add")}
@@ -148,17 +138,16 @@ export default function Neighborhoods() {
                 cursor-pointer
               "
             >
-              + Add Neighborhood
+              + Add Zone Block
             </button>
           )}
         </div>
 
-        {/* Error Notice */}
         {error && (
           <div className="mb-6 rounded-lg bg-red-50 p-4 border border-red-200 text-red-700 text-sm flex items-center justify-between">
             <span>{error}</span>
             <button
-              onClick={fetchNeighborhoods}
+              onClick={fetchZoneBlocks}
               className="text-xs font-semibold underline hover:text-red-900 ml-4 cursor-pointer"
             >
               Retry
@@ -166,34 +155,24 @@ export default function Neighborhoods() {
           </div>
         )}
 
-        {/* =========================
-            MAIN CARD
-        ========================= */}
         <div className="w-full bg-white border border-line rounded-xl shadow-card-sm overflow-hidden">
-          {/* =========================
-              CARD HEADER / FILTERS
-          ========================= */}
           <div className="px-5 py-4 border-b border-line">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div>
-                <h2 className="text-[16px] font-semibold text-ink">
-                  All Neighborhoods
-                </h2>
+                <h2 className="text-[16px] font-semibold text-ink">All Zone Blocks</h2>
                 <p className="mt-1 text-[12px] text-ink-soft">
-                  Total {neighborhoods.length} neighborhoods in the registry
+                  Total {zoneBlocks.length} zone blocks in the registry
                 </p>
               </div>
 
-              {/* FILTERS */}
               <div className="flex flex-col sm:flex-row gap-3">
-                {/* SEARCH */}
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-soft text-sm">
                     🔍
                   </span>
                   <input
                     type="text"
-                    placeholder="Search neighborhood or code..."
+                    placeholder="Search zone block, district, code..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="
@@ -217,7 +196,6 @@ export default function Neighborhoods() {
                   />
                 </div>
 
-                {/* STATUS FILTER */}
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
@@ -246,21 +224,21 @@ export default function Neighborhoods() {
             </div>
           </div>
 
-          {/* =========================
-              TABLE
-          ========================= */}
           <div className="overflow-x-auto">
             <table className="w-full border-collapse">
               <thead>
                 <tr className="border-b border-line bg-[#FBFCFE]">
                   <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
-                    Neighborhood
+                    Zone Block Name
                   </th>
                   <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
-                    Parent District
+                    District
                   </th>
                   <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
-                    Code
+                    Zone
+                  </th>
+                  <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
+                    Zone Block Code
                   </th>
                   <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
                     Status
@@ -268,58 +246,56 @@ export default function Neighborhoods() {
                   <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
                     Last Updated
                   </th>
-                  {isAdmin && (
-                    <th className="px-5 py-4 text-right text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
-                      Actions
-                    </th>
-                  )}
+                  <th className="px-5 py-4 text-right text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
+                    Actions
+                  </th>
                 </tr>
               </thead>
 
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={isAdmin ? 6 : 5} className="px-5 py-12 text-center">
+                    <td colSpan={7} className="px-5 py-12 text-center">
                       <div className="flex flex-col items-center justify-center gap-2">
                         <Loader2 className="h-6 w-6 animate-spin text-blue-deep" />
-                        <p className="text-[12px] text-ink-soft">Loading neighborhoods from server...</p>
+                        <p className="text-[12px] text-ink-soft">Loading zone blocks...</p>
                       </div>
                     </td>
                   </tr>
-                ) : filteredNeighborhoods.length > 0 ? (
-                  filteredNeighborhoods.map((item) => {
-                    const isActive = (item.status || "ACTIVE").toUpperCase() === "ACTIVE";
-                    const formattedDate = item.updatedAt
-                      ? new Date(item.updatedAt).toLocaleDateString()
+                ) : filteredZoneBlocks.length > 0 ? (
+                  filteredZoneBlocks.map((zoneBlock) => {
+                    const isActive = (zoneBlock.status || "ACTIVE").toUpperCase() === "ACTIVE";
+                    const formattedDate = zoneBlock.updatedAt
+                      ? new Date(zoneBlock.updatedAt).toLocaleDateString()
                       : "—";
 
                     return (
                       <tr
-                        key={item.id}
+                        key={zoneBlock.id}
                         className="border-b border-line last:border-b-0 hover:bg-[#FBFCFE] transition-colors"
                       >
-                        {/* NAME */}
                         <td className="px-5 py-4">
-                          <p className="text-[13px] font-semibold text-ink">
-                            {item.name}
-                          </p>
+                          <p className="text-[13px] font-semibold text-ink">{zoneBlock.name}</p>
                         </td>
 
-                        {/* DISTRICT */}
                         <td className="px-5 py-4">
                           <span className="text-[12px] text-ink">
-                            {item.district?.name || "—"}
+                            {zoneBlock.zone?.district?.name || "—"}
                           </span>
                         </td>
 
-                        {/* CODE */}
+                        <td className="px-5 py-4">
+                          <span className="text-[12px] text-ink">
+                            {zoneBlock.zone?.name || "—"}
+                          </span>
+                        </td>
+
                         <td className="px-5 py-4">
                           <span className="inline-flex items-center rounded-md bg-bg px-2.5 py-1 text-[11px] font-semibold text-blue-deep">
-                            {item.code}
+                            {zoneBlock.code}
                           </span>
                         </td>
 
-                        {/* STATUS */}
                         <td className="px-5 py-4">
                           <span
                             className={`
@@ -343,84 +319,89 @@ export default function Neighborhoods() {
                                 h-1.5
                                 w-1.5
                                 rounded-full
-                                ${
-                                  isActive
-                                    ? "bg-green-500"
-                                    : "bg-gray-400"
-                                }
+                                ${isActive ? "bg-green-500" : "bg-gray-400"}
                               `}
                             />
                             {isActive ? "Active" : "Inactive"}
                           </span>
                         </td>
 
-                        {/* LAST UPDATED */}
                         <td className="px-5 py-4">
-                          <span className="text-[12px] text-ink-soft">
-                            {formattedDate}
-                          </span>
+                          <span className="text-[12px] text-ink-soft">{formattedDate}</span>
                         </td>
 
-                        {/* ACTIONS - ONLY SHOWN TO SYS_ADMIN */}
-                        {isAdmin && (
-                          <td className="px-5 py-4">
-                            <div className="flex items-center justify-end gap-2">
-                              {/* EDIT */}
-                              <button
-                                onClick={() =>
-                                  navigate(`edit/${item.id}`)
-                                }
-                                className="
-                                  h-[32px]
-                                  rounded-md
-                                  bg-blue-deep
-                                  px-3
-                                  text-[11px]
-                                  font-semibold
-                                  text-white
-                                  transition-all
-                                  hover:bg-[#0F2B4D]
-                                  cursor-pointer
-                                "
-                              >
-                                Edit
-                              </button>
+                        <td className="px-5 py-4">
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              onClick={() => navigate(`view/${zoneBlock.id}`)}
+                              className="
+                                h-[32px]
+                                rounded-md
+                                border
+                                border-line
+                                bg-white
+                                px-3
+                                text-[11px]
+                                font-semibold
+                                text-ink
+                                transition-all
+                                hover:bg-bg
+                                cursor-pointer
+                              "
+                            >
+                              View
+                            </button>
 
-                              {/* DELETE */}
-                              <button
-                                onClick={() => handleDelete(item)}
-                                className="
-                                  h-[32px]
-                                  rounded-md
-                                  border
-                                  border-red-200
-                                  bg-white
-                                  px-3
-                                  text-[11px]
-                                  font-semibold
-                                  text-red-600
-                                  transition-all
-                                  hover:bg-red-50
-                                  cursor-pointer
-                                "
-                              >
-                                Delete
-                              </button>
-                            </div>
-                          </td>
-                        )}
+                            {isAdmin && (
+                              <>
+                                <button
+                                  onClick={() => navigate(`edit/${zoneBlock.id}`)}
+                                  className="
+                                    h-[32px]
+                                    rounded-md
+                                    bg-blue-deep
+                                    px-3
+                                    text-[11px]
+                                    font-semibold
+                                    text-white
+                                    transition-all
+                                    hover:bg-[#0F2B4D]
+                                    cursor-pointer
+                                  "
+                                >
+                                  Edit
+                                </button>
+
+                                <button
+                                  onClick={() => handleDelete(zoneBlock)}
+                                  className="
+                                    h-[32px]
+                                    rounded-md
+                                    border
+                                    border-red-200
+                                    bg-white
+                                    px-3
+                                    text-[11px]
+                                    font-semibold
+                                    text-red-600
+                                    transition-all
+                                    hover:bg-red-50
+                                    cursor-pointer
+                                  "
+                                >
+                                  Delete
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </td>
                       </tr>
                     );
                   })
                 ) : (
                   <tr>
-                    <td
-                      colSpan={isAdmin ? 6 : 5}
-                      className="px-5 py-12 text-center"
-                    >
-                      <p className="text-[13px] font-medium text-ink">
-                        No neighborhoods found
-                      </p>
+                    <td colSpan={7} className="px-5 py-12 text-center">
+                      <p className="text-[13px] font-medium text-ink">No zone blocks found</p>
                       <p className="mt-1 text-[12px] text-ink-soft">
                         Try changing your search or filter.
                       </p>
@@ -431,10 +412,9 @@ export default function Neighborhoods() {
             </table>
           </div>
 
-          {/* CARD FOOTER */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-t border-line px-5 py-4">
             <p className="text-[11px] text-ink-soft">
-              Showing {filteredNeighborhoods.length} of {neighborhoods.length} neighborhoods
+              Showing {filteredZoneBlocks.length} of {zoneBlocks.length} zone blocks
             </p>
           </div>
         </div>

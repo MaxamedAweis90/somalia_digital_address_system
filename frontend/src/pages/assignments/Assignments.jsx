@@ -187,7 +187,7 @@ export default function Assignments() {
                     <td colSpan={7} className="px-5 py-12 text-center">
                       <p className="text-[13px] font-medium text-ink">No assignments yet</p>
                       <p className="mt-1 text-[12px] text-ink-soft">
-                        Create an assignment to have an officer complete field work in a neighborhood or zone.
+                        Create an assignment to have an officer complete field work in a zone or zone block.
                       </p>
                     </td>
                   </tr>

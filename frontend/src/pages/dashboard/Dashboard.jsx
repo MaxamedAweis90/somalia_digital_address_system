@@ -151,11 +151,11 @@ export default function Dashboard() {
                     </th>
 
                     <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
-                      Neighborhood
+                      Zone
                     </th>
 
                     <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
-                      Zone
+                      Zone Block
                     </th>
 
                     <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
@@ -187,11 +187,11 @@ export default function Dashboard() {
                         </td>
 
                         <td className="px-5 py-4 text-[12px] text-ink">
-                          {address.neighborhoodName || "—"}
+                          {address.zoneName || "—"}
                         </td>
 
                         <td className="px-5 py-4 text-[12px] text-ink">
-                          {address.zoneName || "—"}
+                          {address.zoneBlockName || "—"}
                         </td>
 
                         <td className="px-5 py-4">

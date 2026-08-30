@@ -16,8 +16,8 @@ import {
   submitCollectorAssignment,
 } from "@/api/collectorApi";
 import { previewAddressCode } from "@/api/addressApi";
-import { getNeighborhoodById } from "@/api/neighborhoodApi";
-import { getZoneByIdApi } from "@/api/zoneApi";
+import { getZoneById } from "@/api/zoneApi";
+import { getZoneBlockById } from "@/api/zoneBlockApi";
 import AddressDraftMap from "@/components/assignments/AddressDraftMap";
 import AssignmentStatusBadge, {
   formatAssignmentLocation,
@@ -41,8 +41,8 @@ export default function RegisterAddressesAssignment({
   onAssignmentLoaded,
 }) {
   const [assignment, setAssignment] = useState(null);
+  const [zoneBlockGeometry, setZoneBlockGeometry] = useState(null);
   const [zoneGeometry, setZoneGeometry] = useState(null);
-  const [neighborhoodGeometry, setNeighborhoodGeometry] = useState(null);
   const [draftAddresses, setDraftAddresses] = useState([]);
   const [selectedClientId, setSelectedClientId] = useState(null);
   const [dacPreview, setDacPreview] = useState({});
@@ -69,11 +69,11 @@ export default function RegisterAddressesAssignment({
   const selectedAddress =
     draftAddresses.find((address) => address.clientId === selectedClientId) || null;
 
-  const loadDacPreview = async (zoneId) => {
-    if (!zoneId) return;
+  const loadDacPreview = async (zoneBlockId) => {
+    if (!zoneBlockId) return;
 
     try {
-      const res = await previewAddressCode(zoneId);
+      const res = await previewAddressCode(zoneBlockId);
       setDacPreview(res.data.data || {});
     } catch {
       setDacPreview({});
@@ -101,15 +101,15 @@ export default function RegisterAddressesAssignment({
       setDraftAddresses(addresses);
       setSelectedClientId(addresses[0]?.clientId || null);
 
-      if (data.zoneId) {
-        const [zoneRes, neighborhoodRes] = await Promise.all([
-          getZoneByIdApi(data.zoneId),
-          getNeighborhoodById(data.neighborhoodId),
+      if (data.zoneBlockId) {
+        const [zoneBlockRes, zoneRes] = await Promise.all([
+          getZoneBlockById(data.zoneBlockId),
+          getZoneById(data.zoneId),
         ]);
 
+        setZoneBlockGeometry(zoneBlockRes.data.data?.geometry || null);
         setZoneGeometry(zoneRes.data.data?.geometry || null);
-        setNeighborhoodGeometry(neighborhoodRes.data.data?.geometry || null);
-        await loadDacPreview(data.zoneId);
+        await loadDacPreview(data.zoneBlockId);
       }
     } catch (err) {
       setError(err.response?.data?.message || "Failed to load assignment");
@@ -236,8 +236,8 @@ export default function RegisterAddressesAssignment({
     const baseHouse = Number(dacPreview.houseNumber || 1);
     const prefix = dacPreview.addressCode
       ? dacPreview.addressCode.replace(/-\d+$/, "")
-      : assignment?.zone?.code
-        ? `${assignment.neighborhood?.district?.code || "DAC"}-${assignment.neighborhood?.code || "NBH"}-${assignment.zone.code}`
+      : assignment?.zoneBlock?.code
+        ? `${assignment.zone?.district?.code || "DAC"}-${assignment.zone?.code || "ZON"}-${assignment.zoneBlock.code}`
         : "DAC";
 
     return draftAddresses.map((_, index) => {
@@ -356,7 +356,7 @@ export default function RegisterAddressesAssignment({
 
             <div className="space-y-3 text-[12px]">
               <div>
-                <p className="text-ink-soft">Zone</p>
+                <p className="text-ink-soft">Zone Block</p>
                 <p className="font-medium text-ink">{formatAssignmentLocation(assignment)}</p>
               </div>
               <div>
@@ -495,8 +495,8 @@ export default function RegisterAddressesAssignment({
 
               <div className="rounded-xl border border-line bg-white p-5 shadow-card-sm">
                 <AddressDraftMap
+                  zoneBlockGeometry={zoneBlockGeometry}
                   zoneGeometry={zoneGeometry}
-                  neighborhoodGeometry={neighborhoodGeometry}
                   addresses={draftAddresses}
                   selectedClientId={selectedClientId}
                   onPinChange={(coords) => updateSelectedAddress(coords)}
