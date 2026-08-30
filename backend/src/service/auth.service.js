@@ -11,8 +11,12 @@ const publicUserSelect = {
 
 export const AuthService = {
   registerUser: async ({ name, email, password, role }) => {
+    if (!email?.trim()) {
+      throw new Error("Email is required");
+    }
+
     const existingUser = await prisma.user.findUnique({
-      where: { email },
+      where: { email: email.trim().toLowerCase() },
     });
 
     if (existingUser) {
@@ -23,8 +27,8 @@ export const AuthService = {
 
     const newUser = await prisma.user.create({
       data: {
-        name,
-        email,
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
         password: hashedPassword,
         role: role || "DATA_OFFICER",
       },
@@ -41,8 +45,12 @@ export const AuthService = {
   },
 
   loginUser: async (email, password) => {
+    if (!email?.trim() || !password) {
+      throw new Error("Email and password are required");
+    }
+
     const user = await prisma.user.findUnique({
-      where: { email },
+      where: { email: email.trim().toLowerCase() },
     });
 
     if (!user) {
@@ -71,8 +79,12 @@ export const AuthService = {
       token,
     };
   },
-
+  
   getUserProfile: async (userId) => {
+    if (!userId) {
+      throw new Error("User ID is required");
+    }
+
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: publicUserSelect,
