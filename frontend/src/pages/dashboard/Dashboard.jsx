@@ -1,5 +1,5 @@
-import StatCard from "../components/dashboard/StatCard";
-import RecentActivity from "../components/dashboard/RecentActivity";
+import StatCard from "@/components/dashboard/StatCard";
+import RecentActivity from "@/components/dashboard/RecentActivity";
 
 const stats = [
   {
@@ -22,7 +22,7 @@ const stats = [
 
 export default function Dashboard() {
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen bg-bg font-sans px-4 sm:px-6 lg:px-5 pt-5 pb-10 space-y-6">
       {/* Dashboard Header */}
       <div className="flex items-center justify-between">
         <div>
