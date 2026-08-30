@@ -14,10 +14,12 @@ import {
   PanelLeftOpen,
   Bell,
   HelpCircle,
+  Globe,
 } from "lucide-react";
 
 const navItems = [
   { to: "/officer/dashboard", label: "Dashboard", icon: LayoutGrid },
+  { to: "/officer/regions", label: "Regions", icon: Globe },
   { to: "/officer/districts", label: "Districts", icon: Building2 },
   { to: "/officer/neighborhoods", label: "Neighborhoods", icon: Home },
   { to: "/officer/zones", label: "Zones", icon: Grid3x3 },
@@ -40,13 +42,13 @@ export default function DataOfficerLayout() {
     <div className="flex h-screen w-full bg-slate-50 font-sans text-slate-900 overflow-hidden">
       {/* Collapsible Sidebar */}
       <aside
-        className={`flex h-full shrink-0 flex-col bg-[#0b2440] text-slate-200 transition-[width] duration-200 select-none ${
+        className={`flex h-full shrink-0 flex-col bg-[#0e2a52] text-slate-200 transition-[width] duration-200 select-none ${
           collapsed ? "w-20" : "w-64"
         }`}
       >
         {/* Brand Header */}
         <div className="flex items-center gap-3 px-6 py-6 border-b border-white/5">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 shadow-xs">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-600/30 text-blue-400 border border-blue-500/30 shadow-xs">
             <Building2 className="h-5 w-5 text-white" />
           </div>
 
@@ -55,7 +57,7 @@ export default function DataOfficerLayout() {
               <p className="truncate text-base font-semibold leading-tight text-white font-display">
                 SDAS
               </p>
-              <p className="truncate text-[11px] leading-tight text-emerald-400/90 font-medium">
+              <p className="truncate text-[11px] leading-tight text-slate-400 font-medium">
                 Digital Infrastructure
               </p>
             </div>
@@ -72,7 +74,7 @@ export default function DataOfficerLayout() {
               className={({ isActive }) =>
                 `flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
                   isActive
-                    ? "bg-emerald-600 text-white shadow-sm"
+                    ? "bg-blue-600 text-white shadow-sm"
                     : "text-slate-300 hover:bg-white/5 hover:text-white"
                 } ${collapsed ? "justify-center" : ""}`
               }
@@ -92,7 +94,7 @@ export default function DataOfficerLayout() {
             className={({ isActive }) =>
               `flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
                 isActive
-                  ? "bg-emerald-600 text-white shadow-sm"
+                  ? "bg-blue-600 text-white shadow-sm"
                   : "text-slate-300 hover:bg-white/5 hover:text-white"
               } ${collapsed ? "justify-center" : ""}`
             }
@@ -145,55 +147,57 @@ export default function DataOfficerLayout() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search..."
-              className="w-full rounded-lg border border-slate-200 bg-slate-50/50 py-2 pl-9 pr-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-emerald-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-100 transition"
+              className="w-full rounded-lg border border-slate-200 bg-slate-50/50 py-2 pl-9 pr-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 transition"
             />
           </div>
 
           {/* Right Side Header Utilities */}
           <div className="flex items-center gap-5">
-            <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+            <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full bg-blue-50 border border-blue-100 px-3 py-1 text-xs font-semibold text-[#0056B3]">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#0056B3]"></span>
               DATA_OFFICER
             </span>
 
             {/* Notifications */}
             <button
               type="button"
-              aria-label="Notifications"
-              className="text-slate-500 hover:text-slate-700 cursor-pointer transition"
+              className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer"
+              title="Notifications"
             >
-              <Bell className="h-5 w-5" />
+              <Bell className="h-4 w-4" />
             </button>
 
-            {/* Help */}
+            {/* Help / Support */}
             <button
               type="button"
-              aria-label="Help"
-              className="text-slate-500 hover:text-slate-700 cursor-pointer transition"
+              className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer"
+              title="Help & Support"
             >
-              <HelpCircle className="h-5 w-5" />
+              <HelpCircle className="h-4 w-4" />
             </button>
 
+            <div className="h-4 w-px bg-slate-200" />
+
             {/* User Profile */}
-            <div className="flex items-center gap-2.5 pl-2 border-l border-slate-200">
+            <div className="flex items-center gap-3">
               <div className="text-right hidden sm:block">
-                <p className="text-sm font-semibold text-slate-800 leading-tight">
-                  {user?.name || "Officer"}
+                <p className="text-xs font-semibold text-slate-800 leading-tight">
+                  {user?.name || "Data Officer"}
                 </p>
-                <p className="text-xs text-slate-400 leading-tight">
-                  {user?.email || "officer@sdas.gov.so"}
+                <p className="text-[11px] text-slate-500 leading-tight">
+                  {user?.email || "officer@somalia.gov.so"}
                 </p>
               </div>
 
-              <div className="h-9 w-9 overflow-hidden rounded-full bg-gradient-to-br from-emerald-500 to-emerald-700 ring-2 ring-emerald-100 flex items-center justify-center text-xs font-bold text-white shadow-xs">
-                {(user?.name || "O").charAt(0).toUpperCase()}
+              <div className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center text-xs font-bold text-white shadow-xs">
+                {user?.name ? user.name.charAt(0).toUpperCase() : "D"}
               </div>
             </div>
           </div>
         </header>
 
-        {/* Page Content */}
-        <main className="flex-1 overflow-y-auto px-8 py-8 bg-slate-50">
+        {/* Dynamic Nested Page Content */}
+        <main className="flex-1 overflow-y-auto bg-slate-50">
           <Outlet />
         </main>
       </div>
