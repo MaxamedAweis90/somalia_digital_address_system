@@ -1,0 +1,178 @@
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Loader2 } from "lucide-react";
+import { getAssignments } from "@/api/assignmentApi";
+import AssignmentStatusBadge, {
+  formatAssignmentLocation,
+} from "@/components/assignments/AssignmentStatusBadge";
+import Breadcrumb from "@/components/ui/Breadcrumb";
+import PageHeader from "@/components/ui/PageHeader";
+
+export default function Assignments() {
+  const navigate = useNavigate();
+  const [assignments, setAssignments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [statusFilter, setStatusFilter] = useState("All");
+
+  const fetchAssignments = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const res = await getAssignments();
+      setAssignments(res.data.data || []);
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to load assignments");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAssignments();
+  }, []);
+
+  const filteredAssignments = useMemo(() => {
+    if (statusFilter === "All") return assignments;
+    return assignments.filter((item) => item.status === statusFilter);
+  }, [assignments, statusFilter]);
+
+  return (
+    <div className="min-h-full bg-bg font-sans">
+      <div className="px-4 sm:px-6 lg:px-5 pt-5 pb-10 space-y-6">
+        <Breadcrumb
+          items={[
+            { label: "Dashboard", to: "/admin/dashboard" },
+            { label: "Assignments" },
+          ]}
+        />
+
+        <PageHeader
+          title="Field Assignments"
+          description="Assign neighborhood zone-mapping work to data officers and review submissions."
+          actions={
+            <button
+              type="button"
+              onClick={() => navigate("/admin/assignments/add")}
+              className="h-[39px] px-5 rounded-lg bg-blue-deep text-[12px] font-semibold text-white shadow-cta transition-all hover:bg-[#0F2B4D] cursor-pointer"
+            >
+              + New Assignment
+            </button>
+          }
+        />
+
+        {error && (
+          <div className="rounded-lg bg-red-50 border border-red-200 p-4 text-sm text-red-700 flex items-center justify-between">
+            <span>{error}</span>
+            <button
+              type="button"
+              onClick={fetchAssignments}
+              className="text-xs font-semibold underline hover:text-red-900 cursor-pointer"
+            >
+              Retry
+            </button>
+          </div>
+        )}
+
+        <div className="rounded-xl border border-line bg-white shadow-card-sm overflow-hidden">
+          <div className="flex flex-col gap-4 border-b border-line px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-[16px] font-semibold text-ink">All Assignments</h2>
+              <p className="mt-1 text-[12px] text-ink-soft">
+                Per-neighborhood zone definition tasks with approval workflow.
+              </p>
+            </div>
+
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="h-[38px] rounded-lg border border-line bg-white px-3 text-[12px] text-ink outline-none focus:border-blue focus:ring-2 focus:ring-blue/10"
+            >
+              <option value="All">All statuses</option>
+              <option value="ASSIGNED">Assigned</option>
+              <option value="IN_PROGRESS">In Progress</option>
+              <option value="SUBMITTED">Submitted</option>
+              <option value="APPROVED">Approved</option>
+              <option value="REJECTED">Rejected</option>
+            </select>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="border-b border-line bg-[#FBFCFE]">
+                  <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
+                    Neighborhood
+                  </th>
+                  <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
+                    Officer
+                  </th>
+                  <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
+                    Status
+                  </th>
+                  <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
+                    Draft Zones
+                  </th>
+                  <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
+                    Due
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr>
+                    <td colSpan={5} className="px-5 py-12 text-center">
+                      <Loader2 className="mx-auto h-5 w-5 animate-spin text-blue" />
+                    </td>
+                  </tr>
+                ) : filteredAssignments.length > 0 ? (
+                  filteredAssignments.map((assignment) => (
+                    <tr
+                      key={assignment.id}
+                      onClick={() => navigate(`/admin/assignments/${assignment.id}`)}
+                      className="border-b border-line last:border-b-0 hover:bg-[#FBFCFE] transition-colors cursor-pointer"
+                    >
+                      <td className="px-5 py-4">
+                        <p className="text-[12px] font-semibold text-ink">
+                          {formatAssignmentLocation(assignment)}
+                        </p>
+                        {assignment.notes && (
+                          <p className="mt-1 text-[11px] text-ink-soft line-clamp-1">
+                            {assignment.notes}
+                          </p>
+                        )}
+                      </td>
+                      <td className="px-5 py-4 text-[12px] text-ink">
+                        {assignment.assignedTo?.name || "—"}
+                      </td>
+                      <td className="px-5 py-4">
+                        <AssignmentStatusBadge status={assignment.status} />
+                      </td>
+                      <td className="px-5 py-4 text-[12px] text-ink">
+                        {assignment.payload?.zones?.length || 0}
+                      </td>
+                      <td className="px-5 py-4 text-[12px] text-ink-soft">
+                        {assignment.dueAt
+                          ? new Date(assignment.dueAt).toLocaleDateString()
+                          : "—"}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={5} className="px-5 py-12 text-center">
+                      <p className="text-[13px] font-medium text-ink">No assignments yet</p>
+                      <p className="mt-1 text-[12px] text-ink-soft">
+                        Create an assignment to have an officer define zones for a neighborhood.
+                      </p>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

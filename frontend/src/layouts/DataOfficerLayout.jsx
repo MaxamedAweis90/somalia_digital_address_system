@@ -4,26 +4,13 @@ import { useAuth } from "@/context/AuthContext";
 import AppTopBar, { navLinkClass } from "@/components/layout/AppTopBar";
 import {
   LayoutGrid,
-  Building2,
-  Home,
-  Grid3x3,
-  MapPin,
-  Search,
-  Settings,
   LogOut,
-  Globe,
   PanelLeftClose,
   PanelLeftOpen,
 } from "lucide-react";
 
 const navItems = [
-  { to: "/officer/dashboard", label: "Dashboard", icon: LayoutGrid },
-  { to: "/officer/regions", label: "Regions", icon: Globe },
-  { to: "/officer/districts", label: "Districts", icon: Building2 },
-  { to: "/officer/neighborhoods", label: "Neighborhoods", icon: Home },
-  { to: "/officer/zones", label: "Zones", icon: Grid3x3 },
-  { to: "/officer/addresses", label: "Addresses", icon: MapPin },
-  { to: "/officer/search", label: "Search", icon: Search },
+  { to: "/officer/dashboard", label: "My Assignments", icon: LayoutGrid },
 ];
 
 export default function DataOfficerLayout() {
@@ -55,7 +42,7 @@ export default function DataOfficerLayout() {
             }`}
           >
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/10 border border-white/15 shadow-xs">
-              <Building2 className="h-5 w-5 text-white" />
+              <LayoutGrid className="h-5 w-5 text-white" />
             </div>
 
             {!collapsed && (
@@ -98,16 +85,7 @@ export default function DataOfficerLayout() {
           ))}
         </nav>
 
-        <div className="border-t border-white/10 px-3 py-4 space-y-1">
-          <NavLink
-            to="/officer/settings"
-            title={collapsed ? "Settings" : undefined}
-            className={({ isActive }) => navLinkClass(collapsed, isActive)}
-          >
-            <Settings className="h-4 w-4 shrink-0" />
-            {!collapsed && <span className="truncate">Settings</span>}
-          </NavLink>
-
+        <div className="border-t border-white/10 px-3 py-4">
           <button
             type="button"
             onClick={handleLogout}

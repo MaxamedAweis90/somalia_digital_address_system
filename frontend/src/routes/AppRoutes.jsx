@@ -6,6 +6,7 @@ import SysAdminLayout from "@/layouts/SysAdminLayout";
 import DataOfficerLayout from "@/layouts/DataOfficerLayout";
 import Login from "@/pages/auth/Login";
 import Dashboard from "@/pages/dashboard/Dashboard";
+import OfficerDashboard from "@/pages/dashboard/OfficerDashboard";
 import PlaceholderPage from "@/pages/admin/PlaceholderPage";
 
 // Region, District, Zone & Neighborhood pages
@@ -31,6 +32,9 @@ import DataOfficers from "@/pages/data-officers/DataOfficers";
 import AddDataOfficer from "@/pages/data-officers/AddDataOfficer";
 import EditDataOfficer from "@/pages/data-officers/EditDataOfficer";
 import Settings from "@/pages/settings/Settings";
+import Assignments from "@/pages/assignments/Assignments";
+import AddAssignment from "@/pages/assignments/AddAssignment";
+import AssignmentDetail from "@/pages/assignments/AssignmentDetail";
 
 import AnnouncementBar from "@/Frontdoor/AnnouncementBar";
 import Header from "@/Frontdoor/Header";
@@ -132,6 +136,9 @@ export default function AppRoutes() {
         <Route path="data-officers" element={<DataOfficers />} />
         <Route path="data-officers/add" element={<AddDataOfficer />} />
         <Route path="data-officers/edit/:id" element={<EditDataOfficer />} />
+        <Route path="assignments" element={<Assignments />} />
+        <Route path="assignments/add" element={<AddAssignment />} />
+        <Route path="assignments/:id" element={<AssignmentDetail />} />
         <Route
           path="audit-logs"
           element={
@@ -154,36 +161,8 @@ export default function AppRoutes() {
         }
       >
         <Route index element={<Navigate to="dashboard" replace />} />
-        <Route path="dashboard" element={<Dashboard />} />
-
-        {/* Region, District & Neighborhood routes (Read-only views for field lookup & reference) */}
-        <Route path="regions" element={<Regions />} />
-        <Route path="districts" element={<Districts />} />
-        <Route path="neighborhoods" element={<Neighborhoods />} />
-
-        {/* Zone routes */}
-        <Route path="zones" element={<Zones />} />
-        <Route path="zones/add" element={<AddZone />} />
-        <Route path="zones/view/:id" element={<ViewZone />} />
-        <Route path="zones/edit/:id" element={<EditZone />} />
-
-        {/* Address routes */}
-        <Route path="addresses" element={<Addresses />} />
-        <Route path="addresses/add" element={<AddAddress />} />
-        <Route path="addresses/view/:id" element={<ViewAddress />} />
-        <Route path="addresses/edit/:id" element={<EditAddress />} />
-
-        {/* Other routes */}
-        <Route
-          path="search"
-          element={
-            <PlaceholderPage
-              title="Address Lookup & Search"
-              description="Query and inspect registered digital addresses and geographic coordinates."
-            />
-          }
-        />
-        <Route path="settings" element={<Settings />} />
+        <Route path="dashboard" element={<OfficerDashboard />} />
+        <Route path="assignments/:id" element={<AssignmentDetail />} />
       </Route>
 
       {/* Legacy redirect */}

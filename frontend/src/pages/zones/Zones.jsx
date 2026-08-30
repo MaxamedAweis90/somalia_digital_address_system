@@ -4,6 +4,7 @@ import { getZones, deleteZone } from "@/api/zoneApi";
 import { useAuth } from "@/context/AuthContext";
 import { ROLES } from "@/constants/roles";
 import { Loader2 } from "lucide-react";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 
 export default function Zones() {
   const navigate = useNavigate();
@@ -15,6 +16,8 @@ export default function Zones() {
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   const fetchZones = async () => {
     try {
@@ -34,17 +37,23 @@ export default function Zones() {
     fetchZones();
   }, []);
 
-  const handleDelete = async (id) => {
-    const confirmDelete = window.confirm(
-      "Are you sure you want to delete this zone?"
-    );
-    if (!confirmDelete) return;
+  const handleDelete = (zone) => {
+    setDeleteTarget(zone);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
 
     try {
-      await deleteZone(id);
-      setZones((current) => current.filter((zone) => zone.id !== id));
+      setDeleting(true);
+      setError(null);
+      await deleteZone(deleteTarget.id);
+      setZones((current) => current.filter((zone) => zone.id !== deleteTarget.id));
+      setDeleteTarget(null);
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to delete zone");
+      setError(err.response?.data?.message || "Failed to delete zone");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -73,6 +82,20 @@ export default function Zones() {
 
   return (
     <div className="min-h-screen bg-bg font-sans">
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        title="Delete Zone"
+        message={`Are you sure you want to delete "${deleteTarget?.name || "this zone"}"? This action cannot be undone.`}
+        confirmLabel="Delete"
+        variant="danger"
+        loading={deleting}
+        loadingLabel="Deleting..."
+        onConfirm={confirmDelete}
+        onCancel={() => {
+          if (!deleting) setDeleteTarget(null);
+        }}
+      />
+
       <div className="px-4 sm:px-6 lg:px-5 pt-5 pb-10">
         <div className="flex items-center gap-2 text-[11px] font-medium text-ink-soft mb-6">
           <span
@@ -350,7 +373,7 @@ export default function Zones() {
                                 </button>
 
                                 <button
-                                  onClick={() => handleDelete(zone.id)}
+                                  onClick={() => handleDelete(zone)}
                                   className="
                                     h-[32px]
                                     rounded-md
