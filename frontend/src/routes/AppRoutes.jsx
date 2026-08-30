@@ -129,15 +129,6 @@ export default function AppRoutes() {
             />
           }
         />
-        <Route
-          path="users"
-          element={
-            <PlaceholderPage
-              title="User Management"
-              description="Manage system users and role assignments."
-            />
-          }
-        />
         <Route path="data-officers" element={<DataOfficers />} />
         <Route path="data-officers/add" element={<AddDataOfficer />} />
         <Route path="data-officers/edit/:id" element={<EditDataOfficer />} />

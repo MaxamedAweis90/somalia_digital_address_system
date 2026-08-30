@@ -72,49 +72,6 @@ export default function Dashboard() {
         <PageHeader
           title="Registry Overview"
           description="Real-time infrastructure metrics and addressing status."
-          actions={
-            <>
-              <button
-                onClick={fetchSummary}
-                disabled={loading}
-                className="
-                  h-[39px]
-                  px-4
-                  rounded-lg
-                  border
-                  border-line
-                  bg-white
-                  text-[12px]
-                  font-semibold
-                  text-ink-soft
-                  hover:bg-bg
-                  transition-all
-                  cursor-pointer
-                  disabled:opacity-50
-                "
-              >
-                Refresh
-              </button>
-              <button
-                onClick={() => navigate(`${basePath}/addresses/add`)}
-                className="
-                  h-[39px]
-                  px-5
-                  rounded-lg
-                  bg-blue-deep
-                  text-[12px]
-                  font-semibold
-                  text-white
-                  shadow-cta
-                  transition-all
-                  hover:bg-[#0F2B4D]
-                  cursor-pointer
-                "
-              >
-                + Register Address
-              </button>
-            </>
-          }
         />
 
         {error && (

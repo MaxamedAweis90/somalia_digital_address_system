@@ -12,6 +12,8 @@ import {
   Settings,
   LogOut,
   Globe,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react";
 
 const navItems = [
@@ -42,21 +44,44 @@ export default function DataOfficerLayout() {
           collapsed ? "w-[72px]" : "w-64"
         }`}
       >
-        <div className="flex items-center gap-3 px-5 py-5 border-b border-white/10">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/10 border border-white/15 shadow-xs">
-            <Building2 className="h-5 w-5 text-white" />
+        <div
+          className={`border-b border-white/10 ${
+            collapsed ? "flex flex-col items-center gap-3 px-3 py-4" : "flex items-center gap-3 px-4 py-4"
+          }`}
+        >
+          <div
+            className={`flex min-w-0 items-center ${
+              collapsed ? "flex-col gap-3" : "flex-1 gap-3"
+            }`}
+          >
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/10 border border-white/15 shadow-xs">
+              <Building2 className="h-5 w-5 text-white" />
+            </div>
+
+            {!collapsed && (
+              <div className="min-w-0 flex-1 overflow-hidden">
+                <p className="truncate text-base font-semibold leading-tight text-white font-display">
+                  SDAS
+                </p>
+                <p className="truncate text-[11px] leading-tight text-slate-300 font-medium">
+                  Field Operations
+                </p>
+              </div>
+            )}
           </div>
 
-          {!collapsed && (
-            <div className="overflow-hidden">
-              <p className="truncate text-base font-semibold leading-tight text-white font-display">
-                SDAS
-              </p>
-              <p className="truncate text-[11px] leading-tight text-slate-300 font-medium">
-                Field Operations
-              </p>
-            </div>
-          )}
+          <button
+            type="button"
+            onClick={() => setCollapsed((current) => !current)}
+            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-300 transition-colors hover:bg-white/10 hover:text-white cursor-pointer"
+          >
+            {collapsed ? (
+              <PanelLeftOpen className="h-4 w-4" />
+            ) : (
+              <PanelLeftClose className="h-4 w-4" />
+            )}
+          </button>
         </div>
 
         <nav className="mt-3 flex-1 space-y-1 px-3 overflow-y-auto">
@@ -99,8 +124,6 @@ export default function DataOfficerLayout() {
 
       <div className="flex min-w-0 flex-1 flex-col h-full overflow-hidden">
         <AppTopBar
-          collapsed={collapsed}
-          onToggleCollapsed={() => setCollapsed((current) => !current)}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
           roleLabel="DATA_OFFICER"

@@ -1,14 +1,6 @@
-import {
-  Search,
-  PanelLeftClose,
-  PanelLeftOpen,
-  Bell,
-  HelpCircle,
-} from "lucide-react";
+import { Search, Bell, HelpCircle } from "lucide-react";
 
 export default function AppTopBar({
-  collapsed,
-  onToggleCollapsed,
   searchQuery,
   onSearchChange,
   roleLabel,
@@ -17,19 +9,6 @@ export default function AppTopBar({
   return (
     <header className="flex h-16 shrink-0 items-center justify-between border-b border-line bg-white px-6 lg:px-8">
       <div className="flex items-center gap-4">
-        <button
-          type="button"
-          onClick={onToggleCollapsed}
-          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          className="flex h-9 w-9 items-center justify-center rounded-lg border border-line text-ink-soft transition-colors hover:bg-bg hover:text-ink cursor-pointer"
-        >
-          {collapsed ? (
-            <PanelLeftOpen className="h-4 w-4" />
-          ) : (
-            <PanelLeftClose className="h-4 w-4" />
-          )}
-        </button>
-
         <div className="relative w-56 sm:w-72">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-soft" />
           <input

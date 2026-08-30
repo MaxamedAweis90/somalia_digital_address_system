@@ -1,15 +1,9 @@
 export default function DashboardSkeleton() {
   return (
     <div className="animate-pulse space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="space-y-2">
-          <div className="h-7 w-48 rounded-lg bg-line" />
-          <div className="h-4 w-72 rounded-lg bg-line" />
-        </div>
-        <div className="flex gap-3">
-          <div className="h-[39px] w-28 rounded-lg bg-line" />
-          <div className="h-[39px] w-36 rounded-lg bg-line" />
-        </div>
+      <div className="space-y-2">
+        <div className="h-7 w-48 rounded-lg bg-line" />
+        <div className="h-4 w-72 rounded-lg bg-line" />
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
