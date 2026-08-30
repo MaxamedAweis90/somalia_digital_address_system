@@ -4,9 +4,17 @@ import {
   approveAssignment,
   getAssignmentById,
   rejectAssignment,
-  saveAssignmentDraft,
-  submitAssignment,
 } from "@/api/assignmentApi";
+import {
+  approveChildAssignment,
+  getOfficerAssignmentById,
+  rejectChildAssignment,
+} from "@/api/officerApi";
+import {
+  getCollectorAssignmentById,
+  saveCollectorDraft,
+  submitCollectorAssignment,
+} from "@/api/collectorApi";
 import { getNeighborhoodById } from "@/api/neighborhoodApi";
 import { getZones } from "@/api/zoneApi";
 import AssignmentStatusBadge, {
@@ -28,7 +36,7 @@ function createEmptyZone() {
 
 export default function DefineZonesAssignment({
   id,
-  isAdmin,
+  workflowMode = "collector",
   onAssignmentLoaded,
 }) {
   const [assignment, setAssignment] = useState(null);
@@ -48,17 +56,25 @@ export default function DefineZonesAssignment({
   const [showApproveDialog, setShowApproveDialog] = useState(false);
 
   const canEdit = useMemo(() => {
-    if (!assignment || isAdmin) return false;
+    if (!assignment || workflowMode !== "collector") return false;
     return ["ASSIGNED", "IN_PROGRESS", "REJECTED"].includes(assignment.status);
-  }, [assignment, isAdmin]);
+  }, [assignment, workflowMode]);
 
-  const canReview = isAdmin && assignment?.status === "SUBMITTED";
+  const canReview =
+    (workflowMode === "admin" && assignment?.status === "SUBMITTED") ||
+    (workflowMode === "officer-review" && assignment?.status === "SUBMITTED");
 
   const loadAssignment = async () => {
     try {
       setLoading(true);
       setError(null);
-      const res = await getAssignmentById(id);
+      const fetcher =
+        workflowMode === "collector"
+          ? getCollectorAssignmentById
+          : workflowMode === "officer-review"
+            ? getOfficerAssignmentById
+            : getAssignmentById;
+      const res = await fetcher(id);
       const data = res.data.data;
       setAssignment(data);
       onAssignmentLoaded?.(data);
@@ -110,7 +126,7 @@ export default function DefineZonesAssignment({
       setSaving(true);
       setError(null);
       setSuccess(null);
-      const res = await saveAssignmentDraft(id, { zones: draftZones });
+      const res = await saveCollectorDraft(id, { zones: draftZones });
       setAssignment(res.data.data);
       setDraftZones(res.data.data.payload?.zones || []);
       setSuccess("Draft saved successfully.");
@@ -126,11 +142,11 @@ export default function DefineZonesAssignment({
       setSubmitting(true);
       setError(null);
       setSuccess(null);
-      await saveAssignmentDraft(id, { zones: draftZones });
-      const res = await submitAssignment(id);
+      await saveCollectorDraft(id, { zones: draftZones });
+      const res = await submitCollectorAssignment(id);
       setAssignment(res.data.data);
       setShowSubmitDialog(false);
-      setSuccess("Assignment submitted for approval.");
+      setSuccess("Assignment submitted to your data officer.");
     } catch (err) {
       setError(err.response?.data?.message || "Failed to submit assignment");
     } finally {
@@ -142,10 +158,18 @@ export default function DefineZonesAssignment({
     try {
       setReviewing(true);
       setError(null);
-      await approveAssignment(id);
+      if (workflowMode === "officer-review") {
+        await approveChildAssignment(id);
+      } else {
+        await approveAssignment(id);
+      }
       await loadAssignment();
       setShowApproveDialog(false);
-      setSuccess("Assignment approved and zones created.");
+      setSuccess(
+        workflowMode === "officer-review"
+          ? "Child assignment approved."
+          : "Assignment approved and zones created."
+      );
     } catch (err) {
       setError(err.response?.data?.message || "Failed to approve assignment");
     } finally {
@@ -162,11 +186,18 @@ export default function DefineZonesAssignment({
     try {
       setReviewing(true);
       setError(null);
-      const res = await rejectAssignment(id, rejectionReason.trim());
+      const res =
+        workflowMode === "officer-review"
+          ? await rejectChildAssignment(id, rejectionReason.trim())
+          : await rejectAssignment(id, rejectionReason.trim());
       setAssignment(res.data.data);
       setShowRejectForm(false);
       setRejectionReason("");
-      setSuccess("Assignment rejected and sent back to the officer.");
+      setSuccess(
+        workflowMode === "officer-review"
+          ? "Child assignment rejected and sent back to the collector."
+          : "Assignment rejected and sent back to the officer."
+      );
     } catch (err) {
       setError(err.response?.data?.message || "Failed to reject assignment");
     } finally {
@@ -195,8 +226,8 @@ export default function DefineZonesAssignment({
       <ConfirmDialog
         open={showSubmitDialog}
         title="Submit for Approval"
-        message="Submit this zone definition for admin approval? You will not be able to edit it until it is reviewed."
-        confirmLabel="Submit for Approval"
+        message="Submit this zone definition to your data officer for review?"
+        confirmLabel="Submit to Officer"
         loading={submitting}
         loadingLabel="Submitting..."
         onConfirm={confirmSubmit}

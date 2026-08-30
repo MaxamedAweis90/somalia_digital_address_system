@@ -27,6 +27,7 @@ Published DAC addresses usable in registry + public lookup
 | 5 | House number order on approve | Draft list order |
 | 6 | Reuse deleted house numbers | No (keep max+1 behavior) |
 | 7 | Officer portal menus | My Assignments + Logout only (no Settings) |
+| 8 | Three-tier field workflow | See `docs/planning/two-level-assignments.md` (Issue 2–3) |
 
 ---
 
@@ -197,6 +198,22 @@ Published DAC addresses usable in registry + public lookup
 | 7 | Phase 6–7 | Settings wiring + docs + seed |
 
 **Status:** Phases 0–6 implemented. Run `npm run db:seed` in `backend/` for demo data (Hodan / Taleex / Z01 + sample assignments).
+
+---
+
+## Phase 8 — Two-level assignments (Data Collector + Officer supervision)
+
+**Epic plan (Issue 1 — complete):** [docs/planning/two-level-assignments.md](../docs/planning/two-level-assignments.md)
+
+Three-tier workflow: Admin → parent task → Officer → child tasks → Collectors → Officer review/merge → Admin publish.
+
+| Issue | Focus | Status |
+|-------|-------|--------|
+| **Issue 1** | Full implementation plan, API list, permissions, test scenarios | ✅ Done |
+| **Issue 2** | Schema, `DATA_COLLECTOR` role, parent/child CRUD APIs | Not started |
+| **Issue 3** | Officer review, merge, collector portal, admin UI updates | Not started |
+
+See the planning doc for checkbox task lists, dependencies, and E2E scenarios.
 
 ---
 

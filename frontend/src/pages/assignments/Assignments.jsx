@@ -10,6 +10,16 @@ import AssignmentStatusBadge, {
 import Breadcrumb from "@/components/ui/Breadcrumb";
 import PageHeader from "@/components/ui/PageHeader";
 
+function getChildProgress(assignment) {
+  const children = assignment.children || [];
+  if (!children.length) return "—";
+  const approved = children.filter((child) => child.status === "APPROVED").length;
+  const submitted = children.filter((child) =>
+    ["SUBMITTED", "APPROVED"].includes(child.status)
+  ).length;
+  return `${approved}/${children.length} approved · ${submitted}/${children.length} submitted`;
+}
+
 export default function Assignments() {
   const navigate = useNavigate();
   const [assignments, setAssignments] = useState([]);
@@ -116,6 +126,9 @@ export default function Assignments() {
                     Status
                   </th>
                   <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
+                    Team Progress
+                  </th>
+                  <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
                     Draft Items
                   </th>
                   <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
@@ -126,7 +139,7 @@ export default function Assignments() {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={6} className="px-5 py-12 text-center">
+                    <td colSpan={7} className="px-5 py-12 text-center">
                       <Loader2 className="mx-auto h-5 w-5 animate-spin text-blue" />
                     </td>
                   </tr>
@@ -156,6 +169,9 @@ export default function Assignments() {
                       <td className="px-5 py-4">
                         <AssignmentStatusBadge status={assignment.status} />
                       </td>
+                      <td className="px-5 py-4 text-[12px] text-ink-soft">
+                        {getChildProgress(assignment)}
+                      </td>
                       <td className="px-5 py-4 text-[12px] text-ink">
                         {getAssignmentDraftCount(assignment)}
                       </td>
@@ -168,7 +184,7 @@ export default function Assignments() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={6} className="px-5 py-12 text-center">
+                    <td colSpan={7} className="px-5 py-12 text-center">
                       <p className="text-[13px] font-medium text-ink">No assignments yet</p>
                       <p className="mt-1 text-[12px] text-ink-soft">
                         Create an assignment to have an officer complete field work in a neighborhood or zone.

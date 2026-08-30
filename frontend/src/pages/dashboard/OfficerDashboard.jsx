@@ -51,7 +51,7 @@ export default function OfficerDashboard() {
 
         <PageHeader
           title="My Assignments"
-          description="Complete assigned field tasks for zone definition or address registration."
+          description="Supervise field assignments, delegate work to collectors, and submit merged results to admin."
         />
 
         {error && (
@@ -88,7 +88,7 @@ export default function OfficerDashboard() {
           <div className="border-b border-line px-5 py-4">
             <h2 className="text-[16px] font-semibold text-ink">Assigned Work</h2>
             <p className="mt-1 text-[12px] text-ink-soft">
-              Open a task to work on the assigned neighborhood or zone.
+              Open a parent assignment to delegate work to collectors and submit merged results.
             </p>
           </div>
 

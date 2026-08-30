@@ -40,7 +40,7 @@ export const getAssignments = async (req, res) => {
 
 export const getMyAssignments = async (req, res) => {
   try {
-    const assignments = await AssignmentService.getMyAssignments(req.user.id);
+    const assignments = await AssignmentService.getOfficerParentAssignments(req.user.id);
 
     return res.status(200).json({
       success: true,

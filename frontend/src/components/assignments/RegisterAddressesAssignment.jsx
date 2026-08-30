@@ -4,9 +4,17 @@ import {
   approveAssignment,
   getAssignmentById,
   rejectAssignment,
-  saveAssignmentDraft,
-  submitAssignment,
 } from "@/api/assignmentApi";
+import {
+  approveChildAssignment,
+  getOfficerAssignmentById,
+  rejectChildAssignment,
+} from "@/api/officerApi";
+import {
+  getCollectorAssignmentById,
+  saveCollectorDraft,
+  submitCollectorAssignment,
+} from "@/api/collectorApi";
 import { previewAddressCode } from "@/api/addressApi";
 import { getNeighborhoodById } from "@/api/neighborhoodApi";
 import { getZoneByIdApi } from "@/api/zoneApi";
@@ -29,7 +37,7 @@ function createEmptyAddress() {
 
 export default function RegisterAddressesAssignment({
   id,
-  isAdmin,
+  workflowMode = "collector",
   onAssignmentLoaded,
 }) {
   const [assignment, setAssignment] = useState(null);
@@ -50,11 +58,13 @@ export default function RegisterAddressesAssignment({
   const [showApproveDialog, setShowApproveDialog] = useState(false);
 
   const canEdit = useMemo(() => {
-    if (!assignment || isAdmin) return false;
+    if (!assignment || workflowMode !== "collector") return false;
     return ["ASSIGNED", "IN_PROGRESS", "REJECTED"].includes(assignment.status);
-  }, [assignment, isAdmin]);
+  }, [assignment, workflowMode]);
 
-  const canReview = isAdmin && assignment?.status === "SUBMITTED";
+  const canReview =
+    (workflowMode === "admin" && assignment?.status === "SUBMITTED") ||
+    (workflowMode === "officer-review" && assignment?.status === "SUBMITTED");
 
   const selectedAddress =
     draftAddresses.find((address) => address.clientId === selectedClientId) || null;
@@ -74,7 +84,13 @@ export default function RegisterAddressesAssignment({
     try {
       setLoading(true);
       setError(null);
-      const res = await getAssignmentById(id);
+      const fetcher =
+        workflowMode === "collector"
+          ? getCollectorAssignmentById
+          : workflowMode === "officer-review"
+            ? getOfficerAssignmentById
+            : getAssignmentById;
+      const res = await fetcher(id);
       const data = res.data.data;
       setAssignment(data);
       onAssignmentLoaded?.(data);
@@ -137,7 +153,7 @@ export default function RegisterAddressesAssignment({
       setSaving(true);
       setError(null);
       setSuccess(null);
-      const res = await saveAssignmentDraft(id, { addresses: draftAddresses });
+      const res = await saveCollectorDraft(id, { addresses: draftAddresses });
       setAssignment(res.data.data);
       setDraftAddresses(res.data.data.payload?.addresses || []);
       setSuccess("Draft saved successfully.");
@@ -153,11 +169,11 @@ export default function RegisterAddressesAssignment({
       setSubmitting(true);
       setError(null);
       setSuccess(null);
-      await saveAssignmentDraft(id, { addresses: draftAddresses });
-      const res = await submitAssignment(id);
+      await saveCollectorDraft(id, { addresses: draftAddresses });
+      const res = await submitCollectorAssignment(id);
       setAssignment(res.data.data);
       setShowSubmitDialog(false);
-      setSuccess("Assignment submitted for approval.");
+      setSuccess("Assignment submitted to your data officer.");
     } catch (err) {
       setError(err.response?.data?.message || "Failed to submit assignment");
     } finally {
@@ -169,10 +185,18 @@ export default function RegisterAddressesAssignment({
     try {
       setReviewing(true);
       setError(null);
-      await approveAssignment(id);
+      if (workflowMode === "officer-review") {
+        await approveChildAssignment(id);
+      } else {
+        await approveAssignment(id);
+      }
       await loadAssignment();
       setShowApproveDialog(false);
-      setSuccess("Assignment approved and addresses registered.");
+      setSuccess(
+        workflowMode === "officer-review"
+          ? "Child assignment approved."
+          : "Assignment approved and addresses registered."
+      );
     } catch (err) {
       setError(err.response?.data?.message || "Failed to approve assignment");
     } finally {
@@ -189,11 +213,18 @@ export default function RegisterAddressesAssignment({
     try {
       setReviewing(true);
       setError(null);
-      const res = await rejectAssignment(id, rejectionReason.trim());
+      const res =
+        workflowMode === "officer-review"
+          ? await rejectChildAssignment(id, rejectionReason.trim())
+          : await rejectAssignment(id, rejectionReason.trim());
       setAssignment(res.data.data);
       setShowRejectForm(false);
       setRejectionReason("");
-      setSuccess("Assignment rejected and sent back to the officer.");
+      setSuccess(
+        workflowMode === "officer-review"
+          ? "Child assignment rejected and sent back to the collector."
+          : "Assignment rejected and sent back to the officer."
+      );
     } catch (err) {
       setError(err.response?.data?.message || "Failed to reject assignment");
     } finally {
@@ -236,8 +267,8 @@ export default function RegisterAddressesAssignment({
       <ConfirmDialog
         open={showSubmitDialog}
         title="Submit for Approval"
-        message="Submit these draft addresses for admin approval? You will not be able to edit them until they are reviewed."
-        confirmLabel="Submit for Approval"
+        message="Submit these draft addresses to your data officer for review?"
+        confirmLabel="Submit to Officer"
         loading={submitting}
         loadingLabel="Submitting..."
         onConfirm={confirmSubmit}

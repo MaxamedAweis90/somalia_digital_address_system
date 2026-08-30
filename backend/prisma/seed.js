@@ -84,6 +84,35 @@ async function main() {
   );
   console.log("✅ Data Officer user seeded:", officerUser.email);
 
+  const collectorOne = await withRetry(() =>
+    prisma.user.upsert({
+      where: { email: "collector1@somalia.gov.so" },
+      update: { role: "DATA_COLLECTOR", supervisorId: officerUser.id },
+      create: {
+        name: "Amina Collector",
+        email: "collector1@somalia.gov.so",
+        password: hashedPassword,
+        role: "DATA_COLLECTOR",
+        supervisorId: officerUser.id,
+      },
+    })
+  );
+
+  const collectorTwo = await withRetry(() =>
+    prisma.user.upsert({
+      where: { email: "collector2@somalia.gov.so" },
+      update: { role: "DATA_COLLECTOR", supervisorId: officerUser.id },
+      create: {
+        name: "Hassan Collector",
+        email: "collector2@somalia.gov.so",
+        password: hashedPassword,
+        role: "DATA_COLLECTOR",
+        supervisorId: officerUser.id,
+      },
+    })
+  );
+  console.log("✅ Data Collectors seeded:", collectorOne.email, collectorTwo.email);
+
   // 3. Seed 18 Official Somali Regions
   let createdCount = 0;
   for (const reg of SOMALI_OFFICIAL_REGIONS) {
@@ -322,6 +351,7 @@ async function main() {
         where: { id: "seed-assignment-define-zones" },
         update: {
           type: "DEFINE_ZONES",
+          tier: "PARENT",
           status: "ASSIGNED",
           neighborhoodId,
           zoneId: null,
@@ -333,6 +363,7 @@ async function main() {
         create: {
           id: "seed-assignment-define-zones",
           type: "DEFINE_ZONES",
+          tier: "PARENT",
           status: "ASSIGNED",
           neighborhoodId,
           assignedToId: officerUser.id,
@@ -345,9 +376,41 @@ async function main() {
 
     await withRetry(() =>
       prisma.assignment.upsert({
+        where: { id: "seed-child-define-zones-east" },
+        update: {
+          type: "DEFINE_ZONES",
+          tier: "CHILD",
+          status: "ASSIGNED",
+          parentAssignmentId: "seed-assignment-define-zones",
+          neighborhoodId,
+          assignedToId: collectorOne.id,
+          assignedById: officerUser.id,
+          mergeOrder: 1,
+          payload: { zones: [] },
+          notes: "East sector zone boundaries.",
+        },
+        create: {
+          id: "seed-child-define-zones-east",
+          type: "DEFINE_ZONES",
+          tier: "CHILD",
+          status: "ASSIGNED",
+          parentAssignmentId: "seed-assignment-define-zones",
+          neighborhoodId,
+          assignedToId: collectorOne.id,
+          assignedById: officerUser.id,
+          mergeOrder: 1,
+          payload: { zones: [] },
+          notes: "East sector zone boundaries.",
+        },
+      })
+    );
+
+    await withRetry(() =>
+      prisma.assignment.upsert({
         where: { id: "seed-assignment-register-addresses" },
         update: {
           type: "REGISTER_ADDRESSES",
+          tier: "PARENT",
           status: "ASSIGNED",
           neighborhoodId,
           zoneId,
@@ -359,6 +422,7 @@ async function main() {
         create: {
           id: "seed-assignment-register-addresses",
           type: "REGISTER_ADDRESSES",
+          tier: "PARENT",
           status: "ASSIGNED",
           neighborhoodId,
           zoneId,
@@ -370,7 +434,7 @@ async function main() {
       })
     );
 
-    console.log("✅ Demo neighborhood, zone, and assignments seeded for Hodan / Taleex.");
+    console.log("✅ Demo neighborhood, zone, collectors, and assignments seeded for Hodan / Taleex.");
   }
 }
 
