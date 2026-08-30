@@ -4,6 +4,7 @@ import { getRegions, deleteRegion } from "@/api/regionApi";
 import { useAuth } from "@/context/AuthContext";
 import { ROLES } from "@/constants/roles";
 import { Loader2 } from "lucide-react";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 
 export default function Regions() {
   const navigate = useNavigate();
@@ -15,6 +16,8 @@ export default function Regions() {
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   const fetchRegions = async () => {
     try {
@@ -34,17 +37,23 @@ export default function Regions() {
     fetchRegions();
   }, []);
 
-  const handleDelete = async (id) => {
-    const confirmDelete = window.confirm(
-      "Are you sure you want to delete this region? Regions with active districts cannot be deleted."
-    );
-    if (!confirmDelete) return;
+  const handleDelete = (region) => {
+    setDeleteTarget(region);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
 
     try {
-      await deleteRegion(id);
-      setRegions((current) => current.filter((r) => r.id !== id));
+      setDeleting(true);
+      setError(null);
+      await deleteRegion(deleteTarget.id);
+      setRegions((current) => current.filter((r) => r.id !== deleteTarget.id));
+      setDeleteTarget(null);
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to delete region");
+      setError(err.response?.data?.message || "Failed to delete region");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -68,6 +77,20 @@ export default function Regions() {
 
   return (
     <div className="min-h-screen bg-bg font-sans">
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        title="Delete Region"
+        message={`Are you sure you want to delete "${deleteTarget?.name || "this region"}"? Regions with active districts cannot be deleted.`}
+        confirmLabel="Delete"
+        variant="danger"
+        loading={deleting}
+        loadingLabel="Deleting..."
+        onConfirm={confirmDelete}
+        onCancel={() => {
+          if (!deleting) setDeleteTarget(null);
+        }}
+      />
+
       <div className="px-4 sm:px-6 lg:px-5 pt-5 pb-10">
         {/* BREADCRUMB */}
         <div className="flex items-center gap-2 text-[11px] font-medium text-ink-soft mb-6">
@@ -343,7 +366,7 @@ export default function Regions() {
                               </button>
 
                               <button
-                                onClick={() => handleDelete(region.id)}
+                                onClick={() => handleDelete(region)}
                                 className="
                                   h-[32px]
                                   rounded-md

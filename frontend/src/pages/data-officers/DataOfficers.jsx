@@ -6,6 +6,7 @@ import {
   getDataOfficers,
 } from "@/api/dataOfficerApi";
 import RegeneratePasswordModal from "@/components/data-officers/RegeneratePasswordModal";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 
 export default function DataOfficers() {
   const navigate = useNavigate();
@@ -16,6 +17,7 @@ export default function DataOfficers() {
   const [searchTerm, setSearchTerm] = useState("");
   const [deletingId, setDeletingId] = useState(null);
   const [regenerateTarget, setRegenerateTarget] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
 
   const fetchOfficers = async () => {
     try {
@@ -48,18 +50,21 @@ export default function DataOfficers() {
     });
   }, [officers, searchTerm]);
 
-  const handleDelete = async (id, name) => {
-    const confirmed = window.confirm(
-      `Delete data officer "${name}"? This action cannot be undone.`
-    );
-    if (!confirmed) return;
+  const handleDelete = (officer) => {
+    setDeleteTarget(officer);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
 
     try {
-      setDeletingId(id);
-      await deleteDataOfficer(id);
-      setOfficers((current) => current.filter((officer) => officer.id !== id));
+      setDeletingId(deleteTarget.id);
+      setError(null);
+      await deleteDataOfficer(deleteTarget.id);
+      setOfficers((current) => current.filter((officer) => officer.id !== deleteTarget.id));
+      setDeleteTarget(null);
     } catch (err) {
-      alert(
+      setError(
         err.response?.data?.message ||
           "Failed to delete data officer. Please try again."
       );
@@ -76,6 +81,20 @@ export default function DataOfficers() {
           onClose={() => setRegenerateTarget(null)}
         />
       )}
+
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        title="Delete Data Officer"
+        message={`Delete data officer "${deleteTarget?.name}"? This action cannot be undone.`}
+        confirmLabel="Delete"
+        variant="danger"
+        loading={Boolean(deletingId)}
+        loadingLabel="Deleting..."
+        onConfirm={confirmDelete}
+        onCancel={() => {
+          if (!deletingId) setDeleteTarget(null);
+        }}
+      />
 
       <div className="px-4 sm:px-6 lg:px-5 pt-5 pb-10">
         <div className="flex items-center gap-2 text-[11px] font-medium text-ink-soft mb-6">
@@ -228,7 +247,7 @@ export default function DataOfficers() {
                             Edit
                           </button>
                           <button
-                            onClick={() => handleDelete(officer.id, officer.name)}
+                            onClick={() => handleDelete(officer)}
                             disabled={deletingId === officer.id}
                             className="h-[32px] rounded-md border border-red-200 bg-white px-3 text-[11px] font-semibold text-red-600 transition-all hover:bg-red-50 cursor-pointer disabled:opacity-50"
                           >
