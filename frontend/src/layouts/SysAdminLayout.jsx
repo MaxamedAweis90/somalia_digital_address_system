@@ -8,7 +8,6 @@ import {
   Grid3x3,
   MapPin,
   Search,
-  Users,
   ShieldCheck,
   Settings,
   LogOut,
@@ -16,6 +15,7 @@ import {
   PanelLeftOpen,
   Bell,
   HelpCircle,
+  UserCog,
 } from "lucide-react";
 
 const navItems = [
@@ -25,7 +25,7 @@ const navItems = [
   { to: "/admin/zones", label: "Zones", icon: Grid3x3 },
   { to: "/admin/addresses", label: "Addresses", icon: MapPin },
   { to: "/admin/search", label: "Search", icon: Search },
-  { to: "/admin/users", label: "Users", icon: Users },
+  { to: "/admin/data-officers", label: "Data Officers", icon: UserCog },
   { to: "/admin/audit-logs", label: "Audit Logs", icon: ShieldCheck },
 ];
 

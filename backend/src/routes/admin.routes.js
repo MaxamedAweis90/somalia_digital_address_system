@@ -3,6 +3,7 @@ import { protect } from "../middleware/auth.midleware.js";
 import RegionRouter from "./region.routes.js";
 import DistrictRouter from "./district.routes.js";
 import NeighborhoodRouter from "./neighborhood.routes.js";
+import DataOfficerRouter from "./data-officer.routes.js";
 
 const AdminRouter = Router();
 
@@ -12,5 +13,6 @@ AdminRouter.use(protect);
 AdminRouter.use("/regions", RegionRouter);
 AdminRouter.use("/districts", DistrictRouter);
 AdminRouter.use("/neighborhoods", NeighborhoodRouter);
+AdminRouter.use("/data-officers", DataOfficerRouter);
 
 export default AdminRouter;
