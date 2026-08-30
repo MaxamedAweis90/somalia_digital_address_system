@@ -8,7 +8,10 @@ import Login from "@/pages/auth/Login";
 import Dashboard from "@/pages/dashboard/Dashboard";
 import PlaceholderPage from "@/pages/admin/PlaceholderPage";
 
-// District, Zone & Neighborhood pages
+// Region, District, Zone & Neighborhood pages
+import Regions from "@/pages/regions/Regions";
+import AddRegion from "@/pages/regions/AddRegion";
+import EditRegion from "@/pages/regions/EditRegion";
 import Districts from "@/pages/districts/Districts";
 import AddDistrict from "@/pages/districts/AddDistrict";
 import EditDistrict from "@/pages/districts/EditDistrict";
@@ -76,6 +79,11 @@ export default function AppRoutes() {
       >
         <Route index element={<Navigate to="dashboard" replace />} />
         <Route path="dashboard" element={<Dashboard />} />
+
+        {/* Region routes (Full CRUD) */}
+        <Route path="regions" element={<Regions />} />
+        <Route path="regions/add" element={<AddRegion />} />
+        <Route path="regions/edit/:id" element={<EditRegion />} />
 
         {/* District routes (Full CRUD) */}
         <Route path="districts" element={<Districts />} />
@@ -154,7 +162,8 @@ export default function AppRoutes() {
         <Route index element={<Navigate to="dashboard" replace />} />
         <Route path="dashboard" element={<Dashboard />} />
 
-        {/* District & Neighborhood routes (Read-only views for field lookup & reference) */}
+        {/* Region, District & Neighborhood routes (Read-only views for field lookup & reference) */}
+        <Route path="regions" element={<Regions />} />
         <Route path="districts" element={<Districts />} />
         <Route path="neighborhoods" element={<Neighborhoods />} />
 
