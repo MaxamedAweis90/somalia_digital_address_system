@@ -54,8 +54,12 @@ export const NeighborhoodService = {
   },
 
   getNeighborhoodById: async (id) => {
+    if (!id || typeof id !== "string" || !id.trim()) {
+      throw new Error("Neighborhood ID is required");
+    }
+
     const neighborhood = await prisma.neighborhood.findUnique({
-      where: { id },
+      where: { id: id.trim() },
       select: {
         ...neighborhoodSelect,
         _count: { select: { zones: true, addresses: true } },
@@ -70,15 +74,22 @@ export const NeighborhoodService = {
   },
 
   updateNeighborhood: async (id, { districtId, name, code, status }) => {
-    const existing = await prisma.neighborhood.findUnique({ where: { id } });
+    if (!id || typeof id !== "string" || !id.trim()) {
+      throw new Error("Neighborhood ID is required");
+    }
+
+    const existing = await prisma.neighborhood.findUnique({ where: { id: id.trim() } });
 
     if (!existing) {
       throw new Error("Neighborhood not found");
     }
 
     if (districtId) {
+      if (typeof districtId !== "string" || !districtId.trim()) {
+        throw new Error("District ID must be a valid string");
+      }
       const district = await prisma.district.findUnique({
-        where: { id: districtId },
+        where: { id: districtId.trim() },
       });
 
       if (!district) {
@@ -89,9 +100,9 @@ export const NeighborhoodService = {
     validateStatus(status);
 
     return prisma.neighborhood.update({
-      where: { id },
+      where: { id: id.trim() },
       data: {
-        ...(districtId !== undefined && { districtId }),
+        ...(districtId !== undefined && { districtId: districtId.trim() }),
         ...(name !== undefined && { name: name.trim() }),
         ...(code !== undefined && { code: code.trim().toUpperCase() }),
         ...(status !== undefined && { status }),
@@ -101,8 +112,12 @@ export const NeighborhoodService = {
   },
 
   deleteNeighborhood: async (id) => {
+    if (!id || typeof id !== "string" || !id.trim()) {
+      throw new Error("Neighborhood ID is required");
+    }
+
     const neighborhood = await prisma.neighborhood.findUnique({
-      where: { id },
+      where: { id: id.trim() },
       include: {
         _count: { select: { zones: true, addresses: true } },
       },
@@ -118,8 +133,8 @@ export const NeighborhoodService = {
       );
     }
 
-    await prisma.neighborhood.delete({ where: { id } });
+    await prisma.neighborhood.delete({ where: { id: id.trim() } });
 
-    return { id };
+    return { id: id.trim() };
   },
 };

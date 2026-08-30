@@ -7,20 +7,38 @@ datasource db {
 }
 
 model User {
-  id            String     @id @default(cuid())
-  name          String
-  email         String     @unique
-  password      String
-  role          UserRole   @default(DATA_OFFICER)
-  emailVerified Boolean    @default(false)
-  image         String?
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
-  auditLogs     AuditLog[]
+  id                                           String        @id @default(cuid())
+  name                                         String
+  email                                        String        @unique
+  emailVerified                                Boolean       @default(false)
+  image                                        String?
+  createdAt                                    DateTime      @default(now())
+  updatedAt                                    DateTime      @updatedAt
+  password                                     String
+  role                                         UserRole      @default(DATA_OFFICER)
+  assignments_assignments_assigned_by_idTouser assignments[] @relation("assignments_assigned_by_idTouser")
+  assignments_assignments_assigned_to_idTouser assignments[] @relation("assignments_assigned_to_idTouser")
+  assignments_assignments_reviewed_by_idTouser assignments[] @relation("assignments_reviewed_by_idTouser")
+  auditLogs                                    AuditLog[]
+  loginOtps                                    LoginOtp[]
+
 
   @@map("user")
 }
 
+model LoginOtp {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  codeHash  String   @map("code_hash")
+  expiresAt DateTime @map("expires_at")
+  attempts  Int      @default(0)
+  consumed  Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, consumed], map: "login_otp_user_consumed_index")
+  @@map("login_otps")
+}
 model Region {
   id        String     @id @default(cuid())
   name      String
@@ -36,15 +54,15 @@ model Region {
 
 model District {
   id            String         @id @default(cuid())
-  regionId      String         @map("region_id")
   name          String
   code          String         @unique
   status        Status         @default(ACTIVE)
   createdAt     DateTime       @default(now()) @map("created_at")
   updatedAt     DateTime       @updatedAt @map("updated_at")
+  regionId      String         @map("region_id")
   addresses     Address[]
-  neighborhoods Neighborhood[]
   region        Region         @relation(fields: [regionId], references: [id])
+  neighborhoods Neighborhood[]
 
   @@index([code], map: "district_code_index")
   @@index([regionId], map: "district_region_index")
@@ -52,16 +70,17 @@ model District {
 }
 
 model Neighborhood {
-  id         String    @id @default(cuid())
-  districtId String    @map("district_id")
-  name       String
-  code       String    @unique
-  status     Status    @default(ACTIVE)
-  createdAt  DateTime  @default(now()) @map("created_at")
-  updatedAt  DateTime  @updatedAt @map("updated_at")
-  addresses  Address[]
-  district   District  @relation(fields: [districtId], references: [id])
-  zones      Zone[]
+  id          String        @id @default(cuid())
+  districtId  String        @map("district_id")
+  name        String
+  code        String        @unique
+  status      Status        @default(ACTIVE)
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+  addresses   Address[]
+  assignments assignments[]
+  district    District      @relation(fields: [districtId], references: [id])
+  zones       Zone[]
 
   @@index([code, districtId], map: "neighborhood_code_and_district_index")
   @@map("neighborhoods")
@@ -125,6 +144,46 @@ model spatial_ref_sys {
   proj4text String? @db.VarChar(2048)
 }
 
+model app_settings {
+  id          String      @id
+  key         String      @unique
+  label       String
+  value       String
+  description String?
+  category    String      @default("general")
+  type        SettingType @default(STRING)
+  is_system   Boolean     @default(false)
+  created_at  DateTime    @default(now())
+  updated_at  DateTime
+
+  @@index([category], map: "app_setting_category_index")
+}
+
+model assignments {
+  id                                    String           @id
+  type                                  AssignmentType   @default(DEFINE_ZONES)
+  status                                AssignmentStatus @default(ASSIGNED)
+  neighborhood_id                       String
+  assigned_to_id                        String
+  assigned_by_id                        String
+  payload                               Json             @default("{\"zones\": []}")
+  notes                                 String?
+  due_at                                DateTime?
+  submitted_at                          DateTime?
+  reviewed_at                           DateTime?
+  reviewed_by_id                        String?
+  rejection_reason                      String?
+  created_at                            DateTime         @default(now())
+  updated_at                            DateTime
+  user_assignments_assigned_by_idTouser User             @relation("assignments_assigned_by_idTouser", fields: [assigned_by_id], references: [id])
+  user_assignments_assigned_to_idTouser User             @relation("assignments_assigned_to_idTouser", fields: [assigned_to_id], references: [id])
+  neighborhoods                         Neighborhood     @relation(fields: [neighborhood_id], references: [id])
+  user_assignments_reviewed_by_idTouser User?            @relation("assignments_reviewed_by_idTouser", fields: [reviewed_by_id], references: [id])
+
+  @@index([assigned_to_id, status], map: "assignment_assignee_status_index")
+  @@index([neighborhood_id], map: "assignment_neighborhood_index")
+}
+
 enum UserRole {
   SYS_ADMIN
   DATA_OFFICER
@@ -139,4 +198,23 @@ enum ActionType {
   CREATE
   UPDATE
   DELETE
+}
+
+enum AssignmentStatus {
+  ASSIGNED
+  IN_PROGRESS
+  SUBMITTED
+  APPROVED
+  REJECTED
+}
+
+enum AssignmentType {
+  DEFINE_ZONES
+}
+
+enum SettingType {
+  STRING
+  NUMBER
+  BOOLEAN
+  JSON
 }

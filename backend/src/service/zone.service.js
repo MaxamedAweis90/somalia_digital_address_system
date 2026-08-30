@@ -11,6 +11,11 @@ const zoneFromSql = Prisma.sql`
 `;
 
 async function fetchZoneById(id) {
+  if (!id || typeof id !== "string" || !id.trim()) {
+    throw new Error("Zone ID is required");
+  }
+
+  const cleanId = id.trim();
   const rows = await prisma.$queryRaw`
     SELECT
       z.id,
@@ -32,7 +37,7 @@ async function fetchZoneById(id) {
         )
       ) AS neighborhood
     ${zoneFromSql}
-    WHERE z.id = ${id}
+    WHERE z.id = ${cleanId}
     LIMIT 1
   `;
 
@@ -44,8 +49,12 @@ async function fetchZoneById(id) {
 }
 
 async function assertNeighborhoodExists(neighborhoodId) {
+  if (!neighborhoodId || typeof neighborhoodId !== "string" || !neighborhoodId.trim()) {
+    throw new Error("Neighborhood ID is required");
+  }
+
   const neighborhood = await prisma.neighborhood.findUnique({
-    where: { id: neighborhoodId },
+    where: { id: neighborhoodId.trim() },
     select: { id: true },
   });
 
@@ -129,8 +138,13 @@ export const ZoneService = {
   getZoneById: async (id) => fetchZoneById(id),
 
   updateZone: async (id, { neighborhoodId, name, code, status, geometry }) => {
+    if (!id || typeof id !== "string" || !id.trim()) {
+      throw new Error("Zone ID is required");
+    }
+
+    const cleanId = id.trim();
     const existing = await prisma.zone.findUnique({
-      where: { id },
+      where: { id: cleanId },
       select: { id: true },
     });
 
@@ -173,7 +187,7 @@ export const ZoneService = {
     }
 
     if (!updates.length) {
-      return fetchZoneById(id);
+      return fetchZoneById(cleanId);
     }
 
     updates.push(Prisma.sql`updated_at = CURRENT_TIMESTAMP`);
@@ -181,15 +195,20 @@ export const ZoneService = {
     await prisma.$executeRaw`
       UPDATE zones
       SET ${Prisma.join(updates, ", ")}
-      WHERE id = ${id}
+      WHERE id = ${cleanId}
     `;
 
-    return fetchZoneById(id);
+    return fetchZoneById(cleanId);
   },
 
   deleteZone: async (id) => {
+    if (!id || typeof id !== "string" || !id.trim()) {
+      throw new Error("Zone ID is required");
+    }
+
+    const cleanId = id.trim();
     const zone = await prisma.zone.findUnique({
-      where: { id },
+      where: { id: cleanId },
       select: {
         id: true,
         _count: { select: { addresses: true } },
@@ -206,8 +225,8 @@ export const ZoneService = {
       );
     }
 
-    await prisma.zone.delete({ where: { id } });
+    await prisma.zone.delete({ where: { id: cleanId } });
 
-    return { id };
+    return { id: cleanId };
   },
 };
