@@ -4,6 +4,7 @@ import { getDistricts, deleteDistrict } from "@/api/districtApi";
 import { useAuth } from "@/context/AuthContext";
 import { ROLES } from "@/constants/roles";
 import { Loader2 } from "lucide-react";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 
 const District = () => {
   const navigate = useNavigate();
@@ -15,6 +16,8 @@ const District = () => {
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   const fetchDistricts = async () => {
     try {
@@ -34,17 +37,23 @@ const District = () => {
     fetchDistricts();
   }, []);
 
-  const handleDelete = async (id) => {
-    const confirmDelete = window.confirm(
-      "Are you sure you want to delete this district?"
-    );
-    if (!confirmDelete) return;
+  const handleDelete = (district) => {
+    setDeleteTarget(district);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
 
     try {
-      await deleteDistrict(id);
-      setDistricts((current) => current.filter((d) => d.id !== id));
+      setDeleting(true);
+      setError(null);
+      await deleteDistrict(deleteTarget.id);
+      setDistricts((current) => current.filter((d) => d.id !== deleteTarget.id));
+      setDeleteTarget(null);
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to delete district");
+      setError(err.response?.data?.message || "Failed to delete district");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -69,6 +78,20 @@ const District = () => {
 
   return (
     <div className="min-h-screen bg-bg font-sans">
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        title="Delete District"
+        message={`Are you sure you want to delete "${deleteTarget?.name || "this district"}"? This action cannot be undone.`}
+        confirmLabel="Delete"
+        variant="danger"
+        loading={deleting}
+        loadingLabel="Deleting..."
+        onConfirm={confirmDelete}
+        onCancel={() => {
+          if (!deleting) setDeleteTarget(null);
+        }}
+      />
+
       <div className="px-4 sm:px-6 lg:px-5 pt-5 pb-10">
         
         {/* =========================
@@ -375,7 +398,7 @@ const District = () => {
 
                               {/* DELETE */}
                               <button
-                                onClick={() => handleDelete(district.id)}
+                                onClick={() => handleDelete(district)}
                                 className="
                                   h-[32px]
                                   rounded-md
