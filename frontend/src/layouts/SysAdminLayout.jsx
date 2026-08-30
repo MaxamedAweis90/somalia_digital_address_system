@@ -16,6 +16,7 @@ import {
   Bell,
   HelpCircle,
   UserCog,
+  Globe,
 } from "lucide-react";
 
 const navItems = [

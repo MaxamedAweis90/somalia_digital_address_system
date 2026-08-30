@@ -1,4 +1,8 @@
 export function getErrorMessage(error) {
+  if (error.code === "23505") {
+    return "A record with this value already exists";
+  }
+
   if (error.code === "P2002") {
     const field = error.meta?.target?.[0];
 
