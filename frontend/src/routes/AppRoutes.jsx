@@ -4,9 +4,14 @@ import RoleRoute from "./RoleRoute";
 import GuestRoute from "./GuestRoute";
 import SysAdminLayout from "@/layouts/SysAdminLayout";
 import DataOfficerLayout from "@/layouts/DataOfficerLayout";
+import OfficerDashboard from "@/pages/dashboard/OfficerDashboard";
+import DataCollectorLayout from "@/layouts/DataCollectorLayout";
 import Login from "@/pages/auth/Login";
 import Dashboard from "@/pages/dashboard/Dashboard";
-import OfficerDashboard from "@/pages/dashboard/OfficerDashboard";
+import OfficerParentDetail from "@/pages/officer/OfficerParentDetail";
+import CollectorDashboard from "@/pages/dashboard/CollectorDashboard";
+import OfficerReviewQueue from "@/pages/officer/OfficerReviewQueue";
+import OfficerCollectors from "@/pages/officer/OfficerCollectors";
 import PlaceholderPage from "@/pages/admin/PlaceholderPage";
 
 // Region, District, Zone & Neighborhood pages
@@ -162,6 +167,22 @@ export default function AppRoutes() {
       >
         <Route index element={<Navigate to="dashboard" replace />} />
         <Route path="dashboard" element={<OfficerDashboard />} />
+        <Route path="assignments/:id" element={<OfficerParentDetail />} />
+        <Route path="children/:id" element={<AssignmentDetail />} />
+        <Route path="reviews" element={<OfficerReviewQueue />} />
+        <Route path="collectors" element={<OfficerCollectors />} />
+      </Route>
+
+      <Route
+        path="/collector"
+        element={
+          <RoleRoute allowedRoles={[ROLES.DATA_COLLECTOR]}>
+            <DataCollectorLayout />
+          </RoleRoute>
+        }
+      >
+        <Route index element={<Navigate to="dashboard" replace />} />
+        <Route path="dashboard" element={<CollectorDashboard />} />
         <Route path="assignments/:id" element={<AssignmentDetail />} />
       </Route>
 

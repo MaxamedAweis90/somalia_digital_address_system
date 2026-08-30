@@ -13,7 +13,7 @@ const AddressRouter = Router();
 
 AddressRouter.get(
   "/preview",
-  authorize("SYS_ADMIN", "DATA_OFFICER"),
+  authorize("SYS_ADMIN", "DATA_OFFICER", "DATA_COLLECTOR"),
   previewNextAddressCode
 );
 AddressRouter.get("/", authorize("SYS_ADMIN", "DATA_OFFICER"), getAddresses);

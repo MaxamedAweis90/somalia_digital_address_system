@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { getNeighborhoodById, updateNeighborhood } from "@/api/neighborhoodApi";
 import { getDistricts } from "@/api/districtApi";
+import ZoneMapEditor from "@/components/zones/ZoneMapEditor";
 import { Loader2 } from "lucide-react";
 
 export default function EditNeighborhood() {
@@ -19,6 +20,7 @@ export default function EditNeighborhood() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [serverError, setServerError] = useState(null);
+  const [geometry, setGeometry] = useState(null);
 
   const [errors, setErrors] = useState({
     name: "",
@@ -47,6 +49,7 @@ export default function EditNeighborhood() {
           districtId: neigh.districtId || (distList[0]?.id ?? ""),
           active: (neigh.status || "ACTIVE").toUpperCase() === "ACTIVE",
         });
+        setGeometry(neigh.geometry || null);
       } catch (err) {
         console.error("Failed to load neighborhood data:", err);
         setServerError(err.response?.data?.message || "Failed to load neighborhood details");
@@ -109,6 +112,7 @@ export default function EditNeighborhood() {
         code: formData.code.trim().toUpperCase(),
         districtId: formData.districtId,
         status: formData.active ? "ACTIVE" : "INACTIVE",
+        geometry,
       });
 
       navigate(-1);
@@ -169,7 +173,7 @@ export default function EditNeighborhood() {
         )}
 
         {/* MAIN CARD */}
-        <div className="w-full max-w-[635px] bg-white border border-line rounded-xl shadow-card-sm overflow-hidden">
+        <div className="w-full max-w-[900px] bg-white border border-line rounded-xl shadow-card-sm overflow-hidden">
           <div className="px-5 py-5 border-b border-line">
             <h2 className="text-[18px] font-semibold text-ink">
               Neighborhood Details
@@ -326,6 +330,20 @@ export default function EditNeighborhood() {
                     {errors.code}
                   </p>
                 )}
+              </div>
+
+              <div className="pt-2">
+                <label className="block text-[12px] font-semibold text-ink mb-2">
+                  Neighborhood Boundary
+                </label>
+                <p className="mb-3 text-[12px] text-ink-soft">
+                  Optional official boundary polygon used to validate zone assignments.
+                </p>
+                <ZoneMapEditor
+                  geometry={geometry}
+                  onChange={setGeometry}
+                  height="420px"
+                />
               </div>
 
               {/* STATUS TOGGLE */}
