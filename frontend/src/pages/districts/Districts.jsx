@@ -1,10 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getDistricts, deleteDistrict } from "@/api/districtApi";
+import { useAuth } from "@/context/AuthContext";
+import { ROLES } from "@/constants/roles";
 import { Loader2 } from "lucide-react";
 
 const District = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isAdmin = user?.role === ROLES.SYS_ADMIN;
 
   const [districts, setDistricts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -98,28 +102,30 @@ const District = () => {
             </p>
           </div>
 
-          {/* ADD DISTRICT */}
-          <button
-            onClick={() => navigate("add")}
-            className="
-              h-[39px]
-              px-5
-              rounded-lg
-              bg-blue-deep
-              text-[12px]
-              font-semibold
-              text-white
-              shadow-cta
-              transition-all
-              hover:bg-[#0F2B4D]
-              active:scale-[0.98]
-              self-start
-              sm:self-auto
-              cursor-pointer
-            "
-          >
-            + Add District
-          </button>
+          {/* ADD DISTRICT - ONLY VISIBLE TO SYS_ADMIN */}
+          {isAdmin && (
+            <button
+              onClick={() => navigate("add")}
+              className="
+                h-[39px]
+                px-5
+                rounded-lg
+                bg-blue-deep
+                text-[12px]
+                font-semibold
+                text-white
+                shadow-cta
+                transition-all
+                hover:bg-[#0F2B4D]
+                active:scale-[0.98]
+                self-start
+                sm:self-auto
+                cursor-pointer
+              "
+            >
+              + Add District
+            </button>
+          )}
         </div>
 
         {/* Error Notice */}
@@ -241,16 +247,18 @@ const District = () => {
                   <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
                     Last Updated
                   </th>
-                  <th className="px-5 py-4 text-right text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
-                    Actions
-                  </th>
+                  {isAdmin && (
+                    <th className="px-5 py-4 text-right text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
+                      Actions
+                    </th>
+                  )}
                 </tr>
               </thead>
 
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan="7" className="px-5 py-12 text-center">
+                    <td colSpan={isAdmin ? 7 : 6} className="px-5 py-12 text-center">
                       <div className="flex flex-col items-center justify-center gap-2">
                         <Loader2 className="h-6 w-6 animate-spin text-blue-deep" />
                         <p className="text-[12px] text-ink-soft">Loading districts from server...</p>
@@ -340,59 +348,61 @@ const District = () => {
                           </span>
                         </td>
 
-                        {/* ACTIONS */}
-                        <td className="px-5 py-4">
-                          <div className="flex items-center justify-end gap-2">
-                            {/* EDIT */}
-                            <button
-                              onClick={() =>
-                                navigate(`edit/${district.id}`)
-                              }
-                              className="
-                                h-[32px]
-                                rounded-md
-                                bg-blue-deep
-                                px-3
-                                text-[11px]
-                                font-semibold
-                                text-white
-                                transition-all
-                                hover:bg-[#0F2B4D]
-                                cursor-pointer
-                              "
-                            >
-                              Edit
-                            </button>
+                        {/* ACTIONS - ONLY SHOWN TO SYS_ADMIN */}
+                        {isAdmin && (
+                          <td className="px-5 py-4">
+                            <div className="flex items-center justify-end gap-2">
+                              {/* EDIT */}
+                              <button
+                                onClick={() =>
+                                  navigate(`edit/${district.id}`)
+                                }
+                                className="
+                                  h-[32px]
+                                  rounded-md
+                                  bg-blue-deep
+                                  px-3
+                                  text-[11px]
+                                  font-semibold
+                                  text-white
+                                  transition-all
+                                  hover:bg-[#0F2B4D]
+                                  cursor-pointer
+                                "
+                              >
+                                Edit
+                              </button>
 
-                            {/* DELETE */}
-                            <button
-                              onClick={() => handleDelete(district.id)}
-                              className="
-                                h-[32px]
-                                rounded-md
-                                border
-                                border-red-200
-                                bg-white
-                                px-3
-                                text-[11px]
-                                font-semibold
-                                text-red-600
-                                transition-all
-                                hover:bg-red-50
-                                cursor-pointer
-                              "
-                            >
-                              Delete
-                            </button>
-                          </div>
-                        </td>
+                              {/* DELETE */}
+                              <button
+                                onClick={() => handleDelete(district.id)}
+                                className="
+                                  h-[32px]
+                                  rounded-md
+                                  border
+                                  border-red-200
+                                  bg-white
+                                  px-3
+                                  text-[11px]
+                                  font-semibold
+                                  text-red-600
+                                  transition-all
+                                  hover:bg-red-50
+                                  cursor-pointer
+                                "
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          </td>
+                        )}
                       </tr>
                     );
                   })
                 ) : (
                   <tr>
                     <td
-                      colSpan="7"
+                      colSpan={isAdmin ? 7 : 6}
                       className="px-5 py-12 text-center"
                     >
                       <p className="text-[13px] font-medium text-ink">

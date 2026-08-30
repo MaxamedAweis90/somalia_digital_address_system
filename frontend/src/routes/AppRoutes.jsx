@@ -77,13 +77,13 @@ export default function AppRoutes() {
         <Route index element={<Navigate to="dashboard" replace />} />
         <Route path="dashboard" element={<Dashboard />} />
 
-        {/* District routes */}
+        {/* District routes (Full CRUD) */}
         <Route path="districts" element={<Districts />} />
         <Route path="districts/add" element={<AddDistrict />} />
         <Route path="districts/edit/:id" element={<EditDistrict />} />
         <Route path="districts/:id" element={<EditDistrict />} />
 
-        {/* Neighborhood routes */}
+        {/* Neighborhood routes (Full CRUD) */}
         <Route path="neighborhoods" element={<Neighborhoods />} />
         <Route path="neighborhoods/add" element={<AddNeighborhood />} />
         <Route path="neighborhoods/edit/:id" element={<EditNeighborhood />} />
@@ -154,17 +154,9 @@ export default function AppRoutes() {
         <Route index element={<Navigate to="dashboard" replace />} />
         <Route path="dashboard" element={<Dashboard />} />
 
-        {/* District routes */}
+        {/* District & Neighborhood routes (Read-only views for field lookup & reference) */}
         <Route path="districts" element={<Districts />} />
-        <Route path="districts/add" element={<AddDistrict />} />
-        <Route path="districts/edit/:id" element={<EditDistrict />} />
-        <Route path="districts/:id" element={<EditDistrict />} />
-
-        {/* Neighborhood routes */}
         <Route path="neighborhoods" element={<Neighborhoods />} />
-        <Route path="neighborhoods/add" element={<AddNeighborhood />} />
-        <Route path="neighborhoods/edit/:id" element={<EditNeighborhood />} />
-        <Route path="neighborhoods/:id" element={<EditNeighborhood />} />
 
         {/* Zone routes */}
         <Route path="zones" element={<Zones />} />
