@@ -63,7 +63,11 @@ export default function OfficerParentDetail() {
   }, [id]);
 
   const children = assignment?.children || [];
+  const expectedCount = assignment?.expectedCollectorCount || 0;
   const approvedCount = children.filter((c) => c.status === "APPROVED").length;
+  const canDelegate =
+    !["SUBMITTED", "APPROVED"].includes(assignment?.status) &&
+    (!expectedCount || children.length < expectedCount);
   const canMerge = approvedCount > 0 && !["SUBMITTED", "APPROVED"].includes(assignment?.status);
   const canSubmit = ["READY_FOR_REVIEW", "REJECTED"].includes(assignment?.status);
 
@@ -170,8 +174,11 @@ export default function OfficerParentDetail() {
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div className="rounded-xl border border-line bg-white p-5 shadow-card-sm">
-            <p className="text-[12px] text-ink-soft">Child Tasks</p>
-            <p className="mt-2 text-[28px] font-semibold text-ink">{children.length}</p>
+            <p className="text-[12px] text-ink-soft">Team Size</p>
+            <p className="mt-2 text-[28px] font-semibold text-ink">
+              {children.length}
+              {expectedCount ? ` / ${expectedCount}` : ""}
+            </p>
           </div>
           <div className="rounded-xl border border-line bg-white p-5 shadow-card-sm">
             <p className="text-[12px] text-ink-soft">Approved</p>
@@ -189,7 +196,7 @@ export default function OfficerParentDetail() {
           <button
             type="button"
             onClick={() => setShowDelegate(true)}
-            disabled={["SUBMITTED", "APPROVED"].includes(assignment.status)}
+            disabled={!canDelegate}
             className="h-[39px] px-4 rounded-lg bg-blue-deep text-[12px] font-semibold text-white cursor-pointer disabled:opacity-50"
           >
             <Plus className="inline h-3.5 w-3.5 mr-1" />

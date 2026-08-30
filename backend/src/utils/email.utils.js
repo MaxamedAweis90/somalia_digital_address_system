@@ -1,14 +1,92 @@
 import nodemailer from "nodemailer";
+import { isDevelopment } from "./env.utils.js";
 
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: Number(process.env.SMTP_PORT),
-  secure: false,
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-});
+const SMTP_PLACEHOLDER_PATTERNS = [
+  /your-provider/i,
+  /your-smtp/i,
+  /example\.com/i,
+  /^change-?me$/i,
+];
+
+function isSmtpCredentialsPresent() {
+  return Boolean(
+    process.env.SMTP_HOST &&
+      process.env.SMTP_PORT &&
+      process.env.SMTP_USER &&
+      process.env.SMTP_PASS
+  );
+}
+
+function hasPlaceholderSmtpCredentials() {
+  const values = [
+    process.env.SMTP_HOST,
+    process.env.SMTP_USER,
+    process.env.SMTP_PASS,
+  ];
+
+  return values.some((value) =>
+    SMTP_PLACEHOLDER_PATTERNS.some((pattern) => pattern.test(value || ""))
+  );
+}
+
+function shouldUseSmtp() {
+  if (!isSmtpCredentialsPresent() || hasPlaceholderSmtpCredentials()) {
+    return false;
+  }
+
+  if (isDevelopment()) {
+    return process.env.SMTP_ENABLED === "true";
+  }
+
+  return true;
+}
+
+export function isEmailEnabled() {
+  return shouldUseSmtp();
+}
+
+function getTransporter() {
+  if (!shouldUseSmtp()) {
+    throw new Error("SMTP is not enabled. Set SMTP_HOST, SMTP_PORT, SMTP_USER, and SMTP_PASS.");
+  }
+
+  return nodemailer.createTransport({
+    host: process.env.SMTP_HOST,
+    port: Number(process.env.SMTP_PORT),
+    secure: false,
+    connectionTimeout: 10_000,
+    greetingTimeout: 10_000,
+    socketTimeout: 10_000,
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
+    },
+  });
+}
+
+async function deliverEmail({ to, subject, html, devLabel, devMeta = {} }) {
+  if (!shouldUseSmtp()) {
+    if (isDevelopment()) {
+      console.log(`[EMAIL:dev] Skipping SMTP — ${devLabel}`);
+      console.log(`[EMAIL:dev] To: ${to}`);
+      console.log(`[EMAIL:dev] Subject: ${subject}`);
+      if (devMeta.otpCode) {
+        console.log(`[EMAIL:dev] OTP code: ${devMeta.otpCode}`);
+      }
+      return;
+    }
+
+    throw new Error("Email delivery is not configured for this environment.");
+  }
+
+  const transporter = getTransporter();
+  await transporter.sendMail({
+    from: `"SDAS Security" <${process.env.SMTP_USER}>`,
+    to,
+    subject,
+    html,
+  });
+}
 
 const baseWrapper = (bodyHtml) => `
 <div style="margin:0;padding:0;background-color:#f4f6f9;font-family:'Segoe UI',Arial,sans-serif;">
@@ -59,11 +137,12 @@ export const sendOtpEmail = async (toEmail, otpCode, { name } = {}) => {
       Never share this code with anyone, including SDAS staff. If you didn't request this, you can safely ignore this email.
     </p>`;
 
-  await transporter.sendMail({
-    from: `"SDAS Security" <${process.env.SMTP_USER}>`,
+  await deliverEmail({
     to: toEmail,
     subject: "Your SDAS verification code",
     html: baseWrapper(body),
+    devLabel: "OTP",
+    devMeta: { otpCode },
   });
 };
 
@@ -88,10 +167,10 @@ export const sendLoginSuccessEmail = async (toEmail, { name, device, os, browser
       Wasn't you? Contact your Super Admin right away to secure your account.
     </p>`;
 
-  await transporter.sendMail({
-    from: `"SDAS Security" <${process.env.SMTP_USER}>`,
+  await deliverEmail({
     to: toEmail,
     subject: "New sign-in to your SDAS account",
     html: baseWrapper(body),
+    devLabel: "login success",
   });
 };

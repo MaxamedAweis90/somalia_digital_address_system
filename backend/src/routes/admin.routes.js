@@ -8,6 +8,7 @@ import AddressRouter from "./address.routes.js";
 import DashboardRouter from "./dashboard.routes.js";
 import SettingsRouter from "./settings.routes.js";
 import DataOfficerRouter from "./data-officer.routes.js";
+import DataCollectorRouter from "./data-collector.routes.js";
 import AssignmentRouter from "./assignment.routes.js";
 
 const AdminRouter = Router();
@@ -22,6 +23,7 @@ AdminRouter.use("/addresses", AddressRouter);
 AdminRouter.use("/dashboard", DashboardRouter);
 AdminRouter.use("/settings", SettingsRouter);
 AdminRouter.use("/data-officers", DataOfficerRouter);
+AdminRouter.use("/data-collectors", DataCollectorRouter);
 AdminRouter.use("/assignments", AssignmentRouter);
 
 export default AdminRouter;

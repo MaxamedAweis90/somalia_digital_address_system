@@ -1,35 +1,126 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { useAuth } from "@/context/AuthContext";
+import { getAuthConfig, resendOtp } from "@/api/auth";
+import RecaptchaWidget from "@/components/auth/RecaptchaWidget";
 import somaliaFlag from "@/assets/images.jpg";
 import sdasLogo from "@/assets/logo/sdas_logo.png";
 
 export default function Login() {
   const navigate = useNavigate();
-  const { login, getHomePath } = useAuth();
+  const { login, verifyOtp, getHomePath } = useAuth();
 
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [otpCode, setOtpCode] = useState("");
+  const [mfaStep, setMfaStep] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const [recaptchaToken, setRecaptchaToken] = useState(null);
+  const [recaptchaEnabled, setRecaptchaEnabled] = useState(false);
+  const [recaptchaSiteKey, setRecaptchaSiteKey] = useState(null);
+  const [emailEnabled, setEmailEnabled] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    getAuthConfig()
+      .then((res) => {
+        const config = res.data.data || {};
+        setRecaptchaEnabled(Boolean(config.recaptchaEnabled));
+        setRecaptchaSiteKey(config.recaptchaSiteKey || null);
+        setEmailEnabled(Boolean(config.emailEnabled));
+      })
+      .catch(() => {
+        setRecaptchaEnabled(false);
+        setRecaptchaSiteKey(null);
+        setEmailEnabled(false);
+      });
+  }, []);
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return undefined;
+
+    const timer = setInterval(() => {
+      setResendCooldown((prev) => Math.max(0, prev - 1000));
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [resendCooldown]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     setError("");
 
+    if (recaptchaEnabled && !recaptchaToken) {
+      const message = "Please complete the reCAPTCHA verification.";
+      setError(message);
+      toast.error(message);
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      const user = await login(email, password);
+      const result = await login(email, password, recaptchaToken);
+
+      if (result.mfaRequired) {
+        setMfaStep(true);
+        toast.info(
+          result.message ||
+            (emailEnabled
+              ? "A verification code has been sent to your email."
+              : "Check the backend terminal for your verification code.")
+        );
+        return;
+      }
+
       toast.success("Signed in successfully");
-      navigate(getHomePath(user.role), { replace: true });
+      navigate(getHomePath(result.user.role), { replace: true });
     } catch (err) {
       const message = err.response?.data?.message || "Login failed. Please try again.";
       setError(message);
       toast.error(message);
+      setRecaptchaToken(null);
+      if (window.grecaptcha) {
+        window.grecaptcha.reset();
+      }
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError("");
+
+    try {
+      const user = await verifyOtp(email, otpCode.trim());
+      toast.success("Signed in successfully");
+      navigate(getHomePath(user.role), { replace: true });
+    } catch (err) {
+      const message = err.response?.data?.message || "Invalid verification code. Please try again.";
+      setError(message);
+      toast.error(message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (resendCooldown > 0) return;
+
+    try {
+      const { data } = await resendOtp(email);
+      setResendCooldown(data.cooldownMs || 60000);
+      toast.success(data.message);
+    } catch (err) {
+      const message = err.response?.data?.message || "Could not resend code. Please try again.";
+      const cooldown = err.response?.data?.cooldownMs;
+      if (cooldown) setResendCooldown(cooldown);
+      toast.error(message);
     }
   };
 
@@ -100,6 +191,76 @@ export default function Login() {
             )}
 
             {/* Form */}
+            {mfaStep ? (
+              <form onSubmit={handleVerifyOtp} className="space-y-4">
+                <p className="text-sm text-gray-600">
+                  {emailEnabled ? (
+                    <>
+                      We sent a 6-digit code to <strong>{email}</strong>. Check your inbox and enter it
+                      below.
+                    </>
+                  ) : (
+                    <>
+                      Email delivery is disabled in development. Check the backend terminal for the
+                      6-digit code for <strong>{email}</strong>.
+                    </>
+                  )}
+                </p>
+
+                <div className="space-y-1.5">
+                  <label
+                    htmlFor="otp"
+                    className="block text-xs font-semibold text-gray-700 uppercase tracking-wider"
+                  >
+                    Verification Code
+                  </label>
+                  <input
+                    id="otp"
+                    name="otp"
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    value={otpCode}
+                    onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                    placeholder="000000"
+                    required
+                    className="w-full px-4 py-2.5 rounded-lg border border-gray-300 bg-white text-sm text-gray-900 tracking-[0.4em] text-center font-mono placeholder:tracking-normal placeholder:font-sans focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20 outline-none transition"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isLoading || otpCode.length < 6}
+                  className="w-full py-2.5 px-4 rounded-lg bg-[#0056B3] hover:bg-[#00458F] active:bg-[#003B7A] text-white text-sm font-semibold shadow-xs hover:shadow transition duration-150 cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-60"
+                >
+                  <span>{isLoading ? "Verifying..." : "Verify & Sign In →"}</span>
+                </button>
+
+                <div className="flex items-center justify-between text-sm">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMfaStep(false);
+                      setOtpCode("");
+                      setError("");
+                    }}
+                    className="text-gray-500 hover:text-gray-700"
+                  >
+                    ← Back
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleResendOtp}
+                    disabled={resendCooldown > 0}
+                    className="text-[#0056B3] hover:text-[#00458F] disabled:text-gray-400"
+                  >
+                    {resendCooldown > 0
+                      ? `Resend in ${Math.ceil(resendCooldown / 1000)}s`
+                      : "Resend code"}
+                  </button>
+                </div>
+              </form>
+            ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Official Email */}
               <div className="space-y-1.5">
@@ -216,6 +377,10 @@ export default function Login() {
                 </div>
               </div>
 
+              {recaptchaEnabled && recaptchaSiteKey && (
+                <RecaptchaWidget siteKey={recaptchaSiteKey} onChange={setRecaptchaToken} />
+              )}
+
               {/* Action Button */}
               <button
                 type="submit"
@@ -225,6 +390,7 @@ export default function Login() {
                 <span>{isLoading ? "Signing in..." : "Sign In →"}</span>
               </button>
             </form>
+            )}
 
             {/* Clean Footer */}
             <div className="text-center pt-2">

@@ -1,14 +1,26 @@
 import axios from "axios";
 
-export const verifyRecaptcha = async (recaptchaToken) => {
-  console.log("Received recaptchaToken:", recaptchaToken ? `${recaptchaToken.slice(0, 20)}...` : "MISSING");
-  console.log("Secret key loaded:", process.env.RECAPTCHA_SECRET_KEY ? "yes" : "MISSING");
+export function isRecaptchaEnabled() {
+  return process.env.NODE_ENV === "production";
+}
 
-  if (!recaptchaToken) return false;
+export async function verifyRecaptcha(recaptchaToken) {
+  if (!isRecaptchaEnabled()) {
+    return true;
+  }
+
+  if (!recaptchaToken) {
+    return false;
+  }
+
+  if (!process.env.RECAPTCHA_SECRET_KEY) {
+    console.error("RECAPTCHA_SECRET_KEY is not configured");
+    return false;
+  }
 
   try {
     const response = await axios.post(
-      `https://www.google.com/recaptcha/api/siteverify`,
+      "https://www.google.com/recaptcha/api/siteverify",
       null,
       {
         params: {
@@ -18,10 +30,9 @@ export const verifyRecaptcha = async (recaptchaToken) => {
       }
     );
 
-    console.log("Google response:", response.data);
     return response.data.success === true;
   } catch (error) {
-    console.error("reCAPTCHA Verification Error:", error.message);
+    console.error("reCAPTCHA verification error:", error.message);
     return false;
   }
-};
+}

@@ -17,6 +17,7 @@ export default function AddAssignment() {
     zoneId: "",
     zoneBlockId: "",
     assignedToId: "",
+    expectedCollectorCount: "1",
     notes: "",
     dueAt: "",
   });
@@ -97,6 +98,12 @@ export default function AddAssignment() {
       return;
     }
 
+    const teamSize = Number(formData.expectedCollectorCount);
+    if (!Number.isInteger(teamSize) || teamSize < 1 || teamSize > 50) {
+      setServerError("Expected collector count must be between 1 and 50");
+      return;
+    }
+
     if (isRegisterAddresses) {
       if (!formData.zoneBlockId) {
         setServerError("Zone block is required for address registration assignments");
@@ -114,6 +121,7 @@ export default function AddAssignment() {
       const payload = {
         type: formData.type,
         assignedToId: formData.assignedToId,
+        expectedCollectorCount: teamSize,
         notes: formData.notes || undefined,
         dueAt: formData.dueAt || undefined,
       };
@@ -251,6 +259,24 @@ export default function AddAssignment() {
                 </option>
               ))}
             </select>
+          </div>
+
+          <div>
+            <label className="block text-[12px] font-semibold text-ink mb-1.5">
+              Data Collectors on Team
+            </label>
+            <input
+              type="number"
+              name="expectedCollectorCount"
+              min={1}
+              max={50}
+              value={formData.expectedCollectorCount}
+              onChange={handleChange}
+              className="w-full h-[40px] rounded-lg border border-line bg-white px-3 text-[13px] text-ink outline-none focus:border-blue focus:ring-2 focus:ring-blue/10"
+            />
+            <p className="mt-1.5 text-[11px] text-ink-soft">
+              How many collectors the officer should delegate work to for this assignment.
+            </p>
           </div>
 
           <div>

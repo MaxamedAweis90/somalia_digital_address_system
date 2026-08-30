@@ -38,6 +38,24 @@ async function findCollectorForOfficer(id, officerId) {
   return collector;
 }
 
+async function findCollectorAsAdmin(id) {
+  const collector = await prisma.user.findUnique({
+    where: { id },
+    select: {
+      ...collectorSelect,
+      supervisor: {
+        select: { id: true, name: true, email: true },
+      },
+    },
+  });
+
+  if (!collector || collector.role !== DATA_COLLECTOR_ROLE) {
+    throw new Error("Data collector not found");
+  }
+
+  return collector;
+}
+
 export const DataCollectorService = {
   createCollector: async (officerId, { name, email, password }) => {
     await assertUserRole(officerId, "DATA_OFFICER");
@@ -122,6 +140,127 @@ export const DataCollectorService = {
 
   regeneratePassword: async (id, officerId) => {
     const collector = await findCollectorForOfficer(id, officerId);
+    const temporaryPassword = generateSecurePassword(12);
+
+    await prisma.user.update({
+      where: { id },
+      data: {
+        password: await hashPassword(temporaryPassword),
+      },
+    });
+
+    return { collector, temporaryPassword };
+  },
+
+  createCollectorAsAdmin: async ({ name, email, password, supervisorId }) => {
+    if (!supervisorId) {
+      throw new Error("Supervising data officer is required");
+    }
+
+    await assertUserRole(supervisorId, "DATA_OFFICER");
+
+    const validName = validateName(name);
+    const validEmail = validateEmail(email);
+    const validPassword = validatePassword(password);
+
+    const existingUser = await prisma.user.findUnique({
+      where: { email: validEmail },
+    });
+
+    if (existingUser) {
+      throw new Error("An account with this email address already exists");
+    }
+
+    return prisma.user.create({
+      data: {
+        name: validName,
+        email: validEmail,
+        password: await hashPassword(validPassword),
+        role: DATA_COLLECTOR_ROLE,
+        supervisorId,
+      },
+      select: {
+        ...collectorSelect,
+        supervisor: {
+          select: { id: true, name: true, email: true },
+        },
+      },
+    });
+  },
+
+  getCollectorByIdAsAdmin: async (id) => findCollectorAsAdmin(id),
+
+  updateCollectorAsAdmin: async (id, { name, email, password, supervisorId }) => {
+    await findCollectorAsAdmin(id);
+
+    const data = {};
+
+    if (name !== undefined) {
+      data.name = validateName(name);
+    }
+
+    if (email !== undefined) {
+      const validEmail = validateEmail(email);
+      const existingUser = await prisma.user.findUnique({
+        where: { email: validEmail },
+      });
+
+      if (existingUser && existingUser.id !== id) {
+        throw new Error("An account with this email address already exists");
+      }
+
+      data.email = validEmail;
+    }
+
+    if (password !== undefined && password !== null && password !== "") {
+      data.password = await hashPassword(validatePassword(password));
+    }
+
+    if (supervisorId !== undefined) {
+      if (!supervisorId) {
+        throw new Error("Supervising data officer is required");
+      }
+      await assertUserRole(supervisorId, "DATA_OFFICER");
+      data.supervisorId = supervisorId;
+    }
+
+    if (!Object.keys(data).length) {
+      throw new Error("Provide at least one field to update: name, email, password, or supervisor");
+    }
+
+    return prisma.user.update({
+      where: { id },
+      data,
+      select: {
+        ...collectorSelect,
+        supervisor: {
+          select: { id: true, name: true, email: true },
+        },
+      },
+    });
+  },
+
+  deleteCollectorAsAdmin: async (id) => {
+    const collector = await findCollectorAsAdmin(id);
+
+    const activeAssignments = await prisma.assignment.count({
+      where: {
+        assignedToId: id,
+        status: { notIn: ["APPROVED", "REJECTED"] },
+      },
+    });
+
+    if (activeAssignments > 0) {
+      throw new Error("Cannot delete a collector with active assignments");
+    }
+
+    await prisma.user.delete({ where: { id } });
+
+    return { id: collector.id };
+  },
+
+  regeneratePasswordAsAdmin: async (id) => {
+    const collector = await findCollectorAsAdmin(id);
     const temporaryPassword = generateSecurePassword(12);
 
     await prisma.user.update({

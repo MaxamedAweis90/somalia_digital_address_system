@@ -69,6 +69,14 @@ const DEFAULT_PAYLOAD = {
   REGISTER_ADDRESSES: { addresses: [] },
 };
 
+function validateExpectedCollectorCount(value) {
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < 1 || parsed > 50) {
+    throw new Error("Expected collector count must be between 1 and 50");
+  }
+  return parsed;
+}
+
 function isValidCoordinate(value) {
   return typeof value === "number" && Number.isFinite(value);
 }
@@ -281,10 +289,23 @@ function assertAssignmentAccess(assignment, user) {
 
 export const AssignmentService = {
   createAssignment: async (
-    { type = "DEFINE_ZONE_BLOCKS", zoneId, zoneBlockId, assignedToId, notes, dueAt },
+    {
+      type = "DEFINE_ZONE_BLOCKS",
+      zoneId,
+      zoneBlockId,
+      assignedToId,
+      notes,
+      dueAt,
+      expectedCollectorCount,
+    },
     actorId
   ) => {
     if (!assignedToId) throw new Error("Data officer is required");
+    if (expectedCollectorCount === undefined || expectedCollectorCount === null || expectedCollectorCount === "") {
+      throw new Error("Expected collector count is required");
+    }
+
+    const teamSize = validateExpectedCollectorCount(expectedCollectorCount);
     await assertUserRole(assignedToId, "DATA_OFFICER");
 
     const assignmentType = type || "DEFINE_ZONE_BLOCKS";
@@ -318,6 +339,7 @@ export const AssignmentService = {
         zoneBlockId: resolvedZoneBlockId,
         assignedToId,
         assignedById: actorId,
+        expectedCollectorCount: teamSize,
         notes: notes?.trim() || null,
         dueAt: dueAt ? new Date(dueAt) : null,
         payload: initialPayload,
@@ -339,6 +361,15 @@ export const AssignmentService = {
 
     if (["SUBMITTED", "APPROVED"].includes(parent.status)) {
       throw new Error("This parent assignment can no longer accept new child tasks");
+    }
+
+    if (
+      parent.expectedCollectorCount &&
+      parent.children.length >= parent.expectedCollectorCount
+    ) {
+      throw new Error(
+        `This assignment is limited to ${parent.expectedCollectorCount} collector task(s)`
+      );
     }
 
     const initialPayload =

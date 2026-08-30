@@ -1,8 +1,26 @@
 import { AuthService } from "../service/auth.service.js";
 import { clearAuthCookie, sethAuthCookie } from "../utils/cookies.utils.js";
-import { verifyRecaptcha } from "../utils/recaptcha.utils.js";
-import { sendOtpEmail, sendLoginSuccessEmail } from "../utils/email.utils.js";
+import { verifyRecaptcha, isRecaptchaEnabled } from "../utils/recaptcha.utils.js";
+import { sendOtpEmail, sendLoginSuccessEmail, isEmailEnabled } from "../utils/email.utils.js";
 import { getDeviceInfo } from "../utils/device.utils.js";
+
+// -----------------------------------------------------------------------
+// GET /auth/config
+// Public auth settings for the login UI (reCAPTCHA, etc.)
+// -----------------------------------------------------------------------
+export const getAuthConfig = (req, res) => {
+  const recaptchaEnabled = isRecaptchaEnabled();
+  const emailEnabled = isEmailEnabled();
+
+  return res.status(200).json({
+    success: true,
+    data: {
+      recaptchaEnabled,
+      recaptchaSiteKey: recaptchaEnabled ? process.env.RECAPTCHA_SITE_KEY || null : null,
+      emailEnabled,
+    },
+  });
+};
 
 // -----------------------------------------------------------------------
 // POST /auth/register
@@ -41,7 +59,9 @@ export const loginUser = async (req, res) => {
     if (!isHuman) {
       return res.status(400).json({
         success: false,
-        message: "reCAPTCHA verification failed or expired. Please try again.",
+        message: isRecaptchaEnabled()
+          ? "reCAPTCHA verification failed or expired. Please try again."
+          : "Login verification failed. Please try again.",
       });
     }
 
@@ -53,7 +73,10 @@ export const loginUser = async (req, res) => {
     return res.status(200).json({
       success: true,
       mfaRequired: true,
-      message: "A verification code has been sent to your email.",
+      emailEnabled: isEmailEnabled(),
+      message: isEmailEnabled()
+        ? "A verification code has been sent to your email."
+        : "Use the verification code from the backend terminal.",
       email: user.email,
     });
   } catch (error) {

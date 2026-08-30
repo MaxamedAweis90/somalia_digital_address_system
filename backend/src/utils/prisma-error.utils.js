@@ -1,3 +1,5 @@
+import { shouldExposeErrors } from "./env.utils.js";
+
 export function getErrorMessage(error) {
   if (error.code === "23505") {
     return "A record with this value already exists";
@@ -52,4 +54,25 @@ export function getHttpStatus(error) {
   }
 
   return 500;
+}
+
+export function formatErrorResponse(error, statusCode = 500) {
+  const payload = {
+    success: false,
+    message:
+      statusCode >= 500 && !shouldExposeErrors()
+        ? "Internal server error"
+        : getErrorMessage(error),
+  };
+
+  if (shouldExposeErrors()) {
+    payload.details = {
+      name: error.name,
+      message: error.message,
+      stack: error.stack,
+      code: error.code,
+    };
+  }
+
+  return payload;
 }

@@ -35,6 +35,9 @@ import ViewAddress from "@/pages/addresses/ViewAddress";
 import DataOfficers from "@/pages/data-officers/DataOfficers";
 import AddDataOfficer from "@/pages/data-officers/AddDataOfficer";
 import EditDataOfficer from "@/pages/data-officers/EditDataOfficer";
+import DataCollectors from "@/pages/data-collectors/DataCollectors";
+import AddDataCollector from "@/pages/data-collectors/AddDataCollector";
+import EditDataCollector from "@/pages/data-collectors/EditDataCollector";
 import Settings from "@/pages/settings/Settings";
 import Assignments from "@/pages/assignments/Assignments";
 import AddAssignment from "@/pages/assignments/AddAssignment";
@@ -139,6 +142,9 @@ export default function AppRoutes() {
         <Route path="data-officers" element={<DataOfficers />} />
         <Route path="data-officers/add" element={<AddDataOfficer />} />
         <Route path="data-officers/edit/:id" element={<EditDataOfficer />} />
+        <Route path="data-collectors" element={<DataCollectors />} />
+        <Route path="data-collectors/add" element={<AddDataCollector />} />
+        <Route path="data-collectors/edit/:id" element={<EditDataCollector />} />
         <Route path="assignments" element={<Assignments />} />
         <Route path="assignments/add" element={<AddAssignment />} />
         <Route path="assignments/:id" element={<AssignmentDetail />} />

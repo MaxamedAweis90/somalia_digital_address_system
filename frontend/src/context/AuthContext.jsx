@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
-import { getMe, login as loginApi, logout as logoutApi } from "@/api/auth";
+import { getMe, login as loginApi, logout as logoutApi, verifyOtp as verifyOtpApi } from "@/api/auth";
 import { ROLE_HOME } from "@/constants/roles";
 
 const AuthContext = createContext(null);
@@ -23,8 +23,19 @@ export function AuthProvider({ children }) {
     fetchUser().finally(() => setLoading(false));
   }, [fetchUser]);
 
-  const login = async (email, password) => {
-    const { data } = await loginApi(email, password);
+  const login = async (email, password, recaptchaToken) => {
+    const { data } = await loginApi(email, password, recaptchaToken);
+
+    if (data.mfaRequired) {
+      return { mfaRequired: true, email: data.email, message: data.message };
+    }
+
+    setUser(data.user);
+    return { mfaRequired: false, user: data.user };
+  };
+
+  const verifyOtp = async (email, code) => {
+    const { data } = await verifyOtpApi(email, code);
     setUser(data.user);
     return data.user;
   };
@@ -38,7 +49,7 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, loading, login, logout, fetchUser, getHomePath, isAuthenticated: !!user }}
+      value={{ user, loading, login, verifyOtp, logout, fetchUser, getHomePath, isAuthenticated: !!user }}
     >
       {children}
     </AuthContext.Provider>

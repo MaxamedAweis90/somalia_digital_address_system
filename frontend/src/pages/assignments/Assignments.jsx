@@ -12,12 +12,15 @@ import PageHeader from "@/components/ui/PageHeader";
 
 function getChildProgress(assignment) {
   const children = assignment.children || [];
-  if (!children.length) return "—";
+  const expected = assignment.expectedCollectorCount;
+  if (!children.length && !expected) return "—";
+
   const approved = children.filter((child) => child.status === "APPROVED").length;
   const submitted = children.filter((child) =>
     ["SUBMITTED", "APPROVED"].includes(child.status)
   ).length;
-  return `${approved}/${children.length} approved · ${submitted}/${children.length} submitted`;
+  const teamLabel = expected ? `${children.length}/${expected} tasks` : `${children.length} tasks`;
+  return `${teamLabel} · ${approved} approved · ${submitted} submitted`;
 }
 
 export default function Assignments() {
