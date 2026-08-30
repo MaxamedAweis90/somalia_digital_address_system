@@ -1,6 +1,38 @@
 import { prisma } from "../db.js";
 import { validateStatus } from "../utils/validation.utils.js";
 
+export const SOMALI_OFFICIAL_REGIONS = [
+  { name: "Awdal", code: "AWD" },
+  { name: "Bakool", code: "BKL" },
+  { name: "Banaadir", code: "BND" },
+  { name: "Bari", code: "BAR" },
+  { name: "Bay", code: "BAY" },
+  { name: "Galguduud", code: "GLG" },
+  { name: "Gedo", code: "GED" },
+  { name: "Hiiraan", code: "HIR" },
+  { name: "Jubbada Dhexe", code: "JDX" },
+  { name: "Jubbada Hoose", code: "JHS" },
+  { name: "Mudug", code: "MDG" },
+  { name: "Nugaal", code: "NGL" },
+  { name: "Sanaag", code: "SNG" },
+  { name: "Shabeellaha Dhexe", code: "SDX" },
+  { name: "Shabeellaha Hoose", code: "SHS" },
+  { name: "Sool", code: "SOL" },
+  { name: "Togdheer", code: "TGD" },
+  { name: "Woqooyi Galbeed", code: "WQG" },
+];
+
+const isValidSomaliRegion = (name, code) => {
+  const normalizedName = name.trim().toLowerCase();
+  const normalizedCode = code.trim().toUpperCase();
+
+  return SOMALI_OFFICIAL_REGIONS.some(
+    (reg) =>
+      reg.name.toLowerCase() === normalizedName ||
+      reg.code === normalizedCode
+  );
+};
+
 const regionSelect = {
   id: true,
   name: true,
@@ -14,6 +46,12 @@ export const RegionService = {
   createRegion: async ({ name, code, status }) => {
     if (!name?.trim() || !code?.trim()) {
       throw new Error("Name and code are required");
+    }
+
+    if (!isValidSomaliRegion(name, code)) {
+      throw new Error(
+        `"${name}" is not a recognized official administrative region of Somalia. Only the 18 official regions are permitted.`
+      );
     }
 
     validateStatus(status);
@@ -67,6 +105,16 @@ export const RegionService = {
 
     if (!existing) {
       throw new Error("Region not found");
+    }
+
+    if (name || code) {
+      const checkName = name || existing.name;
+      const checkCode = code || existing.code;
+      if (!isValidSomaliRegion(checkName, checkCode)) {
+        throw new Error(
+          `"${checkName}" is not a recognized official administrative region of Somalia.`
+        );
+      }
     }
 
     validateStatus(status);

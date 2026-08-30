@@ -14,10 +14,12 @@ import {
   PanelLeftOpen,
   Bell,
   HelpCircle,
+  Globe,
 } from "lucide-react";
 
 const navItems = [
   { to: "/officer/dashboard", label: "Dashboard", icon: LayoutGrid },
+  { to: "/officer/regions", label: "Regions", icon: Globe },
   { to: "/officer/districts", label: "Districts", icon: Building2 },
   { to: "/officer/neighborhoods", label: "Neighborhoods", icon: Home },
   { to: "/officer/zones", label: "Zones", icon: Grid3x3 },
