@@ -13,8 +13,8 @@ import {
 const NAV_ITEMS = [
   { key: "dashboard", label: "Dashboard", icon: LayoutGrid },
   { key: "districts", label: "Districts", icon: Building2 },
-  { key: "neighborhoods", label: "Neighborhoods", icon: Home },
-  { key: "zones", label: "Zones", icon: Grid3x3 },
+  { key: "zones", label: "Zones", icon: Home },
+  { key: "zone-blocks", label: "Zone Blocks", icon: Grid3x3 },
   { key: "addresses", label: "Addresses", icon: MapPin },
   { key: "search", label: "Search", icon: Search },
   { key: "users", label: "Users", icon: Users },

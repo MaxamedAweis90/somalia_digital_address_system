@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { createAddress, previewAddressCode } from "@/api/addressApi";
 import { getDistricts } from "@/api/districtApi";
-import { getNeighborhoods } from "@/api/neighborhoodApi";
 import { getZones } from "@/api/zoneApi";
+import { getZoneBlocks } from "@/api/zoneBlockApi";
 import LocationMapPicker from "@/components/addresses/LocationMapPicker";
 
 export default function AddAddress() {
@@ -11,8 +11,8 @@ export default function AddAddress() {
 
   const [formData, setFormData] = useState({
     districtId: "",
-    neighborhoodId: "",
     zoneId: "",
+    zoneBlockId: "",
     streetName: "",
     description: "",
     active: true,
@@ -20,12 +20,12 @@ export default function AddAddress() {
 
   const [position, setPosition] = useState(null);
   const [districts, setDistricts] = useState([]);
-  const [neighborhoods, setNeighborhoods] = useState([]);
   const [zones, setZones] = useState([]);
+  const [zoneBlocks, setZoneBlocks] = useState([]);
   const [dacPreview, setDacPreview] = useState("");
   const [loadingDistricts, setLoadingDistricts] = useState(true);
-  const [loadingNeighborhoods, setLoadingNeighborhoods] = useState(false);
   const [loadingZones, setLoadingZones] = useState(false);
+  const [loadingZoneBlocks, setLoadingZoneBlocks] = useState(false);
   const [loadingPreview, setLoadingPreview] = useState(false);
 
   const [errors, setErrors] = useState({});
@@ -47,32 +47,12 @@ export default function AddAddress() {
 
   useEffect(() => {
     if (!formData.districtId) {
-      setNeighborhoods([]);
-      return;
-    }
-
-    setLoadingNeighborhoods(true);
-    getNeighborhoods(formData.districtId)
-      .then((res) => {
-        const data = res.data.data || [];
-        setNeighborhoods(data);
-        setFormData((prev) => ({
-          ...prev,
-          neighborhoodId: data[0]?.id || "",
-        }));
-      })
-      .catch(console.error)
-      .finally(() => setLoadingNeighborhoods(false));
-  }, [formData.districtId]);
-
-  useEffect(() => {
-    if (!formData.neighborhoodId) {
       setZones([]);
       return;
     }
 
     setLoadingZones(true);
-    getZones(formData.neighborhoodId)
+    getZones(formData.districtId)
       .then((res) => {
         const data = res.data.data || [];
         setZones(data);
@@ -83,22 +63,42 @@ export default function AddAddress() {
       })
       .catch(console.error)
       .finally(() => setLoadingZones(false));
-  }, [formData.neighborhoodId]);
+  }, [formData.districtId]);
 
   useEffect(() => {
     if (!formData.zoneId) {
+      setZoneBlocks([]);
+      return;
+    }
+
+    setLoadingZoneBlocks(true);
+    getZoneBlocks(formData.zoneId)
+      .then((res) => {
+        const data = res.data.data || [];
+        setZoneBlocks(data);
+        setFormData((prev) => ({
+          ...prev,
+          zoneBlockId: data[0]?.id || "",
+        }));
+      })
+      .catch(console.error)
+      .finally(() => setLoadingZoneBlocks(false));
+  }, [formData.zoneId]);
+
+  useEffect(() => {
+    if (!formData.zoneBlockId) {
       setDacPreview("");
       return;
     }
 
     setLoadingPreview(true);
-    previewAddressCode(formData.zoneId)
+    previewAddressCode(formData.zoneBlockId)
       .then((res) => {
         setDacPreview(res.data.data?.addressCode || "");
       })
       .catch(() => setDacPreview(""))
       .finally(() => setLoadingPreview(false));
-  }, [formData.zoneId]);
+  }, [formData.zoneBlockId]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -118,12 +118,12 @@ export default function AddAddress() {
       newErrors.districtId = "Please select a district";
       isValid = false;
     }
-    if (!formData.neighborhoodId) {
-      newErrors.neighborhoodId = "Please select a neighborhood";
-      isValid = false;
-    }
     if (!formData.zoneId) {
       newErrors.zoneId = "Please select a zone";
+      isValid = false;
+    }
+    if (!formData.zoneBlockId) {
+      newErrors.zoneBlockId = "Please select a zone block";
       isValid = false;
     }
     if (!formData.streetName.trim()) {
@@ -149,8 +149,8 @@ export default function AddAddress() {
 
       await createAddress({
         districtId: formData.districtId,
-        neighborhoodId: formData.neighborhoodId,
         zoneId: formData.zoneId,
+        zoneBlockId: formData.zoneBlockId,
         streetName: formData.streetName.trim(),
         description: formData.description.trim(),
         latitude: position.latitude,
@@ -187,7 +187,7 @@ export default function AddAddress() {
           </h1>
           <p className="mt-1 text-[13px] text-ink-soft">
             A Digital Address Code (DAC) will be generated automatically in the
-            official format: DISTRICT-NEIGHBORHOOD-ZONE-0001.
+            official format: DISTRICT-ZONE-ZONEBLOCK-0001.
           </p>
         </div>
 
@@ -212,14 +212,14 @@ export default function AddAddress() {
                   Next Digital Address Code (DAC)
                 </p>
                 <p className="mt-1 text-[18px] font-bold tracking-wide text-ink font-mono">
-                  {loadingPreview ? "Generating..." : dacPreview || "Select a zone"}
+                  {loadingPreview ? "Generating..." : dacPreview || "Select a zone block"}
                 </p>
                 <p className="mt-1 text-[11px] text-ink-soft">
-                  Format: [District]-[Neighborhood]-[Zone]-[House] e.g. HOD-TLX-Z01-0001
+                  Format: [District]-[Zone]-[Zone Block]-[House] e.g. HOD-TLX-Z01-0001
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div>
                   <label htmlFor="districtId" className="block text-[12px] font-semibold text-ink mb-2">
                     District <span className="text-red-500">*</span>
@@ -242,27 +242,6 @@ export default function AddAddress() {
                 </div>
 
                 <div>
-                  <label htmlFor="neighborhoodId" className="block text-[12px] font-semibold text-ink mb-2">
-                    Neighborhood <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    id="neighborhoodId"
-                    name="neighborhoodId"
-                    value={formData.neighborhoodId}
-                    onChange={handleChange}
-                    disabled={loadingNeighborhoods || neighborhoods.length === 0}
-                    className="w-full h-[38px] rounded-lg border border-[#B9C2CE] bg-white px-3 text-[13px] outline-none focus:border-blue focus:ring-2 focus:ring-blue/10 cursor-pointer"
-                  >
-                    {neighborhoods.map((n) => (
-                      <option key={n.id} value={n.id}>
-                        {n.name} ({n.code})
-                      </option>
-                    ))}
-                  </select>
-                  {errors.neighborhoodId && <p className="mt-1.5 text-[11px] text-red-500">{errors.neighborhoodId}</p>}
-                </div>
-
-                <div>
                   <label htmlFor="zoneId" className="block text-[12px] font-semibold text-ink mb-2">
                     Zone <span className="text-red-500">*</span>
                   </label>
@@ -274,17 +253,38 @@ export default function AddAddress() {
                     disabled={loadingZones || zones.length === 0}
                     className="w-full h-[38px] rounded-lg border border-[#B9C2CE] bg-white px-3 text-[13px] outline-none focus:border-blue focus:ring-2 focus:ring-blue/10 cursor-pointer"
                   >
-                    {zones.length > 0 ? (
-                      zones.map((z) => (
-                        <option key={z.id} value={z.id}>
-                          {z.name} ({z.code})
+                    {zones.map((z) => (
+                      <option key={z.id} value={z.id}>
+                        {z.name} ({z.code})
+                      </option>
+                    ))}
+                  </select>
+                  {errors.zoneId && <p className="mt-1.5 text-[11px] text-red-500">{errors.zoneId}</p>}
+                </div>
+
+                <div>
+                  <label htmlFor="zoneBlockId" className="block text-[12px] font-semibold text-ink mb-2">
+                    Zone Block <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    id="zoneBlockId"
+                    name="zoneBlockId"
+                    value={formData.zoneBlockId}
+                    onChange={handleChange}
+                    disabled={loadingZoneBlocks || zoneBlocks.length === 0}
+                    className="w-full h-[38px] rounded-lg border border-[#B9C2CE] bg-white px-3 text-[13px] outline-none focus:border-blue focus:ring-2 focus:ring-blue/10 cursor-pointer"
+                  >
+                    {zoneBlocks.length > 0 ? (
+                      zoneBlocks.map((block) => (
+                        <option key={block.id} value={block.id}>
+                          {block.name} ({block.code})
                         </option>
                       ))
                     ) : (
-                      <option value="">No zones available</option>
+                      <option value="">No zone blocks available</option>
                     )}
                   </select>
-                  {errors.zoneId && <p className="mt-1.5 text-[11px] text-red-500">{errors.zoneId}</p>}
+                  {errors.zoneBlockId && <p className="mt-1.5 text-[11px] text-red-500">{errors.zoneBlockId}</p>}
                 </div>
               </div>
 

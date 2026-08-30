@@ -27,7 +27,7 @@ export default function Zones() {
       setZones(res.data.data || []);
     } catch (err) {
       console.error("Failed to load zones:", err);
-      setError(err.response?.data?.message || "Failed to load zones");
+      setError(err.response?.data?.message || "Failed to load zones from server");
     } finally {
       setLoading(false);
     }
@@ -37,8 +37,8 @@ export default function Zones() {
     fetchZones();
   }, []);
 
-  const handleDelete = (zone) => {
-    setDeleteTarget(zone);
+  const handleDelete = (item) => {
+    setDeleteTarget(item);
   };
 
   const confirmDelete = async () => {
@@ -48,7 +48,7 @@ export default function Zones() {
       setDeleting(true);
       setError(null);
       await deleteZone(deleteTarget.id);
-      setZones((current) => current.filter((zone) => zone.id !== deleteTarget.id));
+      setZones((current) => current.filter((n) => n.id !== deleteTarget.id));
       setDeleteTarget(null);
     } catch (err) {
       setError(err.response?.data?.message || "Failed to delete zone");
@@ -57,20 +57,19 @@ export default function Zones() {
     }
   };
 
+  // Search and filter
   const filteredZones = useMemo(() => {
-    return zones.filter((zone) => {
-      const name = zone.name || "";
-      const code = zone.code || "";
-      const districtName = zone.neighborhood?.district?.name || "";
-      const neighborhoodName = zone.neighborhood?.name || "";
+    return zones.filter((item) => {
+      const name = item.name || "";
+      const code = item.code || "";
+      const districtName = item.district?.name || "";
 
       const matchesSearch =
         name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        districtName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        neighborhoodName.toLowerCase().includes(searchTerm.toLowerCase());
+        districtName.toLowerCase().includes(searchTerm.toLowerCase());
 
-      const status = (zone.status || "ACTIVE").toUpperCase();
+      const status = (item.status || "ACTIVE").toUpperCase();
       const matchesStatus =
         statusFilter === "All" ||
         (statusFilter === "Active" && status === "ACTIVE") ||
@@ -97,6 +96,9 @@ export default function Zones() {
       />
 
       <div className="px-4 sm:px-6 lg:px-5 pt-5 pb-10">
+        {/* =========================
+            BREADCRUMB
+        ========================= */}
         <div className="flex items-center gap-2 text-[11px] font-medium text-ink-soft mb-6">
           <span
             onClick={() => navigate("../dashboard")}
@@ -104,20 +106,28 @@ export default function Zones() {
           >
             Dashboard
           </span>
+
           <span className="text-gray-400">›</span>
-          <span className="text-ink font-semibold">Zones</span>
+
+          <span className="text-ink font-semibold">
+            Zones
+          </span>
         </div>
 
+        {/* =========================
+            PAGE HEADER
+        ========================= */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <div>
             <h1 className="font-display text-[25px] font-semibold tracking-tight text-ink">
               Zones
             </h1>
             <p className="mt-1 text-[13px] text-ink-soft">
-              Manage cadastral zones and geographic sectors within neighborhoods.
+              Manage and view all municipal zones within districts.
             </p>
           </div>
 
+          {/* ADD ZONE - ONLY SHOWN TO SYS_ADMIN */}
           {isAdmin && (
             <button
               onClick={() => navigate("add")}
@@ -143,6 +153,7 @@ export default function Zones() {
           )}
         </div>
 
+        {/* Error Notice */}
         {error && (
           <div className="mb-6 rounded-lg bg-red-50 p-4 border border-red-200 text-red-700 text-sm flex items-center justify-between">
             <span>{error}</span>
@@ -155,24 +166,34 @@ export default function Zones() {
           </div>
         )}
 
+        {/* =========================
+            MAIN CARD
+        ========================= */}
         <div className="w-full bg-white border border-line rounded-xl shadow-card-sm overflow-hidden">
+          {/* =========================
+              CARD HEADER / FILTERS
+          ========================= */}
           <div className="px-5 py-4 border-b border-line">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div>
-                <h2 className="text-[16px] font-semibold text-ink">All Zones</h2>
+                <h2 className="text-[16px] font-semibold text-ink">
+                  All Zones
+                </h2>
                 <p className="mt-1 text-[12px] text-ink-soft">
                   Total {zones.length} zones in the registry
                 </p>
               </div>
 
+              {/* FILTERS */}
               <div className="flex flex-col sm:flex-row gap-3">
+                {/* SEARCH */}
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-soft text-sm">
                     🔍
                   </span>
                   <input
                     type="text"
-                    placeholder="Search zone, district, code..."
+                    placeholder="Search zone or code..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="
@@ -196,6 +217,7 @@ export default function Zones() {
                   />
                 </div>
 
+                {/* STATUS FILTER */}
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
@@ -224,21 +246,21 @@ export default function Zones() {
             </div>
           </div>
 
+          {/* =========================
+              TABLE
+          ========================= */}
           <div className="overflow-x-auto">
             <table className="w-full border-collapse">
               <thead>
                 <tr className="border-b border-line bg-[#FBFCFE]">
                   <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
-                    Zone Name
+                    Zone
                   </th>
                   <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
-                    District
+                    Parent District
                   </th>
                   <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
-                    Neighborhood
-                  </th>
-                  <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
-                    Zone Code
+                    Code
                   </th>
                   <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
                     Status
@@ -246,56 +268,58 @@ export default function Zones() {
                   <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
                     Last Updated
                   </th>
-                  <th className="px-5 py-4 text-right text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
-                    Actions
-                  </th>
+                  {isAdmin && (
+                    <th className="px-5 py-4 text-right text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
+                      Actions
+                    </th>
+                  )}
                 </tr>
               </thead>
 
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={7} className="px-5 py-12 text-center">
+                    <td colSpan={isAdmin ? 6 : 5} className="px-5 py-12 text-center">
                       <div className="flex flex-col items-center justify-center gap-2">
                         <Loader2 className="h-6 w-6 animate-spin text-blue-deep" />
-                        <p className="text-[12px] text-ink-soft">Loading zones...</p>
+                        <p className="text-[12px] text-ink-soft">Loading zones from server...</p>
                       </div>
                     </td>
                   </tr>
                 ) : filteredZones.length > 0 ? (
-                  filteredZones.map((zone) => {
-                    const isActive = (zone.status || "ACTIVE").toUpperCase() === "ACTIVE";
-                    const formattedDate = zone.updatedAt
-                      ? new Date(zone.updatedAt).toLocaleDateString()
+                  filteredZones.map((item) => {
+                    const isActive = (item.status || "ACTIVE").toUpperCase() === "ACTIVE";
+                    const formattedDate = item.updatedAt
+                      ? new Date(item.updatedAt).toLocaleDateString()
                       : "—";
 
                     return (
                       <tr
-                        key={zone.id}
+                        key={item.id}
                         className="border-b border-line last:border-b-0 hover:bg-[#FBFCFE] transition-colors"
                       >
+                        {/* NAME */}
                         <td className="px-5 py-4">
-                          <p className="text-[13px] font-semibold text-ink">{zone.name}</p>
+                          <p className="text-[13px] font-semibold text-ink">
+                            {item.name}
+                          </p>
                         </td>
 
+                        {/* DISTRICT */}
                         <td className="px-5 py-4">
                           <span className="text-[12px] text-ink">
-                            {zone.neighborhood?.district?.name || "—"}
+                            {item.district?.name || "—"}
                           </span>
                         </td>
 
-                        <td className="px-5 py-4">
-                          <span className="text-[12px] text-ink">
-                            {zone.neighborhood?.name || "—"}
-                          </span>
-                        </td>
-
+                        {/* CODE */}
                         <td className="px-5 py-4">
                           <span className="inline-flex items-center rounded-md bg-bg px-2.5 py-1 text-[11px] font-semibold text-blue-deep">
-                            {zone.code}
+                            {item.code}
                           </span>
                         </td>
 
+                        {/* STATUS */}
                         <td className="px-5 py-4">
                           <span
                             className={`
@@ -319,89 +343,84 @@ export default function Zones() {
                                 h-1.5
                                 w-1.5
                                 rounded-full
-                                ${isActive ? "bg-green-500" : "bg-gray-400"}
+                                ${
+                                  isActive
+                                    ? "bg-green-500"
+                                    : "bg-gray-400"
+                                }
                               `}
                             />
                             {isActive ? "Active" : "Inactive"}
                           </span>
                         </td>
 
+                        {/* LAST UPDATED */}
                         <td className="px-5 py-4">
-                          <span className="text-[12px] text-ink-soft">{formattedDate}</span>
+                          <span className="text-[12px] text-ink-soft">
+                            {formattedDate}
+                          </span>
                         </td>
 
-                        <td className="px-5 py-4">
-                          <div className="flex items-center justify-end gap-2">
-                            <button
-                              onClick={() => navigate(`view/${zone.id}`)}
-                              className="
-                                h-[32px]
-                                rounded-md
-                                border
-                                border-line
-                                bg-white
-                                px-3
-                                text-[11px]
-                                font-semibold
-                                text-ink
-                                transition-all
-                                hover:bg-bg
-                                cursor-pointer
-                              "
-                            >
-                              View
-                            </button>
+                        {/* ACTIONS - ONLY SHOWN TO SYS_ADMIN */}
+                        {isAdmin && (
+                          <td className="px-5 py-4">
+                            <div className="flex items-center justify-end gap-2">
+                              {/* EDIT */}
+                              <button
+                                onClick={() =>
+                                  navigate(`edit/${item.id}`)
+                                }
+                                className="
+                                  h-[32px]
+                                  rounded-md
+                                  bg-blue-deep
+                                  px-3
+                                  text-[11px]
+                                  font-semibold
+                                  text-white
+                                  transition-all
+                                  hover:bg-[#0F2B4D]
+                                  cursor-pointer
+                                "
+                              >
+                                Edit
+                              </button>
 
-                            {isAdmin && (
-                              <>
-                                <button
-                                  onClick={() => navigate(`edit/${zone.id}`)}
-                                  className="
-                                    h-[32px]
-                                    rounded-md
-                                    bg-blue-deep
-                                    px-3
-                                    text-[11px]
-                                    font-semibold
-                                    text-white
-                                    transition-all
-                                    hover:bg-[#0F2B4D]
-                                    cursor-pointer
-                                  "
-                                >
-                                  Edit
-                                </button>
-
-                                <button
-                                  onClick={() => handleDelete(zone)}
-                                  className="
-                                    h-[32px]
-                                    rounded-md
-                                    border
-                                    border-red-200
-                                    bg-white
-                                    px-3
-                                    text-[11px]
-                                    font-semibold
-                                    text-red-600
-                                    transition-all
-                                    hover:bg-red-50
-                                    cursor-pointer
-                                  "
-                                >
-                                  Delete
-                                </button>
-                              </>
-                            )}
-                          </div>
-                        </td>
+                              {/* DELETE */}
+                              <button
+                                onClick={() => handleDelete(item)}
+                                className="
+                                  h-[32px]
+                                  rounded-md
+                                  border
+                                  border-red-200
+                                  bg-white
+                                  px-3
+                                  text-[11px]
+                                  font-semibold
+                                  text-red-600
+                                  transition-all
+                                  hover:bg-red-50
+                                  cursor-pointer
+                                "
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          </td>
+                        )}
                       </tr>
                     );
                   })
                 ) : (
                   <tr>
-                    <td colSpan={7} className="px-5 py-12 text-center">
-                      <p className="text-[13px] font-medium text-ink">No zones found</p>
+                    <td
+                      colSpan={isAdmin ? 6 : 5}
+                      className="px-5 py-12 text-center"
+                    >
+                      <p className="text-[13px] font-medium text-ink">
+                        No zones found
+                      </p>
                       <p className="mt-1 text-[12px] text-ink-soft">
                         Try changing your search or filter.
                       </p>
@@ -412,6 +431,7 @@ export default function Zones() {
             </table>
           </div>
 
+          {/* CARD FOOTER */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-t border-line px-5 py-4">
             <p className="text-[11px] text-ink-soft">
               Showing {filteredZones.length} of {zones.length} zones

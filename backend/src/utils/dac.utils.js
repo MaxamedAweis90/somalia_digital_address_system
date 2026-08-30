@@ -12,11 +12,11 @@ export function formatHouseNumber(houseNumber, pad = HOUSE_NUMBER_PAD) {
 }
 
 export function buildDac(
-  { districtCode, neighborhoodCode, zoneCode, houseNumber },
+  { districtCode, zoneCode, zoneBlockCode, houseNumber },
   pad = HOUSE_NUMBER_PAD
 ) {
-  if (!districtCode || !neighborhoodCode || !zoneCode || houseNumber === undefined) {
-    throw new Error("District, neighborhood, zone codes, and house number are required");
+  if (!districtCode || !zoneCode || !zoneBlockCode || houseNumber === undefined) {
+    throw new Error("District, zone, zone block codes, and house number are required");
   }
 
   const numericHouse = Number(houseNumber);
@@ -25,7 +25,7 @@ export function buildDac(
     throw new Error(`House number must be between 1 and ${MAX_HOUSE_NUMBER}`);
   }
 
-  return `${districtCode}-${neighborhoodCode}-${zoneCode}-${formatHouseNumber(numericHouse, pad)}`.toUpperCase();
+  return `${districtCode}-${zoneCode}-${zoneBlockCode}-${formatHouseNumber(numericHouse, pad)}`.toUpperCase();
 }
 
 export function parseDac(addressCode, pad = HOUSE_NUMBER_PAD) {
@@ -37,16 +37,16 @@ export function parseDac(addressCode, pad = HOUSE_NUMBER_PAD) {
 
   if (!buildDacPattern(pad).test(normalized)) {
     throw new Error(
-      `Invalid DAC format. Expected DISTRICT-NEIGHBORHOOD-ZONE-${"0".repeat(pad - 1)}1 (e.g. HOD-TLX-Z01-0001)`
+      `Invalid DAC format. Expected DISTRICT-ZONE-ZONEBLOCK-${"0".repeat(pad - 1)}1 (e.g. HOD-TLX-Z01-0001)`
     );
   }
 
-  const [districtCode, neighborhoodCode, zoneCode, houseSegment] = normalized.split("-");
+  const [districtCode, zoneCode, zoneBlockCode, houseSegment] = normalized.split("-");
 
   return {
     districtCode,
-    neighborhoodCode,
     zoneCode,
+    zoneBlockCode,
     houseNumber: Number(houseSegment),
     addressCode: normalized,
   };

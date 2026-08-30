@@ -4,7 +4,7 @@ import { getSettingValue } from "../utils/settings.utils.js";
 
 export const previewNextAddressCode = async (req, res) => {
   try {
-    const preview = await AddressService.previewNextCode(req.query.zoneId);
+    const preview = await AddressService.previewNextCode(req.query.zoneBlockId);
 
     return res.status(200).json({
       success: true,

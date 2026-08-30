@@ -4,7 +4,7 @@ import { Loader2 } from "lucide-react";
 import { getOfficerAssignmentById } from "@/api/officerApi";
 import { getCollectorAssignmentById } from "@/api/collectorApi";
 import { getAssignmentById } from "@/api/assignmentApi";
-import DefineZonesAssignment from "@/components/assignments/DefineZonesAssignment";
+import DefineZoneBlocksAssignment from "@/components/assignments/DefineZoneBlocksAssignment";
 import RegisterAddressesAssignment from "@/components/assignments/RegisterAddressesAssignment";
 import OfficerParentDetail from "@/pages/officer/OfficerParentDetail";
 import { AssignmentTypeBadge } from "@/components/assignments/AssignmentStatusBadge";
@@ -63,11 +63,11 @@ export default function AssignmentDetail() {
         <Breadcrumb
           items={[
             { label: isAdmin ? "Assignments" : "My Tasks", to: `${basePath}/dashboard` },
-            { label: isRegisterAddresses ? "Register Addresses" : "Define Zones" },
+            { label: isRegisterAddresses ? "Register Addresses" : "Define Zone Blocks" },
           ]}
         />
         <PageHeader
-          title={isRegisterAddresses ? "Register Zone Addresses" : "Define Neighborhood Zones"}
+          title={isRegisterAddresses ? "Register Zone Block Addresses" : "Define Zone Blocks"}
           description={
             workflowMode === "collector"
               ? "Complete your assigned field work and submit to your data officer."
@@ -80,7 +80,7 @@ export default function AssignmentDetail() {
         {isRegisterAddresses ? (
           <RegisterAddressesAssignment id={id} workflowMode={workflowMode} />
         ) : (
-          <DefineZonesAssignment id={id} workflowMode={workflowMode} />
+          <DefineZoneBlocksAssignment id={id} workflowMode={workflowMode} />
         )}
       </div>
     </div>

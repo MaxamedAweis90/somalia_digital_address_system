@@ -15,16 +15,16 @@ import {
   saveCollectorDraft,
   submitCollectorAssignment,
 } from "@/api/collectorApi";
-import { getNeighborhoodById } from "@/api/neighborhoodApi";
-import { getZones } from "@/api/zoneApi";
+import { getZoneById } from "@/api/zoneApi";
+import { getZoneBlocks } from "@/api/zoneBlockApi";
 import AssignmentStatusBadge, {
   formatAssignmentLocation,
 } from "@/components/assignments/AssignmentStatusBadge";
-import ZoneMapEditor from "@/components/zones/ZoneMapEditor";
+import ZoneMapEditor from "@/components/zone-blocks/ZoneMapEditor";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { AssignmentWorkSteps } from "@/components/assignments/OfficerWorkflowGuide";
 
-function createEmptyZone() {
+function createEmptyZoneBlock() {
   return {
     clientId: crypto.randomUUID(),
     name: "",
@@ -34,15 +34,15 @@ function createEmptyZone() {
   };
 }
 
-export default function DefineZonesAssignment({
+export default function DefineZoneBlocksAssignment({
   id,
   workflowMode = "collector",
   onAssignmentLoaded,
 }) {
   const [assignment, setAssignment] = useState(null);
-  const [neighborhoodGeometry, setNeighborhoodGeometry] = useState(null);
-  const [existingZones, setExistingZones] = useState([]);
-  const [draftZones, setDraftZones] = useState([]);
+  const [zoneGeometry, setZoneGeometry] = useState(null);
+  const [existingZoneBlocks, setExistingZoneBlocks] = useState([]);
+  const [draftZoneBlocks, setDraftZoneBlocks] = useState([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -78,16 +78,16 @@ export default function DefineZonesAssignment({
       const data = res.data.data;
       setAssignment(data);
       onAssignmentLoaded?.(data);
-      setDraftZones(data.payload?.zones?.length ? data.payload.zones : []);
+      setDraftZoneBlocks(data.payload?.zoneBlocks?.length ? data.payload.zoneBlocks : []);
       setSelectedIndex(0);
 
-      const [zonesRes, neighborhoodRes] = await Promise.all([
-        getZones(data.neighborhoodId),
-        getNeighborhoodById(data.neighborhoodId),
+      const [zoneBlocksRes, zoneRes] = await Promise.all([
+        getZoneBlocks(data.zoneId),
+        getZoneById(data.zoneId),
       ]);
 
-      setExistingZones(zonesRes.data.data || []);
-      setNeighborhoodGeometry(neighborhoodRes.data.data?.geometry || null);
+      setExistingZoneBlocks(zoneBlocksRes.data.data || []);
+      setZoneGeometry(zoneRes.data.data?.geometry || null);
     } catch (err) {
       setError(err.response?.data?.message || "Failed to load assignment");
     } finally {
@@ -99,25 +99,25 @@ export default function DefineZonesAssignment({
     loadAssignment();
   }, [id]);
 
-  const selectedZone = draftZones[selectedIndex] || null;
+  const selectedZoneBlock = draftZoneBlocks[selectedIndex] || null;
 
-  const updateSelectedZone = (updates) => {
-    setDraftZones((current) =>
-      current.map((zone, index) =>
-        index === selectedIndex ? { ...zone, ...updates } : zone
+  const updateSelectedZoneBlock = (updates) => {
+    setDraftZoneBlocks((current) =>
+      current.map((zoneBlock, index) =>
+        index === selectedIndex ? { ...zoneBlock, ...updates } : zoneBlock
       )
     );
   };
 
-  const handleAddZone = () => {
-    const nextZones = [...draftZones, createEmptyZone()];
-    setDraftZones(nextZones);
-    setSelectedIndex(nextZones.length - 1);
+  const handleAddZoneBlock = () => {
+    const nextZoneBlocks = [...draftZoneBlocks, createEmptyZoneBlock()];
+    setDraftZoneBlocks(nextZoneBlocks);
+    setSelectedIndex(nextZoneBlocks.length - 1);
   };
 
-  const handleRemoveZone = (index) => {
-    const nextZones = draftZones.filter((_, zoneIndex) => zoneIndex !== index);
-    setDraftZones(nextZones);
+  const handleRemoveZoneBlock = (index) => {
+    const nextZoneBlocks = draftZoneBlocks.filter((_, zoneBlockIndex) => zoneBlockIndex !== index);
+    setDraftZoneBlocks(nextZoneBlocks);
     setSelectedIndex(Math.max(0, index - 1));
   };
 
@@ -126,9 +126,9 @@ export default function DefineZonesAssignment({
       setSaving(true);
       setError(null);
       setSuccess(null);
-      const res = await saveCollectorDraft(id, { zones: draftZones });
+      const res = await saveCollectorDraft(id, { zoneBlocks: draftZoneBlocks });
       setAssignment(res.data.data);
-      setDraftZones(res.data.data.payload?.zones || []);
+      setDraftZoneBlocks(res.data.data.payload?.zoneBlocks || []);
       setSuccess("Draft saved successfully.");
     } catch (err) {
       setError(err.response?.data?.message || "Failed to save draft");
@@ -142,7 +142,7 @@ export default function DefineZonesAssignment({
       setSubmitting(true);
       setError(null);
       setSuccess(null);
-      await saveCollectorDraft(id, { zones: draftZones });
+      await saveCollectorDraft(id, { zoneBlocks: draftZoneBlocks });
       const res = await submitCollectorAssignment(id);
       setAssignment(res.data.data);
       setShowSubmitDialog(false);
@@ -168,7 +168,7 @@ export default function DefineZonesAssignment({
       setSuccess(
         workflowMode === "officer-review"
           ? "Child assignment approved."
-          : "Assignment approved and zones created."
+          : "Assignment approved and zone blocks created."
       );
     } catch (err) {
       setError(err.response?.data?.message || "Failed to approve assignment");
@@ -226,7 +226,7 @@ export default function DefineZonesAssignment({
       <ConfirmDialog
         open={showSubmitDialog}
         title="Submit for Approval"
-        message="Submit this zone definition to your data officer for review?"
+        message="Submit this zone block definition to your data officer for review?"
         confirmLabel="Submit to Officer"
         loading={submitting}
         loadingLabel="Submitting..."
@@ -239,8 +239,8 @@ export default function DefineZonesAssignment({
       <ConfirmDialog
         open={showApproveDialog}
         title="Approve Assignment"
-        message="Approve this assignment and create all draft zones in the registry?"
-        confirmLabel="Approve & Publish Zones"
+        message="Approve this assignment and create all draft zone blocks in the registry?"
+        confirmLabel="Approve & Publish Zone Blocks"
         loading={reviewing}
         loadingLabel="Approving..."
         onConfirm={confirmApprove}
@@ -261,7 +261,7 @@ export default function DefineZonesAssignment({
         </div>
       )}
 
-      {canEdit && <AssignmentWorkSteps type="DEFINE_ZONES" />}
+      {canEdit && <AssignmentWorkSteps type="DEFINE_ZONE_BLOCKS" />}
 
       <div className="flex flex-wrap gap-2">
         {canEdit && (
@@ -277,7 +277,7 @@ export default function DefineZonesAssignment({
             <button
               type="button"
               onClick={() => setShowSubmitDialog(true)}
-              disabled={saving || submitting || draftZones.length === 0}
+              disabled={saving || submitting || draftZoneBlocks.length === 0}
               className="h-[39px] px-5 rounded-lg bg-blue-deep text-[12px] font-semibold text-white shadow-cta hover:bg-[#0F2B4D] disabled:opacity-50 cursor-pointer"
             >
               {submitting ? "Submitting..." : "Submit for Approval"}
@@ -299,7 +299,7 @@ export default function DefineZonesAssignment({
               disabled={reviewing}
               className="h-[39px] px-5 rounded-lg bg-blue-deep text-[12px] font-semibold text-white shadow-cta hover:bg-[#0F2B4D] disabled:opacity-50 cursor-pointer"
             >
-              {reviewing ? "Approving..." : "Approve & Publish Zones"}
+              {reviewing ? "Approving..." : "Approve & Publish Zone Blocks"}
             </button>
           </>
         )}
@@ -338,24 +338,24 @@ export default function DefineZonesAssignment({
           </div>
 
           <div className="rounded-xl border border-line bg-white p-5 shadow-card-sm">
-            <h2 className="text-[15px] font-semibold text-ink">Existing Zones</h2>
+            <h2 className="text-[15px] font-semibold text-ink">Existing Zone Blocks</h2>
             <p className="mt-1 text-[12px] text-ink-soft">
-              Read-only reference for zones already in this neighborhood.
+              Read-only reference for zone blocks already in this zone.
             </p>
 
             <div className="mt-4 space-y-2">
-              {existingZones.length > 0 ? (
-                existingZones.map((zone) => (
+              {existingZoneBlocks.length > 0 ? (
+                existingZoneBlocks.map((zoneBlock) => (
                   <div
-                    key={zone.id}
+                    key={zoneBlock.id}
                     className="rounded-lg border border-line bg-bg px-3 py-2 text-[12px]"
                   >
-                    <p className="font-semibold text-ink">{zone.name}</p>
-                    <p className="text-ink-soft font-mono">{zone.code}</p>
+                    <p className="font-semibold text-ink">{zoneBlock.name}</p>
+                    <p className="text-ink-soft font-mono">{zoneBlock.code}</p>
                   </div>
                 ))
               ) : (
-                <p className="text-[12px] text-ink-soft">No zones published yet.</p>
+                <p className="text-[12px] text-ink-soft">No zone blocks published yet.</p>
               )}
             </div>
           </div>
@@ -363,17 +363,17 @@ export default function DefineZonesAssignment({
           <div className="rounded-xl border border-line bg-white p-5 shadow-card-sm">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <h2 className="text-[15px] font-semibold text-ink">Draft Zones</h2>
+                <h2 className="text-[15px] font-semibold text-ink">Draft Zone Blocks</h2>
                 <p className="mt-1 text-[12px] text-ink-soft">
                   {canEdit
-                    ? "Add zones and draw each boundary on the map."
-                    : "Submitted zone definitions awaiting review."}
+                    ? "Add zone blocks and draw each boundary on the map."
+                    : "Submitted zone block definitions awaiting review."}
                 </p>
               </div>
               {canEdit && (
                 <button
                   type="button"
-                  onClick={handleAddZone}
+                  onClick={handleAddZoneBlock}
                   className="inline-flex items-center gap-1 rounded-lg border border-line px-3 py-1.5 text-[11px] font-semibold text-ink hover:bg-bg cursor-pointer"
                 >
                   <Plus className="h-3.5 w-3.5" />
@@ -383,10 +383,10 @@ export default function DefineZonesAssignment({
             </div>
 
             <div className="mt-4 space-y-2">
-              {draftZones.length > 0 ? (
-                draftZones.map((zone, index) => (
+              {draftZoneBlocks.length > 0 ? (
+                draftZoneBlocks.map((zoneBlock, index) => (
                   <button
-                    key={zone.clientId}
+                    key={zoneBlock.clientId}
                     type="button"
                     onClick={() => setSelectedIndex(index)}
                     className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left transition-colors cursor-pointer ${
@@ -397,10 +397,10 @@ export default function DefineZonesAssignment({
                   >
                     <div>
                       <p className="text-[12px] font-semibold text-ink">
-                        {zone.name || `Zone ${index + 1}`}
+                        {zoneBlock.name || `Zone Block ${index + 1}`}
                       </p>
                       <p className="text-[11px] text-ink-soft font-mono">
-                        {zone.code || "No code yet"}
+                        {zoneBlock.code || "No code yet"}
                       </p>
                     </div>
                     {canEdit && (
@@ -409,13 +409,13 @@ export default function DefineZonesAssignment({
                         tabIndex={0}
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleRemoveZone(index);
+                          handleRemoveZoneBlock(index);
                         }}
                         onKeyDown={(e) => {
                           if (e.key === "Enter" || e.key === " ") {
                             e.preventDefault();
                             e.stopPropagation();
-                            handleRemoveZone(index);
+                            handleRemoveZoneBlock(index);
                           }
                         }}
                         className="text-ink-soft hover:text-red-600"
@@ -427,7 +427,7 @@ export default function DefineZonesAssignment({
                 ))
               ) : (
                 <p className="text-[12px] text-ink-soft">
-                  No draft zones yet. Add a zone to begin.
+                  No draft zone blocks yet. Add a zone block to begin.
                 </p>
               )}
             </div>
@@ -435,34 +435,34 @@ export default function DefineZonesAssignment({
         </div>
 
         <div className="space-y-6 xl:col-span-2">
-          {selectedZone ? (
+          {selectedZoneBlock ? (
             <>
               <div className="rounded-xl border border-line bg-white p-5 shadow-card-sm space-y-4">
-                <h2 className="text-[15px] font-semibold text-ink">Zone Details</h2>
+                <h2 className="text-[15px] font-semibold text-ink">Zone Block Details</h2>
 
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div>
                     <label className="block text-[12px] font-semibold text-ink mb-1.5">
-                      Zone Name
+                      Zone Block Name
                     </label>
                     <input
                       type="text"
-                      value={selectedZone.name}
+                      value={selectedZoneBlock.name}
                       disabled={!canEdit}
-                      onChange={(e) => updateSelectedZone({ name: e.target.value })}
+                      onChange={(e) => updateSelectedZoneBlock({ name: e.target.value })}
                       className="w-full h-[40px] rounded-lg border border-line bg-white px-3 text-[13px] text-ink outline-none focus:border-blue focus:ring-2 focus:ring-blue/10 disabled:bg-bg"
                     />
                   </div>
                   <div>
                     <label className="block text-[12px] font-semibold text-ink mb-1.5">
-                      Zone Code
+                      Zone Block Code
                     </label>
                     <input
                       type="text"
-                      value={selectedZone.code}
+                      value={selectedZoneBlock.code}
                       disabled={!canEdit}
                       onChange={(e) =>
-                        updateSelectedZone({ code: e.target.value.toUpperCase() })
+                        updateSelectedZoneBlock({ code: e.target.value.toUpperCase() })
                       }
                       className="w-full h-[40px] rounded-lg border border-line bg-white px-3 text-[13px] text-ink font-mono outline-none focus:border-blue focus:ring-2 focus:ring-blue/10 disabled:bg-bg"
                     />
@@ -472,19 +472,19 @@ export default function DefineZonesAssignment({
 
               <div className="rounded-xl border border-line bg-white p-5 shadow-card-sm">
                 <ZoneMapEditor
-                  geometry={selectedZone.geometry}
-                  onChange={(geometry) => updateSelectedZone({ geometry })}
+                  geometry={selectedZoneBlock.geometry}
+                  onChange={(geometry) => updateSelectedZoneBlock({ geometry })}
                   editable={canEdit}
-                  boundaryGeometry={neighborhoodGeometry}
+                  boundaryGeometry={zoneGeometry}
                   height="520px"
                 />
               </div>
             </>
           ) : (
             <div className="rounded-xl border border-dashed border-line bg-white p-10 text-center shadow-card-sm">
-              <p className="text-[13px] font-medium text-ink">Select or add a draft zone</p>
+              <p className="text-[13px] font-medium text-ink">Select or add a draft zone block</p>
               <p className="mt-1 text-[12px] text-ink-soft">
-                Each zone needs a name, code, and boundary polygon.
+                Each zone block needs a name, code, and boundary polygon.
               </p>
             </div>
           )}

@@ -9,8 +9,8 @@ const addressSelect = {
   id: true,
   addressCode: true,
   districtId: true,
-  neighborhoodId: true,
   zoneId: true,
+  zoneBlockId: true,
   houseNumber: true,
   streetName: true,
   description: true,
@@ -21,10 +21,10 @@ const addressSelect = {
   district: {
     select: { id: true, name: true, code: true },
   },
-  neighborhood: {
+  zone: {
     select: { id: true, name: true, code: true },
   },
-  zone: {
+  zoneBlock: {
     select: { id: true, name: true, code: true },
   },
 };
@@ -38,36 +38,36 @@ function serializeAddress(address) {
   };
 }
 
-async function resolveHierarchy({ districtId, neighborhoodId, zoneId }) {
-  if (!districtId || !neighborhoodId || !zoneId) {
-    throw new Error("District, neighborhood, and zone are required");
+async function resolveHierarchy({ districtId, zoneId, zoneBlockId }) {
+  if (!districtId || !zoneId || !zoneBlockId) {
+    throw new Error("District, zone, and zone block are required");
   }
 
-  const zone = await prisma.zone.findUnique({
-    where: { id: zoneId },
+  const zoneBlock = await prisma.zoneBlock.findUnique({
+    where: { id: zoneBlockId },
     include: {
-      neighborhood: {
+      zone: {
         include: { district: true },
       },
     },
   });
 
-  if (!zone) {
-    throw new Error("Zone not found");
+  if (!zoneBlock) {
+    throw new Error("Zone block not found");
   }
 
-  if (zone.neighborhoodId !== neighborhoodId) {
-    throw new Error("Zone does not belong to the selected neighborhood");
+  if (zoneBlock.zoneId !== zoneId) {
+    throw new Error("Zone block does not belong to the selected zone");
   }
 
-  if (zone.neighborhood.districtId !== districtId) {
-    throw new Error("District does not match the selected zone hierarchy");
+  if (zoneBlock.zone.districtId !== districtId) {
+    throw new Error("District does not match the selected zone block hierarchy");
   }
 
   return {
-    district: zone.neighborhood.district,
-    neighborhood: zone.neighborhood,
-    zone,
+    district: zoneBlock.zone.district,
+    zone: zoneBlock.zone,
+    zoneBlock,
   };
 }
 
@@ -77,9 +77,9 @@ async function getHouseNumberPad() {
   return Number.isInteger(numeric) && numeric > 0 ? numeric : 4;
 }
 
-async function getNextHouseNumber(zoneId, client = prisma) {
+async function getNextHouseNumber(zoneBlockId, client = prisma) {
   const result = await client.address.aggregate({
-    where: { zoneId },
+    where: { zoneBlockId },
     _max: { houseNumber: true },
   });
 
@@ -87,7 +87,7 @@ async function getNextHouseNumber(zoneId, client = prisma) {
   const nextHouse = maxHouse + 1n;
 
   if (nextHouse > BigInt(MAX_HOUSE_NUMBER)) {
-    throw new Error(`Zone has reached the maximum house number (${MAX_HOUSE_NUMBER})`);
+    throw new Error(`Zone block has reached the maximum house number (${MAX_HOUSE_NUMBER})`);
   }
 
   return nextHouse;
@@ -96,8 +96,8 @@ async function getNextHouseNumber(zoneId, client = prisma) {
 async function createAddressRecord(
   {
     districtId,
-    neighborhoodId,
     zoneId,
+    zoneBlockId,
     streetName,
     description,
     latitude,
@@ -113,8 +113,8 @@ async function createAddressRecord(
       id: randomUUID(),
       addressCode,
       districtId,
-      neighborhoodId,
       zoneId,
+      zoneBlockId,
       houseNumber,
       streetName: streetName.trim(),
       description: description?.trim() || "",
@@ -128,27 +128,27 @@ async function createAddressRecord(
 }
 
 export const AddressService = {
-  previewNextCode: async (zoneId) => {
-    const zone = await prisma.zone.findUnique({
-      where: { id: zoneId },
+  previewNextCode: async (zoneBlockId) => {
+    const zoneBlock = await prisma.zoneBlock.findUnique({
+      where: { id: zoneBlockId },
       include: {
-        neighborhood: {
+        zone: {
           include: { district: true },
         },
       },
     });
 
-    if (!zone) {
-      throw new Error("Zone not found");
+    if (!zoneBlock) {
+      throw new Error("Zone block not found");
     }
 
-    const nextHouseNumber = await getNextHouseNumber(zoneId);
+    const nextHouseNumber = await getNextHouseNumber(zoneBlockId);
     const pad = await getHouseNumberPad();
     const addressCode = buildDac(
       {
-        districtCode: zone.neighborhood.district.code,
-        neighborhoodCode: zone.neighborhood.code,
-        zoneCode: zone.code,
+        districtCode: zoneBlock.zone.district.code,
+        zoneCode: zoneBlock.zone.code,
+        zoneBlockCode: zoneBlock.code,
         houseNumber: nextHouseNumber.toString(),
       },
       pad
@@ -158,27 +158,27 @@ export const AddressService = {
       addressCode,
       houseNumber: nextHouseNumber.toString(),
       district: {
-        id: zone.neighborhood.district.id,
-        name: zone.neighborhood.district.name,
-        code: zone.neighborhood.district.code,
-      },
-      neighborhood: {
-        id: zone.neighborhood.id,
-        name: zone.neighborhood.name,
-        code: zone.neighborhood.code,
+        id: zoneBlock.zone.district.id,
+        name: zoneBlock.zone.district.name,
+        code: zoneBlock.zone.district.code,
       },
       zone: {
-        id: zone.id,
-        name: zone.name,
-        code: zone.code,
+        id: zoneBlock.zone.id,
+        name: zoneBlock.zone.name,
+        code: zoneBlock.zone.code,
+      },
+      zoneBlock: {
+        id: zoneBlock.id,
+        name: zoneBlock.name,
+        code: zoneBlock.code,
       },
     };
   },
 
   createAddress: async ({
     districtId,
-    neighborhoodId,
     zoneId,
+    zoneBlockId,
     streetName,
     description,
     location,
@@ -192,10 +192,10 @@ export const AddressService = {
 
     validateStatus(status);
 
-    const { district, neighborhood, zone } = await resolveHierarchy({
+    const { district, zone, zoneBlock } = await resolveHierarchy({
       districtId,
-      neighborhoodId,
       zoneId,
+      zoneBlockId,
     });
 
     const normalizedLocation =
@@ -203,13 +203,13 @@ export const AddressService = {
         ? formatLocation(latitude, longitude)
         : formatLocation(...Object.values(parseLocation(location)));
 
-    const houseNumber = await getNextHouseNumber(zoneId);
+    const houseNumber = await getNextHouseNumber(zoneBlockId);
     const pad = await getHouseNumberPad();
     const addressCode = buildDac(
       {
         districtCode: district.code,
-        neighborhoodCode: neighborhood.code,
         zoneCode: zone.code,
+        zoneBlockCode: zoneBlock.code,
         houseNumber: houseNumber.toString(),
       },
       pad
@@ -217,8 +217,8 @@ export const AddressService = {
 
     return createAddressRecord({
       districtId,
-      neighborhoodId,
       zoneId,
+      zoneBlockId,
       streetName,
       description,
       latitude: latitude ?? parseLocation(normalizedLocation).latitude,
@@ -230,7 +230,7 @@ export const AddressService = {
   },
 
   createAddressFromDraft: async ({
-    zoneId,
+    zoneBlockId,
     streetName,
     description,
     latitude,
@@ -245,35 +245,35 @@ export const AddressService = {
       throw new Error("GPS coordinates are required");
     }
 
-    const zone = await prisma.zone.findUnique({
-      where: { id: zoneId },
+    const zoneBlock = await prisma.zoneBlock.findUnique({
+      where: { id: zoneBlockId },
       include: {
-        neighborhood: {
+        zone: {
           include: { district: true },
         },
       },
     });
 
-    if (!zone) {
-      throw new Error("Zone not found");
+    if (!zoneBlock) {
+      throw new Error("Zone block not found");
     }
 
-    const houseNumber = await getNextHouseNumber(zoneId);
+    const houseNumber = await getNextHouseNumber(zoneBlockId);
     const pad = await getHouseNumberPad();
     const addressCode = buildDac(
       {
-        districtCode: zone.neighborhood.district.code,
-        neighborhoodCode: zone.neighborhood.code,
-        zoneCode: zone.code,
+        districtCode: zoneBlock.zone.district.code,
+        zoneCode: zoneBlock.zone.code,
+        zoneBlockCode: zoneBlock.code,
         houseNumber: houseNumber.toString(),
       },
       pad
     );
 
     return createAddressRecord({
-      districtId: zone.neighborhood.districtId,
-      neighborhoodId: zone.neighborhoodId,
-      zoneId,
+      districtId: zoneBlock.zone.districtId,
+      zoneId: zoneBlock.zoneId,
+      zoneBlockId,
       streetName,
       description,
       latitude,
@@ -284,25 +284,25 @@ export const AddressService = {
     });
   },
 
-  createAddressesFromDraftBatch: async (zoneId, addresses) => {
+  createAddressesFromDraftBatch: async (zoneBlockId, addresses) => {
     return prisma.$transaction(async (tx) => {
       const created = [];
       const pad = await getHouseNumberPad();
 
-      const zone = await tx.zone.findUnique({
-        where: { id: zoneId },
+      const zoneBlock = await tx.zoneBlock.findUnique({
+        where: { id: zoneBlockId },
         include: {
-          neighborhood: {
+          zone: {
             include: { district: true },
           },
         },
       });
 
-      if (!zone) {
-        throw new Error("Zone not found");
+      if (!zoneBlock) {
+        throw new Error("Zone block not found");
       }
 
-      let nextHouse = await getNextHouseNumber(zoneId, tx);
+      let nextHouse = await getNextHouseNumber(zoneBlockId, tx);
 
       for (const address of addresses) {
         if (!address.streetName?.trim()) {
@@ -315,9 +315,9 @@ export const AddressService = {
 
         const addressCode = buildDac(
           {
-            districtCode: zone.neighborhood.district.code,
-            neighborhoodCode: zone.neighborhood.code,
-            zoneCode: zone.code,
+            districtCode: zoneBlock.zone.district.code,
+            zoneCode: zoneBlock.zone.code,
+            zoneBlockCode: zoneBlock.code,
             houseNumber: nextHouse.toString(),
           },
           pad
@@ -325,9 +325,9 @@ export const AddressService = {
 
         const createdAddress = await createAddressRecord(
           {
-            districtId: zone.neighborhood.districtId,
-            neighborhoodId: zone.neighborhoodId,
-            zoneId,
+            districtId: zoneBlock.zone.districtId,
+            zoneId: zoneBlock.zoneId,
+            zoneBlockId,
             streetName: address.streetName,
             description: address.description,
             latitude: address.latitude,
@@ -343,7 +343,7 @@ export const AddressService = {
         nextHouse += 1n;
 
         if (nextHouse > BigInt(MAX_HOUSE_NUMBER)) {
-          throw new Error(`Zone has reached the maximum house number (${MAX_HOUSE_NUMBER})`);
+          throw new Error(`Zone block has reached the maximum house number (${MAX_HOUSE_NUMBER})`);
         }
       }
 
@@ -351,12 +351,12 @@ export const AddressService = {
     });
   },
 
-  getAddresses: async ({ districtId, neighborhoodId, zoneId, search } = {}) => {
+  getAddresses: async ({ districtId, zoneId, zoneBlockId, search } = {}) => {
     const where = {};
 
     if (districtId) where.districtId = districtId;
-    if (neighborhoodId) where.neighborhoodId = neighborhoodId;
     if (zoneId) where.zoneId = zoneId;
+    if (zoneBlockId) where.zoneBlockId = zoneBlockId;
 
     if (search?.trim()) {
       const term = search.trim();
@@ -365,8 +365,8 @@ export const AddressService = {
         { streetName: { contains: term, mode: "insensitive" } },
         { description: { contains: term, mode: "insensitive" } },
         { district: { name: { contains: term, mode: "insensitive" } } },
-        { neighborhood: { name: { contains: term, mode: "insensitive" } } },
         { zone: { name: { contains: term, mode: "insensitive" } } },
+        { zoneBlock: { name: { contains: term, mode: "insensitive" } } },
       ];
     }
 
@@ -409,8 +409,8 @@ export const AddressService = {
     id,
     {
       districtId,
-      neighborhoodId,
       zoneId,
+      zoneBlockId,
       streetName,
       description,
       location,
@@ -428,26 +428,26 @@ export const AddressService = {
     validateStatus(status);
 
     const nextDistrictId = districtId ?? existing.districtId;
-    const nextNeighborhoodId = neighborhoodId ?? existing.neighborhoodId;
     const nextZoneId = zoneId ?? existing.zoneId;
+    const nextZoneBlockId = zoneBlockId ?? existing.zoneBlockId;
 
-    const { district, neighborhood, zone } = await resolveHierarchy({
+    const { district, zone, zoneBlock } = await resolveHierarchy({
       districtId: nextDistrictId,
-      neighborhoodId: nextNeighborhoodId,
       zoneId: nextZoneId,
+      zoneBlockId: nextZoneBlockId,
     });
 
     let houseNumber = existing.houseNumber;
     let addressCode = existing.addressCode;
 
-    if (nextZoneId !== existing.zoneId) {
-      houseNumber = await getNextHouseNumber(nextZoneId);
+    if (nextZoneBlockId !== existing.zoneBlockId) {
+      houseNumber = await getNextHouseNumber(nextZoneBlockId);
       const pad = await getHouseNumberPad();
       addressCode = buildDac(
         {
           districtCode: district.code,
-          neighborhoodCode: neighborhood.code,
           zoneCode: zone.code,
+          zoneBlockCode: zoneBlock.code,
           houseNumber: houseNumber.toString(),
         },
         pad
@@ -456,8 +456,8 @@ export const AddressService = {
 
     const data = {
       districtId: nextDistrictId,
-      neighborhoodId: nextNeighborhoodId,
       zoneId: nextZoneId,
+      zoneBlockId: nextZoneBlockId,
       houseNumber,
       addressCode,
     };

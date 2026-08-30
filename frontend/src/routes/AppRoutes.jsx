@@ -14,7 +14,7 @@ import OfficerReviewQueue from "@/pages/officer/OfficerReviewQueue";
 import OfficerCollectors from "@/pages/officer/OfficerCollectors";
 import PlaceholderPage from "@/pages/admin/PlaceholderPage";
 
-// Region, District, Zone & Neighborhood pages
+// Region, District, Zone & Zone Block pages
 import Regions from "@/pages/regions/Regions";
 import AddRegion from "@/pages/regions/AddRegion";
 import EditRegion from "@/pages/regions/EditRegion";
@@ -24,15 +24,14 @@ import EditDistrict from "@/pages/districts/EditDistrict";
 import Zones from "@/pages/zones/Zones";
 import AddZone from "@/pages/zones/AddZone";
 import EditZone from "@/pages/zones/EditZone";
-import ViewZone from "@/pages/zones/ViewZone";
+import ZoneBlocks from "@/pages/zone-blocks/ZoneBlocks";
+import AddZoneBlock from "@/pages/zone-blocks/AddZoneBlock";
+import ViewZoneBlock from "@/pages/zone-blocks/ViewZoneBlock";
+import EditZoneBlock from "@/pages/zone-blocks/EditZoneBlock";
 import Addresses from "@/pages/addresses/Addresses";
 import AddAddress from "@/pages/addresses/AddAddress";
 import EditAddress from "@/pages/addresses/EditAddress";
 import ViewAddress from "@/pages/addresses/ViewAddress";
-import Neighborhoods from "@/pages/neighborhoods/Neighborhoods";
-import AddNeighborhood from "@/pages/neighborhoods/AddNeighborhood";
-import EditNeighborhood from "@/pages/neighborhoods/EditNeighborhood";
-
 import DataOfficers from "@/pages/data-officers/DataOfficers";
 import AddDataOfficer from "@/pages/data-officers/AddDataOfficer";
 import EditDataOfficer from "@/pages/data-officers/EditDataOfficer";
@@ -110,17 +109,16 @@ export default function AppRoutes() {
         <Route path="districts/edit/:id" element={<EditDistrict />} />
         <Route path="districts/:id" element={<EditDistrict />} />
 
-        {/* Neighborhood routes (Full CRUD) */}
-        <Route path="neighborhoods" element={<Neighborhoods />} />
-        <Route path="neighborhoods/add" element={<AddNeighborhood />} />
-        <Route path="neighborhoods/edit/:id" element={<EditNeighborhood />} />
-        <Route path="neighborhoods/:id" element={<EditNeighborhood />} />
-
         {/* Zone routes */}
         <Route path="zones" element={<Zones />} />
         <Route path="zones/add" element={<AddZone />} />
-        <Route path="zones/view/:id" element={<ViewZone />} />
         <Route path="zones/edit/:id" element={<EditZone />} />
+
+        {/* Zone block routes */}
+        <Route path="zone-blocks" element={<ZoneBlocks />} />
+        <Route path="zone-blocks/add" element={<AddZoneBlock />} />
+        <Route path="zone-blocks/view/:id" element={<ViewZoneBlock />} />
+        <Route path="zone-blocks/edit/:id" element={<EditZoneBlock />} />
 
         {/* Address routes */}
         <Route path="addresses" element={<Addresses />} />

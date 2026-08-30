@@ -6,38 +6,30 @@ import { validateStatus } from "../utils/validation.utils.js";
 
 const zoneFromSql = Prisma.sql`
   FROM zones z
-  INNER JOIN neighborhoods n ON n.id = z.neighborhood_id
-  INNER JOIN districts d ON d.id = n.district_id
+  INNER JOIN districts d ON d.id = z.district_id
 `;
 
 async function fetchZoneById(id) {
-  if (!id || typeof id !== "string" || !id.trim()) {
-    throw new Error("Zone ID is required");
-  }
-
-  const cleanId = id.trim();
   const rows = await prisma.$queryRaw`
     SELECT
       z.id,
-      z.neighborhood_id AS "neighborhoodId",
+      z.district_id AS "districtId",
       z.name,
       z.code,
       z.status,
       z.created_at AS "createdAt",
       z.updated_at AS "updatedAt",
-      ST_AsGeoJSON(z.geometry)::json AS geometry,
+      CASE
+        WHEN z.geometry IS NULL THEN NULL
+        ELSE ST_AsGeoJSON(z.geometry)::json
+      END AS geometry,
       json_build_object(
-        'id', n.id,
-        'name', n.name,
-        'code', n.code,
-        'district', json_build_object(
-          'id', d.id,
-          'name', d.name,
-          'code', d.code
-        )
-      ) AS neighborhood
+        'id', d.id,
+        'name', d.name,
+        'code', d.code
+      ) AS district
     ${zoneFromSql}
-    WHERE z.id = ${cleanId}
+    WHERE z.id = ${id}
     LIMIT 1
   `;
 
@@ -48,40 +40,39 @@ async function fetchZoneById(id) {
   return rows[0];
 }
 
-async function assertNeighborhoodExists(neighborhoodId) {
-  if (!neighborhoodId || typeof neighborhoodId !== "string" || !neighborhoodId.trim()) {
-    throw new Error("Neighborhood ID is required");
-  }
-
-  const neighborhood = await prisma.neighborhood.findUnique({
-    where: { id: neighborhoodId.trim() },
+async function assertDistrictExists(districtId) {
+  const district = await prisma.district.findUnique({
+    where: { id: districtId },
     select: { id: true },
   });
 
-  if (!neighborhood) {
-    throw new Error("Neighborhood not found");
+  if (!district) {
+    throw new Error("District not found");
   }
 }
 
 export const ZoneService = {
-  createZone: async ({ neighborhoodId, name, code, status, geometry }) => {
-    if (!neighborhoodId || !name?.trim() || !code?.trim()) {
-      throw new Error("Neighborhood, name, and code are required");
+  createZone: async ({ districtId, name, code, status, geometry }) => {
+    if (!districtId || !name?.trim() || !code?.trim()) {
+      throw new Error("District, name, and code are required");
     }
 
+    await assertDistrictExists(districtId);
     validateStatus(status);
-    validatePolygonGeometry(geometry);
-    await assertNeighborhoodExists(neighborhoodId);
+
+    if (geometry !== undefined && geometry !== null) {
+      validatePolygonGeometry(geometry);
+    }
 
     const id = randomUUID();
     const normalizedCode = code.trim().toUpperCase();
     const normalizedStatus = status || "ACTIVE";
-    const geoJson = JSON.stringify(geometry);
+    const geoJson = geometry ? JSON.stringify(geometry) : null;
 
     await prisma.$executeRaw`
       INSERT INTO zones (
         id,
-        neighborhood_id,
+        district_id,
         name,
         code,
         status,
@@ -91,11 +82,11 @@ export const ZoneService = {
       )
       VALUES (
         ${id},
-        ${neighborhoodId},
+        ${districtId},
         ${name.trim()},
         ${normalizedCode},
         ${normalizedStatus}::"Status",
-        ST_SetSRID(ST_GeomFromGeoJSON(${geoJson}), 4326),
+        ${geoJson ? Prisma.sql`ST_SetSRID(ST_GeomFromGeoJSON(${geoJson}), 4326)` : Prisma.sql`NULL`},
         CURRENT_TIMESTAMP,
         CURRENT_TIMESTAMP
       )
@@ -104,47 +95,51 @@ export const ZoneService = {
     return fetchZoneById(id);
   },
 
-  getZones: async (neighborhoodId) => {
-    const whereClause = neighborhoodId
-      ? Prisma.sql`WHERE z.neighborhood_id = ${neighborhoodId}`
+  getZones: async (districtId) => {
+    const whereClause = districtId
+      ? Prisma.sql`WHERE z.district_id = ${districtId}`
       : Prisma.empty;
 
     return prisma.$queryRaw`
       SELECT
         z.id,
-        z.neighborhood_id AS "neighborhoodId",
+        z.district_id AS "districtId",
         z.name,
         z.code,
         z.status,
         z.created_at AS "createdAt",
         z.updated_at AS "updatedAt",
-        ST_AsGeoJSON(z.geometry)::json AS geometry,
+        CASE
+          WHEN z.geometry IS NULL THEN NULL
+          ELSE ST_AsGeoJSON(z.geometry)::json
+        END AS geometry,
         json_build_object(
-          'id', n.id,
-          'name', n.name,
-          'code', n.code,
-          'district', json_build_object(
-            'id', d.id,
-            'name', d.name,
-            'code', d.code
-          )
-        ) AS neighborhood
+          'id', d.id,
+          'name', d.name,
+          'code', d.code
+        ) AS district
       ${zoneFromSql}
       ${whereClause}
       ORDER BY z.name ASC
     `;
   },
 
-  getZoneById: async (id) => fetchZoneById(id),
+  getZoneById: async (id) => {
+    const zone = await fetchZoneById(id);
+    const counts = await prisma.zone.findUnique({
+      where: { id },
+      select: { _count: { select: { zoneBlocks: true, addresses: true } } },
+    });
 
-  updateZone: async (id, { neighborhoodId, name, code, status, geometry }) => {
-    if (!id || typeof id !== "string" || !id.trim()) {
-      throw new Error("Zone ID is required");
-    }
+    return {
+      ...zone,
+      _count: counts?._count,
+    };
+  },
 
-    const cleanId = id.trim();
+  updateZone: async (id, { districtId, name, code, status, geometry }) => {
     const existing = await prisma.zone.findUnique({
-      where: { id: cleanId },
+      where: { id },
       select: { id: true },
     });
 
@@ -152,20 +147,20 @@ export const ZoneService = {
       throw new Error("Zone not found");
     }
 
-    if (neighborhoodId) {
-      await assertNeighborhoodExists(neighborhoodId);
+    if (districtId) {
+      await assertDistrictExists(districtId);
     }
 
     validateStatus(status);
 
-    if (geometry !== undefined) {
+    if (geometry !== undefined && geometry !== null) {
       validatePolygonGeometry(geometry);
     }
 
     const updates = [];
 
-    if (neighborhoodId !== undefined) {
-      updates.push(Prisma.sql`neighborhood_id = ${neighborhoodId}`);
+    if (districtId !== undefined) {
+      updates.push(Prisma.sql`district_id = ${districtId}`);
     }
 
     if (name !== undefined) {
@@ -181,13 +176,17 @@ export const ZoneService = {
     }
 
     if (geometry !== undefined) {
-      updates.push(
-        Prisma.sql`geometry = ST_SetSRID(ST_GeomFromGeoJSON(${JSON.stringify(geometry)}), 4326)`
-      );
+      if (geometry === null) {
+        updates.push(Prisma.sql`geometry = NULL`);
+      } else {
+        updates.push(
+          Prisma.sql`geometry = ST_SetSRID(ST_GeomFromGeoJSON(${JSON.stringify(geometry)}), 4326)`
+        );
+      }
     }
 
     if (!updates.length) {
-      return fetchZoneById(cleanId);
+      return fetchZoneById(id);
     }
 
     updates.push(Prisma.sql`updated_at = CURRENT_TIMESTAMP`);
@@ -195,23 +194,17 @@ export const ZoneService = {
     await prisma.$executeRaw`
       UPDATE zones
       SET ${Prisma.join(updates, ", ")}
-      WHERE id = ${cleanId}
+      WHERE id = ${id}
     `;
 
-    return fetchZoneById(cleanId);
+    return fetchZoneById(id);
   },
 
   deleteZone: async (id) => {
-    if (!id || typeof id !== "string" || !id.trim()) {
-      throw new Error("Zone ID is required");
-    }
-
-    const cleanId = id.trim();
     const zone = await prisma.zone.findUnique({
-      where: { id: cleanId },
-      select: {
-        id: true,
-        _count: { select: { addresses: true } },
+      where: { id },
+      include: {
+        _count: { select: { zoneBlocks: true, addresses: true } },
       },
     });
 
@@ -219,14 +212,14 @@ export const ZoneService = {
       throw new Error("Zone not found");
     }
 
-    if (zone._count.addresses > 0) {
+    if (zone._count.zoneBlocks > 0 || zone._count.addresses > 0) {
       throw new Error(
-        "Cannot delete zone with existing addresses. Remove them first."
+        "Cannot delete zone with existing zone blocks or addresses. Remove them first."
       );
     }
 
-    await prisma.zone.delete({ where: { id: cleanId } });
+    await prisma.zone.delete({ where: { id } });
 
-    return { id: cleanId };
+    return { id };
   },
 };

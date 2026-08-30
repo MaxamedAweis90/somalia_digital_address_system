@@ -4,8 +4,8 @@ export const getAddresses = (params) => api.get("/admin/addresses", { params });
 
 export const getAddressById = (id) => api.get(`/admin/addresses/${id}`);
 
-export const previewAddressCode = (zoneId) =>
-  api.get("/admin/addresses/preview", { params: { zoneId } });
+export const previewAddressCode = (zoneBlockId) =>
+  api.get("/admin/addresses/preview", { params: { zoneBlockId } });
 
 export const createAddress = (data) => api.post("/admin/addresses", data);
 

@@ -15,19 +15,6 @@ function formatCount(value) {
 }
 
 export default function Dashboard() {
-  return (
-    <div className="min-h-screen bg-bg font-sans px-4 sm:px-6 lg:px-5 pt-5 pb-10 space-y-6">
-      {/* Dashboard Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            Dashboard Overview
-          </h1>
-
-          <p className="mt-1 text-sm text-gray-500">
-            Real-time infrastructure metrics and addressing status.
-          </p>
-        </div>
   const navigate = useNavigate();
   const { user } = useAuth();
   const basePath = user?.role === ROLES.SYS_ADMIN ? "/admin" : "/officer";
@@ -58,8 +45,8 @@ export default function Dashboard() {
 
     return [
       { title: "Total Districts", value: formatCount(counts.districts) },
-      { title: "Total Neighborhoods", value: formatCount(counts.neighborhoods) },
       { title: "Total Zones", value: formatCount(counts.zones) },
+      { title: "Total Zone Blocks", value: formatCount(counts.zoneBlocks) },
       { title: "Total Addresses", value: formatCount(counts.addresses) },
     ];
   }, [summary]);
@@ -125,10 +112,10 @@ export default function Dashboard() {
                       District
                     </th>
                     <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
-                      Neighborhood
+                      Zone
                     </th>
                     <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
-                      Zone
+                      Zone Block
                     </th>
                     <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
                       Status
@@ -153,10 +140,10 @@ export default function Dashboard() {
                           {address.districtName || "—"}
                         </td>
                         <td className="px-5 py-4 text-[12px] text-ink">
-                          {address.neighborhoodName || "—"}
+                          {address.zoneName || "—"}
                         </td>
                         <td className="px-5 py-4 text-[12px] text-ink">
-                          {address.zoneName || "—"}
+                          {address.zoneBlockName || "—"}
                         </td>
                         <td className="px-5 py-4">
                           <StatusBadge status={address.status} />

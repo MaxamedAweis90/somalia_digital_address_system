@@ -7,19 +7,19 @@ const recentAddressSelect = {
   status: true,
   createdAt: true,
   district: { select: { name: true } },
-  neighborhood: { select: { name: true } },
   zone: { select: { name: true } },
+  zoneBlock: { select: { name: true } },
 };
 
 function serializeAddress(address) {
   return {
     ...address,
     districtName: address.district?.name,
-    neighborhoodName: address.neighborhood?.name,
     zoneName: address.zone?.name,
+    zoneBlockName: address.zoneBlock?.name,
     district: undefined,
-    neighborhood: undefined,
     zone: undefined,
+    zoneBlock: undefined,
   };
 }
 
@@ -32,21 +32,21 @@ function buildActivityFromAddress(address) {
   };
 }
 
-function buildActivityFromZone(zone) {
+function buildActivityFromZoneBlock(zoneBlock) {
   return {
-    type: "ZONE_CREATED",
-    title: "Zone created",
-    description: `${zone.name} (${zone.code}) was added to the registry.`,
-    timestamp: zone.createdAt,
+    type: "ZONE_BLOCK_CREATED",
+    title: "Zone block created",
+    description: `${zoneBlock.name} (${zoneBlock.code}) was added to the registry.`,
+    timestamp: zoneBlock.createdAt,
   };
 }
 
-function buildActivityFromNeighborhood(neighborhood) {
+function buildActivityFromZone(zone) {
   return {
-    type: "NEIGHBORHOOD_CREATED",
-    title: "Neighborhood added",
-    description: `${neighborhood.name} (${neighborhood.code}) was registered.`,
-    timestamp: neighborhood.createdAt,
+    type: "ZONE_CREATED",
+    title: "Zone added",
+    description: `${zone.name} (${zone.code}) was registered.`,
+    timestamp: zone.createdAt,
   };
 }
 
@@ -55,29 +55,29 @@ export const DashboardService = {
     const [
       regionCount,
       districtCount,
-      neighborhoodCount,
       zoneCount,
+      zoneBlockCount,
       addressCount,
       recentAddresses,
+      recentZoneBlocks,
       recentZones,
-      recentNeighborhoods,
     ] = await Promise.all([
       prisma.region.count(),
       prisma.district.count(),
-      prisma.neighborhood.count(),
       prisma.zone.count(),
+      prisma.zoneBlock.count(),
       prisma.address.count(),
       prisma.address.findMany({
         select: recentAddressSelect,
         orderBy: { createdAt: "desc" },
         take: 8,
       }),
-      prisma.zone.findMany({
+      prisma.zoneBlock.findMany({
         select: { id: true, name: true, code: true, createdAt: true },
         orderBy: { createdAt: "desc" },
         take: 5,
       }),
-      prisma.neighborhood.findMany({
+      prisma.zone.findMany({
         select: { id: true, name: true, code: true, createdAt: true },
         orderBy: { createdAt: "desc" },
         take: 5,
@@ -86,8 +86,8 @@ export const DashboardService = {
 
     const recentActivity = [
       ...recentAddresses.map(buildActivityFromAddress),
+      ...recentZoneBlocks.map(buildActivityFromZoneBlock),
       ...recentZones.map(buildActivityFromZone),
-      ...recentNeighborhoods.map(buildActivityFromNeighborhood),
     ]
       .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
       .slice(0, 8);
@@ -96,8 +96,8 @@ export const DashboardService = {
       counts: {
         regions: regionCount,
         districts: districtCount,
-        neighborhoods: neighborhoodCount,
         zones: zoneCount,
+        zoneBlocks: zoneBlockCount,
         addresses: addressCount,
       },
       recentAddresses: recentAddresses.map(serializeAddress),

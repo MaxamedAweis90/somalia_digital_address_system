@@ -38,13 +38,13 @@ function BoundaryLayer({ geometry, color = "#2563eb", fillOpacity = 0.12, dashAr
   return null;
 }
 
-function FitToLayers({ zoneGeometry, neighborhoodGeometry, addresses }) {
+function FitToLayers({ zoneBlockGeometry, zoneGeometry, addresses }) {
   const map = useMap();
 
   useEffect(() => {
     const group = L.featureGroup();
 
-    [neighborhoodGeometry, zoneGeometry].filter(Boolean).forEach((geometry) => {
+    [zoneGeometry, zoneBlockGeometry].filter(Boolean).forEach((geometry) => {
       L.geoJSON({ type: "Feature", geometry }).eachLayer((layer) => {
         group.addLayer(layer);
       });
@@ -59,7 +59,7 @@ function FitToLayers({ zoneGeometry, neighborhoodGeometry, addresses }) {
     if (group.getLayers().length > 0) {
       map.fitBounds(group.getBounds(), { padding: [24, 24] });
     }
-  }, [zoneGeometry, neighborhoodGeometry, addresses, map]);
+  }, [zoneBlockGeometry, zoneGeometry, addresses, map]);
 
   return null;
 }
@@ -110,8 +110,8 @@ function DraggableMarker({ address, editable, selected, onDrag }) {
 }
 
 export default function AddressDraftMap({
-  zoneGeometry,
-  neighborhoodGeometry = null,
+  zoneBlockGeometry,
+  zoneGeometry = null,
   addresses = [],
   selectedClientId = null,
   onPinChange,
@@ -134,15 +134,15 @@ export default function AddressDraftMap({
         >
           <TileLayer attribution={OSM_ATTRIBUTION} url={OSM_TILE_URL} />
           <BoundaryLayer
-            geometry={neighborhoodGeometry}
+            geometry={zoneGeometry}
             color="#64748b"
             fillOpacity={0.06}
             dashArray="6 4"
           />
-          <BoundaryLayer geometry={zoneGeometry} color="#2563eb" fillOpacity={0.14} />
+          <BoundaryLayer geometry={zoneBlockGeometry} color="#2563eb" fillOpacity={0.14} />
           <FitToLayers
+            zoneBlockGeometry={zoneBlockGeometry}
             zoneGeometry={zoneGeometry}
-            neighborhoodGeometry={neighborhoodGeometry}
             addresses={addresses}
           />
           {editable && (
@@ -166,12 +166,12 @@ export default function AddressDraftMap({
       <div className="flex flex-wrap items-center gap-4 text-[11px] text-ink-soft">
         <span className="inline-flex items-center gap-1.5">
           <span className="inline-block h-2 w-4 rounded-sm bg-blue-500/30 border border-blue-500" />
-          Zone boundary
+          Zone block boundary
         </span>
-        {neighborhoodGeometry && (
+        {zoneGeometry && (
           <span className="inline-flex items-center gap-1.5">
             <span className="inline-block h-2 w-4 border border-slate-500 border-dashed rounded-sm" />
-            Neighborhood boundary
+            Zone boundary
           </span>
         )}
         <span>
