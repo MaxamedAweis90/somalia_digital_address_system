@@ -1,135 +1,78 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { getDistricts, deleteDistrict } from "@/api/districtApi";
+import { Loader2 } from "lucide-react";
 
 const District = () => {
   const navigate = useNavigate();
 
+  const [districts, setDistricts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
 
-  // Temporary district data
-  const initialDistricts = [
-    {
-      id: 1,
-      name: "Hodan",
-      code: "HDN",
-      neighborhoods: 14,
-      status: "Active",
-      updated: "Today, 09:45 AM",
-    },
-    {
-      id: 2,
-      name: "Wadajir",
-      code: "WDJ",
-      neighborhoods: 12,
-      status: "Active",
-      updated: "Yesterday",
-    },
-    {
-      id: 3,
-      name: "Howlwadaag",
-      code: "HWD",
-      neighborhoods: 10,
-      status: "Active",
-      updated: "Aug 20, 2026",
-    },
-    {
-      id: 4,
-      name: "Yaqshiid",
-      code: "YQS",
-      neighborhoods: 15,
-      status: "Active",
-      updated: "Aug 18, 2026",
-    },
-    {
-      id: 5,
-      name: "Karaan",
-      code: "KRN",
-      neighborhoods: 11,
-      status: "Inactive",
-      updated: "Aug 15, 2026",
-    },
-    {
-      id: 6,
-      name: "Hamarweyne",
-      code: "HMW",
-      neighborhoods: 8,
-      status: "Active",
-      updated: "Aug 12, 2026",
-    },
-    {
-      id: 7,
-      name: "Shangaani",
-      code: "SHG",
-      neighborhoods: 6,
-      status: "Active",
-      updated: "Aug 10, 2026",
-    },
-    {
-      id: 8,
-      name: "Waaberi",
-      code: "WBR",
-      neighborhoods: 9,
-      status: "Inactive",
-      updated: "Aug 08, 2026",
-    },
-    {
-      id: 9,
-      name: "Abdiaziz",
-      code: "ABZ",
-      neighborhoods: 13,
-      status: "Active",
-      updated: "Aug 05, 2026",
-    },
-    {
-      id: 10,
-      name: "Boondheere",
-      code: "BND",
-      neighborhoods: 7,
-      status: "Active",
-      updated: "Aug 02, 2026",
-    },
-  ];
+  const fetchDistricts = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const res = await getDistricts();
+      setDistricts(res.data.data || []);
+    } catch (err) {
+      console.error("Failed to load districts:", err);
+      setError(err.response?.data?.message || "Failed to load districts from server");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const [districts, setDistricts] = useState(initialDistricts);
+  useEffect(() => {
+    fetchDistricts();
+  }, []);
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     const confirmDelete = window.confirm(
       "Are you sure you want to delete this district?"
     );
     if (!confirmDelete) return;
-    setDistricts((current) => current.filter((d) => d.id !== id));
+
+    try {
+      await deleteDistrict(id);
+      setDistricts((current) => current.filter((d) => d.id !== id));
+    } catch (err) {
+      alert(err.response?.data?.message || "Failed to delete district");
+    }
   };
 
   // Search and filter
   const filteredDistricts = useMemo(() => {
     return districts.filter((district) => {
+      const name = district.name || "";
+      const code = district.code || "";
       const matchesSearch =
-        district.name
-          .toLowerCase()
-          .includes(searchTerm.toLowerCase()) ||
-        district.code
-          .toLowerCase()
-          .includes(searchTerm.toLowerCase());
+        name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        code.toLowerCase().includes(searchTerm.toLowerCase());
 
+      const status = (district.status || "ACTIVE").toUpperCase();
       const matchesStatus =
         statusFilter === "All" ||
-        district.status === statusFilter;
+        (statusFilter === "Active" && status === "ACTIVE") ||
+        (statusFilter === "Inactive" && status === "INACTIVE");
 
       return matchesSearch && matchesStatus;
     });
-  }, [searchTerm, statusFilter]);
+  }, [districts, searchTerm, statusFilter]);
 
   return (
     <div className="min-h-screen bg-bg font-sans">
-      <div className="px-4 sm:px-6 lg:px-5 pt-5">
+      <div className="px-4 sm:px-6 lg:px-5 pt-5 pb-10">
         
         {/* =========================
             BREADCRUMB
         ========================= */}
         <div className="flex items-center gap-2 text-[11px] font-medium text-ink-soft mb-6">
           <span
-            onClick={() => navigate("/dashboard")}
+            onClick={() => navigate("../dashboard")}
             className="hover:text-blue cursor-pointer"
           >
             Dashboard
@@ -137,7 +80,7 @@ const District = () => {
 
           <span className="text-gray-400">›</span>
 
-          <span className="text-ink">
+          <span className="text-ink font-semibold">
             Districts
           </span>
         </div>
@@ -146,12 +89,10 @@ const District = () => {
             PAGE HEADER
         ========================= */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-          
           <div>
             <h1 className="font-display text-[25px] font-semibold tracking-tight text-ink">
               Districts
             </h1>
-
             <p className="mt-1 text-[13px] text-ink-soft">
               Manage and view all administrative districts.
             </p>
@@ -181,6 +122,19 @@ const District = () => {
           </button>
         </div>
 
+        {/* Error Notice */}
+        {error && (
+          <div className="mb-6 rounded-lg bg-red-50 p-4 border border-red-200 text-red-700 text-sm flex items-center justify-between">
+            <span>{error}</span>
+            <button
+              onClick={fetchDistricts}
+              className="text-xs font-semibold underline hover:text-red-900 ml-4 cursor-pointer"
+            >
+              Retry
+            </button>
+          </div>
+        )}
+
         {/* =========================
             MAIN CARD
         ========================= */}
@@ -191,12 +145,10 @@ const District = () => {
           ========================= */}
           <div className="px-5 py-4 border-b border-line">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-              
               <div>
                 <h2 className="text-[16px] font-semibold text-ink">
                   All Districts
                 </h2>
-
                 <p className="mt-1 text-[12px] text-ink-soft">
                   Total {districts.length} districts in the registry
                 </p>
@@ -204,32 +156,29 @@ const District = () => {
 
               {/* FILTERS */}
               <div className="flex flex-col sm:flex-row gap-3">
-                
                 {/* SEARCH */}
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-soft text-sm">
-                    ⌕
+                    🔍
                   </span>
-
                   <input
                     type="text"
+                    placeholder="Search district..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="Search districts..."
                     className="
+                      h-[38px]
                       w-full
                       sm:w-[220px]
-                      h-[38px]
                       rounded-lg
                       border
-                      border-[#B9C2CE]
+                      border-line
                       bg-white
                       pl-9
                       pr-3
                       text-[12px]
                       text-ink
                       outline-none
-                      transition-all
                       placeholder:text-gray-400
                       focus:border-blue
                       focus:ring-2
@@ -246,7 +195,7 @@ const District = () => {
                     h-[38px]
                     rounded-lg
                     border
-                    border-[#B9C2CE]
+                    border-line
                     bg-white
                     px-3
                     text-[12px]
@@ -263,7 +212,6 @@ const District = () => {
                   <option value="Active">Active</option>
                   <option value="Inactive">Inactive</option>
                 </select>
-
               </div>
             </div>
           </div>
@@ -273,29 +221,26 @@ const District = () => {
           ========================= */}
           <div className="overflow-x-auto">
             <table className="w-full border-collapse">
-              
               <thead>
                 <tr className="border-b border-line bg-[#FBFCFE]">
                   <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
                     District
                   </th>
-
+                  <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
+                    Region
+                  </th>
                   <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
                     District Code
                   </th>
-
                   <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
                     Neighborhoods
                   </th>
-
                   <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
                     Status
                   </th>
-
                   <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
                     Last Updated
                   </th>
-
                   <th className="px-5 py-4 text-right text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
                     Actions
                   </th>
@@ -303,136 +248,156 @@ const District = () => {
               </thead>
 
               <tbody>
-                {filteredDistricts.length > 0 ? (
-                  filteredDistricts.map((district) => (
-                    <tr
-                      key={district.id}
-                      className="border-b border-line last:border-b-0 hover:bg-[#FBFCFE] transition-colors"
-                    >
-                      {/* DISTRICT */}
-                      <td className="px-5 py-4">
-                        <p className="text-[13px] font-semibold text-ink">
-                          {district.name}
-                        </p>
-                      </td>
+                {loading ? (
+                  <tr>
+                    <td colSpan="7" className="px-5 py-12 text-center">
+                      <div className="flex flex-col items-center justify-center gap-2">
+                        <Loader2 className="h-6 w-6 animate-spin text-blue-deep" />
+                        <p className="text-[12px] text-ink-soft">Loading districts from server...</p>
+                      </div>
+                    </td>
+                  </tr>
+                ) : filteredDistricts.length > 0 ? (
+                  filteredDistricts.map((district) => {
+                    const isActive = (district.status || "ACTIVE").toUpperCase() === "ACTIVE";
+                    const neighborhoodCount = district._count?.neighborhoods ?? district.neighborhoods ?? 0;
+                    const formattedDate = district.updatedAt
+                      ? new Date(district.updatedAt).toLocaleDateString()
+                      : district.updated || "—";
 
-                      {/* CODE */}
-                      <td className="px-5 py-4">
-                        <span className="inline-flex items-center rounded-md bg-bg px-2.5 py-1 text-[11px] font-semibold text-blue-deep">
-                          {district.code}
-                        </span>
-                      </td>
+                    return (
+                      <tr
+                        key={district.id}
+                        className="border-b border-line last:border-b-0 hover:bg-[#FBFCFE] transition-colors"
+                      >
+                        {/* DISTRICT */}
+                        <td className="px-5 py-4">
+                          <p className="text-[13px] font-semibold text-ink">
+                            {district.name}
+                          </p>
+                        </td>
 
-                      {/* NEIGHBORHOODS */}
-                      <td className="px-5 py-4">
-                        <span className="text-[13px] text-ink">
-                          {district.neighborhoods}
-                        </span>
-                      </td>
+                        {/* REGION */}
+                        <td className="px-5 py-4">
+                          <span className="text-[12px] text-ink">
+                            {district.region?.name || "—"}
+                          </span>
+                        </td>
 
-                      {/* STATUS */}
-                      <td className="px-5 py-4">
-                        <span
-                          className={`
-                            inline-flex
-                            items-center
-                            rounded-full
-                            px-3
-                            py-1
-                            text-[10px]
-                            font-semibold
-                            ${
-                              district.status === "Active"
-                                ? "bg-green-50 text-green-600 border border-green-100"
-                                : "bg-gray-100 text-gray-500 border border-gray-200"
-                            }
-                          `}
-                        >
+                        {/* CODE */}
+                        <td className="px-5 py-4">
+                          <span className="inline-flex items-center rounded-md bg-bg px-2.5 py-1 text-[11px] font-semibold text-blue-deep">
+                            {district.code}
+                          </span>
+                        </td>
+
+                        {/* NEIGHBORHOODS */}
+                        <td className="px-5 py-4">
+                          <span className="text-[13px] text-ink">
+                            {neighborhoodCount}
+                          </span>
+                        </td>
+
+                        {/* STATUS */}
+                        <td className="px-5 py-4">
                           <span
                             className={`
-                              mr-1.5
-                              h-1.5
-                              w-1.5
+                              inline-flex
+                              items-center
                               rounded-full
+                              px-3
+                              py-1
+                              text-[10px]
+                              font-semibold
                               ${
-                                district.status === "Active"
-                                  ? "bg-green-500"
-                                  : "bg-gray-400"
+                                isActive
+                                  ? "bg-green-50 text-green-600 border border-green-100"
+                                  : "bg-gray-100 text-gray-500 border border-gray-200"
                               }
                             `}
-                          />
-
-                          {district.status}
-                        </span>
-                      </td>
-
-                      {/* LAST UPDATED */}
-                      <td className="px-5 py-4">
-                        <span className="text-[12px] text-ink-soft">
-                          {district.updated}
-                        </span>
-                      </td>
-
-                      {/* ACTIONS */}
-                      <td className="px-5 py-4">
-                        <div className="flex items-center justify-end gap-2">
-                          
-                          {/* EDIT */}
-                          <button
-                            onClick={() =>
-                              navigate(`edit/${district.id}`)
-                            }
-                            className="
-                              h-[32px]
-                              rounded-md
-                              bg-blue-deep
-                              px-3
-                              text-[11px]
-                              font-semibold
-                              text-white
-                              transition-all
-                              hover:bg-[#0F2B4D]
-                              cursor-pointer
-                            "
                           >
-                            Edit
-                          </button>
+                            <span
+                              className={`
+                                mr-1.5
+                                h-1.5
+                                w-1.5
+                                rounded-full
+                                ${
+                                  isActive
+                                    ? "bg-green-500"
+                                    : "bg-gray-400"
+                                }
+                              `}
+                            />
+                            {isActive ? "Active" : "Inactive"}
+                          </span>
+                        </td>
 
-                          {/* DELETE */}
-                          <button
-                            onClick={() => handleDelete(district.id)}
-                            className="
-                              h-[32px]
-                              rounded-md
-                              border
-                              border-red-200
-                              bg-white
-                              px-3
-                              text-[11px]
-                              font-semibold
-                              text-red-600
-                              transition-all
-                              hover:bg-red-50
-                              cursor-pointer
-                            "
-                          >
-                            Delete
-                          </button>
+                        {/* LAST UPDATED */}
+                        <td className="px-5 py-4">
+                          <span className="text-[12px] text-ink-soft">
+                            {formattedDate}
+                          </span>
+                        </td>
 
-                        </div>
-                      </td>
-                    </tr>
-                  ))
+                        {/* ACTIONS */}
+                        <td className="px-5 py-4">
+                          <div className="flex items-center justify-end gap-2">
+                            {/* EDIT */}
+                            <button
+                              onClick={() =>
+                                navigate(`edit/${district.id}`)
+                              }
+                              className="
+                                h-[32px]
+                                rounded-md
+                                bg-blue-deep
+                                px-3
+                                text-[11px]
+                                font-semibold
+                                text-white
+                                transition-all
+                                hover:bg-[#0F2B4D]
+                                cursor-pointer
+                              "
+                            >
+                              Edit
+                            </button>
+
+                            {/* DELETE */}
+                            <button
+                              onClick={() => handleDelete(district.id)}
+                              className="
+                                h-[32px]
+                                rounded-md
+                                border
+                                border-red-200
+                                bg-white
+                                px-3
+                                text-[11px]
+                                font-semibold
+                                text-red-600
+                                transition-all
+                                hover:bg-red-50
+                                cursor-pointer
+                              "
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
                 ) : (
                   <tr>
                     <td
-                      colSpan="6"
+                      colSpan="7"
                       className="px-5 py-12 text-center"
                     >
                       <p className="text-[13px] font-medium text-ink">
                         No districts found
                       </p>
-
                       <p className="mt-1 text-[12px] text-ink-soft">
                         Try changing your search or filter.
                       </p>
@@ -447,63 +412,9 @@ const District = () => {
               CARD FOOTER
           ========================= */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-t border-line px-5 py-4">
-            
             <p className="text-[11px] text-ink-soft">
               Showing {filteredDistricts.length} of {districts.length} districts
             </p>
-
-            <div className="flex items-center gap-2">
-              <button
-                disabled
-                className="
-                  h-[32px]
-                  px-3
-                  rounded-md
-                  border
-                  border-line
-                  bg-white
-                  text-[11px]
-                  font-medium
-                  text-gray-400
-                  cursor-not-allowed
-                "
-              >
-                Previous
-              </button>
-
-              <button
-                className="
-                  h-[32px]
-                  min-w-[32px]
-                  rounded-md
-                  bg-blue-deep
-                  px-3
-                  text-[11px]
-                  font-semibold
-                  text-white
-                "
-              >
-                1
-              </button>
-
-              <button
-                disabled
-                className="
-                  h-[32px]
-                  px-3
-                  rounded-md
-                  border
-                  border-line
-                  bg-white
-                  text-[11px]
-                  font-medium
-                  text-gray-400
-                  cursor-not-allowed
-                "
-              >
-                Next
-              </button>
-            </div>
           </div>
         </div>
       </div>

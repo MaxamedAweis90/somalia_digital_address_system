@@ -8,13 +8,16 @@ import Login from "@/pages/auth/Login";
 import Dashboard from "@/pages/dashboard/Dashboard";
 import PlaceholderPage from "@/pages/admin/PlaceholderPage";
 
-// District & Zone pages
+// District, Zone & Neighborhood pages
 import Districts from "@/pages/districts/Districts";
 import AddDistrict from "@/pages/districts/AddDistrict";
 import EditDistrict from "@/pages/districts/EditDistrict";
 import Zones from "@/pages/zones/Zones";
 import AddZone from "@/pages/zones/AddZone";
 import EditZone from "@/pages/zones/EditZone";
+import Neighborhoods from "@/pages/neighborhoods/Neighborhoods";
+import AddNeighborhood from "@/pages/neighborhoods/AddNeighborhood";
+import EditNeighborhood from "@/pages/neighborhoods/EditNeighborhood";
 
 import AnnouncementBar from "@/Frontdoor/AnnouncementBar";
 import Header from "@/Frontdoor/Header";
@@ -80,21 +83,18 @@ export default function AppRoutes() {
         <Route path="districts/edit/:id" element={<EditDistrict />} />
         <Route path="districts/:id" element={<EditDistrict />} />
 
+        {/* Neighborhood routes */}
+        <Route path="neighborhoods" element={<Neighborhoods />} />
+        <Route path="neighborhoods/add" element={<AddNeighborhood />} />
+        <Route path="neighborhoods/edit/:id" element={<EditNeighborhood />} />
+        <Route path="neighborhoods/:id" element={<EditNeighborhood />} />
+
         {/* Zone routes */}
         <Route path="zones" element={<Zones />} />
         <Route path="zones/add" element={<AddZone />} />
         <Route path="zones/edit/:id" element={<EditZone />} />
 
         {/* Other routes */}
-        <Route
-          path="neighborhoods"
-          element={
-            <PlaceholderPage
-              title="Neighborhood Management"
-              description="Manage local neighborhoods and residential sub-zones."
-            />
-          }
-        />
         <Route
           path="addresses"
           element={
@@ -160,21 +160,18 @@ export default function AppRoutes() {
         <Route path="districts/edit/:id" element={<EditDistrict />} />
         <Route path="districts/:id" element={<EditDistrict />} />
 
+        {/* Neighborhood routes */}
+        <Route path="neighborhoods" element={<Neighborhoods />} />
+        <Route path="neighborhoods/add" element={<AddNeighborhood />} />
+        <Route path="neighborhoods/edit/:id" element={<EditNeighborhood />} />
+        <Route path="neighborhoods/:id" element={<EditNeighborhood />} />
+
         {/* Zone routes */}
         <Route path="zones" element={<Zones />} />
         <Route path="zones/add" element={<AddZone />} />
         <Route path="zones/edit/:id" element={<EditZone />} />
 
         {/* Other routes */}
-        <Route
-          path="neighborhoods"
-          element={
-            <PlaceholderPage
-              title="Neighborhood Management"
-              description="Manage local neighborhoods and residential sub-zones."
-            />
-          }
-        />
         <Route
           path="addresses"
           element={
