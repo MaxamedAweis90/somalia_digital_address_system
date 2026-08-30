@@ -6,6 +6,7 @@ import NeighborhoodRouter from "./neighborhood.routes.js";
 import ZoneRouter from "./zone.routes.js";
 import AddressRouter from "./address.routes.js";
 import DashboardRouter from "./dashboard.routes.js";
+import SettingsRouter from "./settings.routes.js";
 import DataOfficerRouter from "./data-officer.routes.js";
 
 const AdminRouter = Router();
@@ -19,6 +20,7 @@ AdminRouter.use("/neighborhoods", NeighborhoodRouter);
 AdminRouter.use("/zones", ZoneRouter);
 AdminRouter.use("/addresses", AddressRouter);
 AdminRouter.use("/dashboard", DashboardRouter);
+AdminRouter.use("/settings", SettingsRouter);
 AdminRouter.use("/data-officers", DataOfficerRouter);
 
 export default AdminRouter;

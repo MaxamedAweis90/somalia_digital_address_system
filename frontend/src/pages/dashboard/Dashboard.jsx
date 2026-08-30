@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Loader2 } from "lucide-react";
 import StatCard from "@/components/dashboard/StatCard";
 import RecentActivity from "@/components/dashboard/RecentActivity";
+import StatusBadge from "@/components/dashboard/StatusBadge";
+import DashboardSkeleton from "@/components/dashboard/DashboardSkeleton";
+import Breadcrumb from "@/components/ui/Breadcrumb";
+import PageHeader from "@/components/ui/PageHeader";
 import { getDashboardSummary } from "@/api/dashboardApi";
 import { useAuth } from "@/context/AuthContext";
 import { ROLES } from "@/constants/roles";
@@ -51,140 +54,162 @@ export default function Dashboard() {
   const recentAddresses = summary?.recentAddresses || [];
   const recentActivity = summary?.recentActivity || [];
 
+  if (loading && !summary) {
+    return (
+      <div className="min-h-full bg-bg font-sans">
+        <div className="px-4 sm:px-6 lg:px-5 pt-5 pb-10">
+          <DashboardSkeleton />
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-bg font-sans px-4 sm:px-6 lg:px-5 pt-5 pb-10 space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Registry Overview</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            Real-time infrastructure metrics and addressing status.
-          </p>
-        </div>
+    <div className="min-h-full bg-bg font-sans">
+      <div className="px-4 sm:px-6 lg:px-5 pt-5 pb-10 space-y-6">
+        <Breadcrumb items={[{ label: "Dashboard" }]} />
 
-        <div className="flex gap-3 self-start sm:self-auto">
-          <button
-            onClick={fetchSummary}
-            disabled={loading}
-            className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 cursor-pointer"
-          >
-            Refresh
-          </button>
+        <PageHeader
+          title="Registry Overview"
+          description="Real-time infrastructure metrics and addressing status."
+          actions={
+            <>
+              <button
+                onClick={fetchSummary}
+                disabled={loading}
+                className="
+                  h-[39px]
+                  px-4
+                  rounded-lg
+                  border
+                  border-line
+                  bg-white
+                  text-[12px]
+                  font-semibold
+                  text-ink-soft
+                  hover:bg-bg
+                  transition-all
+                  cursor-pointer
+                  disabled:opacity-50
+                "
+              >
+                Refresh
+              </button>
+              <button
+                onClick={() => navigate(`${basePath}/addresses/add`)}
+                className="
+                  h-[39px]
+                  px-5
+                  rounded-lg
+                  bg-blue-deep
+                  text-[12px]
+                  font-semibold
+                  text-white
+                  shadow-cta
+                  transition-all
+                  hover:bg-[#0F2B4D]
+                  cursor-pointer
+                "
+              >
+                + Register Address
+              </button>
+            </>
+          }
+        />
 
-          <button
-            onClick={() => navigate(`${basePath}/addresses/add`)}
-            className="rounded-md bg-[#07529b] px-4 py-2 text-sm font-medium text-white hover:bg-[#06447f] cursor-pointer"
-          >
-            + Register Address
-          </button>
-        </div>
-      </div>
-
-      {error && (
-        <div className="rounded-lg bg-red-50 border border-red-200 p-4 text-sm text-red-700 flex items-center justify-between">
-          <span>{error}</span>
-          <button
-            onClick={fetchSummary}
-            className="text-xs font-semibold underline hover:text-red-900 cursor-pointer"
-          >
-            Retry
-          </button>
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {loading && !summary ? (
-          Array.from({ length: 4 }).map((_, index) => (
-            <div
-              key={index}
-              className="rounded-lg border border-gray-200 bg-white p-5 flex items-center justify-center h-[120px]"
+        {error && (
+          <div className="rounded-lg bg-red-50 border border-red-200 p-4 text-sm text-red-700 flex items-center justify-between">
+            <span>{error}</span>
+            <button
+              onClick={fetchSummary}
+              className="text-xs font-semibold underline hover:text-red-900 cursor-pointer"
             >
-              <Loader2 className="h-5 w-5 animate-spin text-[#07529b]" />
-            </div>
-          ))
-        ) : (
-          stats.map((stat) => (
-            <StatCard key={stat.title} title={stat.title} value={stat.value} />
-          ))
-        )}
-      </div>
-
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="rounded-lg border border-gray-200 bg-white lg:col-span-2">
-          <div className="border-b border-gray-200 px-5 py-4">
-            <h2 className="text-sm font-semibold text-gray-900">Recent Addresses</h2>
-            <p className="mt-1 text-xs text-gray-500">
-              Latest registered digital addresses.
-            </p>
+              Retry
+            </button>
           </div>
+        )}
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-gray-50 text-xs uppercase text-gray-500">
-                <tr>
-                  <th className="px-5 py-3">DAC</th>
-                  <th className="px-5 py-3">District</th>
-                  <th className="px-5 py-3">Neighborhood</th>
-                  <th className="px-5 py-3">Zone</th>
-                  <th className="px-5 py-3">Status</th>
-                </tr>
-              </thead>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {stats.map((stat) => (
+            <StatCard key={stat.title} title={stat.title} value={stat.value} />
+          ))}
+        </div>
 
-              <tbody className="divide-y divide-gray-100">
-                {loading && !summary ? (
-                  <tr>
-                    <td colSpan={5} className="px-5 py-10 text-center">
-                      <Loader2 className="h-5 w-5 animate-spin text-[#07529b] mx-auto" />
-                    </td>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <div className="w-full bg-white border border-line rounded-xl shadow-card-sm overflow-hidden lg:col-span-2">
+            <div className="px-5 py-4 border-b border-line">
+              <h2 className="text-[16px] font-semibold text-ink">Recent Addresses</h2>
+              <p className="mt-1 text-[12px] text-ink-soft">
+                Latest registered digital addresses.
+              </p>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="border-b border-line bg-[#FBFCFE]">
+                    <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
+                      DAC
+                    </th>
+                    <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
+                      District
+                    </th>
+                    <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
+                      Neighborhood
+                    </th>
+                    <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
+                      Zone
+                    </th>
+                    <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
+                      Status
+                    </th>
                   </tr>
-                ) : recentAddresses.length > 0 ? (
-                  recentAddresses.map((address) => {
-                    const isActive = (address.status || "ACTIVE").toUpperCase() === "ACTIVE";
+                </thead>
 
-                    return (
+                <tbody>
+                  {recentAddresses.length > 0 ? (
+                    recentAddresses.map((address) => (
                       <tr
                         key={address.id}
                         onClick={() => navigate(`${basePath}/addresses/view/${address.id}`)}
-                        className="cursor-pointer hover:bg-gray-50"
+                        className="border-b border-line last:border-b-0 hover:bg-[#FBFCFE] transition-colors cursor-pointer"
                       >
-                        <td className="px-5 py-4 font-medium text-gray-900 font-mono text-xs">
-                          {address.addressCode}
+                        <td className="px-5 py-4">
+                          <span className="inline-flex items-center rounded-md bg-bg px-2.5 py-1 text-[11px] font-semibold text-blue-deep font-mono">
+                            {address.addressCode}
+                          </span>
                         </td>
-                        <td className="px-5 py-4 text-gray-600">
+                        <td className="px-5 py-4 text-[12px] text-ink">
                           {address.districtName || "—"}
                         </td>
-                        <td className="px-5 py-4 text-gray-600">
+                        <td className="px-5 py-4 text-[12px] text-ink">
                           {address.neighborhoodName || "—"}
                         </td>
-                        <td className="px-5 py-4 text-gray-600">
+                        <td className="px-5 py-4 text-[12px] text-ink">
                           {address.zoneName || "—"}
                         </td>
                         <td className="px-5 py-4">
-                          <span
-                            className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                              isActive
-                                ? "bg-green-100 text-green-700"
-                                : "bg-gray-100 text-gray-600"
-                            }`}
-                          >
-                            {isActive ? "Active" : "Inactive"}
-                          </span>
+                          <StatusBadge status={address.status} />
                         </td>
                       </tr>
-                    );
-                  })
-                ) : (
-                  <tr>
-                    <td colSpan={5} className="px-5 py-10 text-center text-sm text-gray-400">
-                      No addresses registered yet.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={5} className="px-5 py-12 text-center">
+                        <p className="text-[13px] font-medium text-ink">No addresses yet</p>
+                        <p className="mt-1 text-[12px] text-ink-soft">
+                          Register your first address to see it here.
+                        </p>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
 
-        <RecentActivity activities={recentActivity} loading={loading && !summary} />
+          <RecentActivity activities={recentActivity} loading={loading && !summary} />
+        </div>
       </div>
     </div>
   );

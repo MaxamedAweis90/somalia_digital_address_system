@@ -140,3 +140,26 @@ enum ActionType {
   UPDATE
   DELETE
 }
+
+enum SettingType {
+  STRING
+  NUMBER
+  BOOLEAN
+  JSON
+}
+
+model AppSetting {
+  id          String      @id @default(cuid())
+  key         String      @unique
+  label       String
+  value       String
+  description String?
+  category    String      @default("general")
+  type        SettingType @default(STRING)
+  isSystem    Boolean     @default(false) @map("is_system")
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+
+  @@index([category], map: "app_setting_category_index")
+  @@map("app_settings")
+}

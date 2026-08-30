@@ -30,6 +30,7 @@ import EditNeighborhood from "@/pages/neighborhoods/EditNeighborhood";
 import DataOfficers from "@/pages/data-officers/DataOfficers";
 import AddDataOfficer from "@/pages/data-officers/AddDataOfficer";
 import EditDataOfficer from "@/pages/data-officers/EditDataOfficer";
+import Settings from "@/pages/settings/Settings";
 
 import AnnouncementBar from "@/Frontdoor/AnnouncementBar";
 import Header from "@/Frontdoor/Header";
@@ -149,15 +150,7 @@ export default function AppRoutes() {
             />
           }
         />
-        <Route
-          path="settings"
-          element={
-            <PlaceholderPage
-              title="System Settings"
-              description="Configure portal preferences, security protocols, and system parameters."
-            />
-          }
-        />
+        <Route path="settings" element={<Settings />} />
       </Route>
 
       {/* Data Officer routes */}
@@ -199,15 +192,7 @@ export default function AppRoutes() {
             />
           }
         />
-        <Route
-          path="settings"
-          element={
-            <PlaceholderPage
-              title="Officer Settings"
-              description="Configure officer account and display preferences."
-            />
-          }
-        />
+        <Route path="settings" element={<Settings />} />
       </Route>
 
       {/* Legacy redirect */}
