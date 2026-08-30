@@ -1,12 +1,13 @@
 import { Router } from "express";
-import { protect, authorize } from "../middleware/auth.midleware.js";
+import { protect } from "../middleware/auth.midleware.js";
 import RegionRouter from "./region.routes.js";
 import DistrictRouter from "./district.routes.js";
 import NeighborhoodRouter from "./neighborhood.routes.js";
 
 const AdminRouter = Router();
 
-AdminRouter.use(protect, authorize("SYS_ADMIN"));
+// Require authentication for all administrative resources
+AdminRouter.use(protect);
 
 AdminRouter.use("/regions", RegionRouter);
 AdminRouter.use("/districts", DistrictRouter);
