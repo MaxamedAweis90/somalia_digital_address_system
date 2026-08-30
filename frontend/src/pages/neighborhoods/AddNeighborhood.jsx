@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { createNeighborhood } from "@/api/neighborhoodApi";
 import { getDistricts } from "@/api/districtApi";
+import ZoneMapEditor from "@/components/zones/ZoneMapEditor";
 
 export default function AddNeighborhood() {
   const navigate = useNavigate();
@@ -24,6 +25,7 @@ export default function AddNeighborhood() {
 
   const [loading, setLoading] = useState(false);
   const [serverError, setServerError] = useState(null);
+  const [geometry, setGeometry] = useState(null);
 
   useEffect(() => {
     getDistricts()
@@ -89,6 +91,7 @@ export default function AddNeighborhood() {
         code: formData.code.trim().toUpperCase(),
         districtId: formData.districtId,
         status: formData.active ? "ACTIVE" : "INACTIVE",
+        geometry: geometry || undefined,
       });
 
       navigate(-1);
@@ -140,7 +143,7 @@ export default function AddNeighborhood() {
         )}
 
         {/* MAIN CARD */}
-        <div className="w-full max-w-[635px] bg-white border border-line rounded-xl shadow-card-sm overflow-hidden">
+        <div className="w-full max-w-[900px] bg-white border border-line rounded-xl shadow-card-sm overflow-hidden">
           <div className="px-5 py-5 border-b border-line">
             <h2 className="text-[18px] font-semibold text-ink">
               Neighborhood Details
@@ -304,6 +307,20 @@ export default function AddNeighborhood() {
                     {errors.code}
                   </p>
                 )}
+              </div>
+
+              <div className="pt-2">
+                <label className="block text-[12px] font-semibold text-ink mb-2">
+                  Neighborhood Boundary
+                </label>
+                <p className="mb-3 text-[12px] text-ink-soft">
+                  Optional official boundary polygon used to validate zone assignments.
+                </p>
+                <ZoneMapEditor
+                  geometry={geometry}
+                  onChange={setGeometry}
+                  height="420px"
+                />
               </div>
 
               {/* STATUS TOGGLE */}

@@ -11,8 +11,8 @@ import {
 const NeighborhoodRouter = Router();
 
 // Read operations: Available to both SYS_ADMIN and DATA_OFFICER for lookups & address forms
-NeighborhoodRouter.get("/", authorize("SYS_ADMIN", "DATA_OFFICER"), getNeighborhoods);
-NeighborhoodRouter.get("/:id", authorize("SYS_ADMIN", "DATA_OFFICER"), getNeighborhoodById);
+NeighborhoodRouter.get("/", authorize("SYS_ADMIN", "DATA_OFFICER", "DATA_COLLECTOR"), getNeighborhoods);
+NeighborhoodRouter.get("/:id", authorize("SYS_ADMIN", "DATA_OFFICER", "DATA_COLLECTOR"), getNeighborhoodById);
 
 // Write operations: Strictly restricted to SYS_ADMIN (Super Admin)
 NeighborhoodRouter.post("/", authorize("SYS_ADMIN"), createNeighborhood);

@@ -10,8 +10,8 @@ import {
 
 const ZoneRouter = Router();
 
-ZoneRouter.get("/", authorize("SYS_ADMIN", "DATA_OFFICER"), getZones);
-ZoneRouter.get("/:id", authorize("SYS_ADMIN", "DATA_OFFICER"), getZoneById);
+ZoneRouter.get("/", authorize("SYS_ADMIN", "DATA_OFFICER", "DATA_COLLECTOR"), getZones);
+ZoneRouter.get("/:id", authorize("SYS_ADMIN", "DATA_OFFICER", "DATA_COLLECTOR"), getZoneById);
 
 ZoneRouter.post("/", authorize("SYS_ADMIN"), createZone);
 ZoneRouter.put("/:id", authorize("SYS_ADMIN"), updateZone);

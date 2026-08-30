@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { prisma } from "../db.js";
 import { buildDac, MAX_HOUSE_NUMBER } from "../utils/dac.utils.js";
 import { formatLocation, parseLocation } from "../utils/location.utils.js";
+import { getSettingValue } from "../utils/settings.utils.js";
 import { validateStatus } from "../utils/validation.utils.js";
 
 const addressSelect = {
@@ -70,8 +71,14 @@ async function resolveHierarchy({ districtId, neighborhoodId, zoneId }) {
   };
 }
 
-async function getNextHouseNumber(zoneId) {
-  const result = await prisma.address.aggregate({
+async function getHouseNumberPad() {
+  const pad = await getSettingValue("dac_house_number_pad", 4);
+  const numeric = Number(pad);
+  return Number.isInteger(numeric) && numeric > 0 ? numeric : 4;
+}
+
+async function getNextHouseNumber(zoneId, client = prisma) {
+  const result = await client.address.aggregate({
     where: { zoneId },
     _max: { houseNumber: true },
   });
@@ -84,6 +91,40 @@ async function getNextHouseNumber(zoneId) {
   }
 
   return nextHouse;
+}
+
+async function createAddressRecord(
+  {
+    districtId,
+    neighborhoodId,
+    zoneId,
+    streetName,
+    description,
+    latitude,
+    longitude,
+    status,
+    houseNumber,
+    addressCode,
+  },
+  client = prisma
+) {
+  const address = await client.address.create({
+    data: {
+      id: randomUUID(),
+      addressCode,
+      districtId,
+      neighborhoodId,
+      zoneId,
+      houseNumber,
+      streetName: streetName.trim(),
+      description: description?.trim() || "",
+      status: status || "ACTIVE",
+      location: formatLocation(latitude, longitude),
+    },
+    select: addressSelect,
+  });
+
+  return serializeAddress(address);
 }
 
 export const AddressService = {
@@ -102,12 +143,16 @@ export const AddressService = {
     }
 
     const nextHouseNumber = await getNextHouseNumber(zoneId);
-    const addressCode = buildDac({
-      districtCode: zone.neighborhood.district.code,
-      neighborhoodCode: zone.neighborhood.code,
-      zoneCode: zone.code,
-      houseNumber: nextHouseNumber.toString(),
-    });
+    const pad = await getHouseNumberPad();
+    const addressCode = buildDac(
+      {
+        districtCode: zone.neighborhood.district.code,
+        neighborhoodCode: zone.neighborhood.code,
+        zoneCode: zone.code,
+        houseNumber: nextHouseNumber.toString(),
+      },
+      pad
+    );
 
     return {
       addressCode,
@@ -159,30 +204,151 @@ export const AddressService = {
         : formatLocation(...Object.values(parseLocation(location)));
 
     const houseNumber = await getNextHouseNumber(zoneId);
-    const addressCode = buildDac({
-      districtCode: district.code,
-      neighborhoodCode: neighborhood.code,
-      zoneCode: zone.code,
-      houseNumber: houseNumber.toString(),
-    });
-
-    const address = await prisma.address.create({
-      data: {
-        id: randomUUID(),
-        addressCode,
-        districtId,
-        neighborhoodId,
-        zoneId,
-        houseNumber,
-        streetName: streetName.trim(),
-        description: description?.trim() || "",
-        status: status || "ACTIVE",
-        location: normalizedLocation,
+    const pad = await getHouseNumberPad();
+    const addressCode = buildDac(
+      {
+        districtCode: district.code,
+        neighborhoodCode: neighborhood.code,
+        zoneCode: zone.code,
+        houseNumber: houseNumber.toString(),
       },
-      select: addressSelect,
+      pad
+    );
+
+    return createAddressRecord({
+      districtId,
+      neighborhoodId,
+      zoneId,
+      streetName,
+      description,
+      latitude: latitude ?? parseLocation(normalizedLocation).latitude,
+      longitude: longitude ?? parseLocation(normalizedLocation).longitude,
+      status,
+      houseNumber,
+      addressCode,
+    });
+  },
+
+  createAddressFromDraft: async ({
+    zoneId,
+    streetName,
+    description,
+    latitude,
+    longitude,
+    status = "ACTIVE",
+  }) => {
+    if (!streetName?.trim()) {
+      throw new Error("Street name is required");
+    }
+
+    if (latitude === undefined || longitude === undefined) {
+      throw new Error("GPS coordinates are required");
+    }
+
+    const zone = await prisma.zone.findUnique({
+      where: { id: zoneId },
+      include: {
+        neighborhood: {
+          include: { district: true },
+        },
+      },
     });
 
-    return serializeAddress(address);
+    if (!zone) {
+      throw new Error("Zone not found");
+    }
+
+    const houseNumber = await getNextHouseNumber(zoneId);
+    const pad = await getHouseNumberPad();
+    const addressCode = buildDac(
+      {
+        districtCode: zone.neighborhood.district.code,
+        neighborhoodCode: zone.neighborhood.code,
+        zoneCode: zone.code,
+        houseNumber: houseNumber.toString(),
+      },
+      pad
+    );
+
+    return createAddressRecord({
+      districtId: zone.neighborhood.districtId,
+      neighborhoodId: zone.neighborhoodId,
+      zoneId,
+      streetName,
+      description,
+      latitude,
+      longitude,
+      status,
+      houseNumber,
+      addressCode,
+    });
+  },
+
+  createAddressesFromDraftBatch: async (zoneId, addresses) => {
+    return prisma.$transaction(async (tx) => {
+      const created = [];
+      const pad = await getHouseNumberPad();
+
+      const zone = await tx.zone.findUnique({
+        where: { id: zoneId },
+        include: {
+          neighborhood: {
+            include: { district: true },
+          },
+        },
+      });
+
+      if (!zone) {
+        throw new Error("Zone not found");
+      }
+
+      let nextHouse = await getNextHouseNumber(zoneId, tx);
+
+      for (const address of addresses) {
+        if (!address.streetName?.trim()) {
+          throw new Error("Street name is required for every address");
+        }
+
+        if (address.latitude === undefined || address.longitude === undefined) {
+          throw new Error("GPS coordinates are required for every address");
+        }
+
+        const addressCode = buildDac(
+          {
+            districtCode: zone.neighborhood.district.code,
+            neighborhoodCode: zone.neighborhood.code,
+            zoneCode: zone.code,
+            houseNumber: nextHouse.toString(),
+          },
+          pad
+        );
+
+        const createdAddress = await createAddressRecord(
+          {
+            districtId: zone.neighborhood.districtId,
+            neighborhoodId: zone.neighborhoodId,
+            zoneId,
+            streetName: address.streetName,
+            description: address.description,
+            latitude: address.latitude,
+            longitude: address.longitude,
+            status: "ACTIVE",
+            houseNumber: nextHouse,
+            addressCode,
+          },
+          tx
+        );
+
+        created.push(createdAddress);
+        nextHouse += 1n;
+
+        if (nextHouse > BigInt(MAX_HOUSE_NUMBER)) {
+          throw new Error(`Zone has reached the maximum house number (${MAX_HOUSE_NUMBER})`);
+        }
+      }
+
+      return created;
+    });
   },
 
   getAddresses: async ({ districtId, neighborhoodId, zoneId, search } = {}) => {
@@ -276,12 +442,16 @@ export const AddressService = {
 
     if (nextZoneId !== existing.zoneId) {
       houseNumber = await getNextHouseNumber(nextZoneId);
-      addressCode = buildDac({
-        districtCode: district.code,
-        neighborhoodCode: neighborhood.code,
-        zoneCode: zone.code,
-        houseNumber: houseNumber.toString(),
-      });
+      const pad = await getHouseNumberPad();
+      addressCode = buildDac(
+        {
+          districtCode: district.code,
+          neighborhoodCode: neighborhood.code,
+          zoneCode: zone.code,
+          houseNumber: houseNumber.toString(),
+        },
+        pad
+      );
     }
 
     const data = {

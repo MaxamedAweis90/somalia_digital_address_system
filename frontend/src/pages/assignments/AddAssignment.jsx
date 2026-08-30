@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { createAssignment } from "@/api/assignmentApi";
 import { getDistricts } from "@/api/districtApi";
 import { getNeighborhoods } from "@/api/neighborhoodApi";
+import { getZones } from "@/api/zoneApi";
 import { getDataOfficers } from "@/api/dataOfficerApi";
 import Breadcrumb from "@/components/ui/Breadcrumb";
 import PageHeader from "@/components/ui/PageHeader";
@@ -11,17 +12,22 @@ export default function AddAssignment() {
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
+    type: "DEFINE_ZONES",
     districtId: "",
     neighborhoodId: "",
+    zoneId: "",
     assignedToId: "",
     notes: "",
     dueAt: "",
   });
   const [districts, setDistricts] = useState([]);
   const [neighborhoods, setNeighborhoods] = useState([]);
+  const [zones, setZones] = useState([]);
   const [officers, setOfficers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [serverError, setServerError] = useState(null);
+
+  const isRegisterAddresses = formData.type === "REGISTER_ADDRESSES";
 
   useEffect(() => {
     Promise.all([getDistricts(), getDataOfficers()])
@@ -59,6 +65,24 @@ export default function AddAssignment() {
       .catch(() => setNeighborhoods([]));
   }, [formData.districtId]);
 
+  useEffect(() => {
+    if (!isRegisterAddresses || !formData.neighborhoodId) {
+      setZones([]);
+      return;
+    }
+
+    getZones(formData.neighborhoodId)
+      .then((res) => {
+        const data = (res.data.data || []).filter((zone) => zone.status === "ACTIVE");
+        setZones(data);
+        setFormData((prev) => ({
+          ...prev,
+          zoneId: data[0]?.id || "",
+        }));
+      })
+      .catch(() => setZones([]));
+  }, [formData.neighborhoodId, isRegisterAddresses]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -68,8 +92,18 @@ export default function AddAssignment() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!formData.neighborhoodId || !formData.assignedToId) {
-      setServerError("Neighborhood and data officer are required");
+    if (!formData.assignedToId) {
+      setServerError("Data officer is required");
+      return;
+    }
+
+    if (isRegisterAddresses) {
+      if (!formData.zoneId) {
+        setServerError("Zone is required for address registration assignments");
+        return;
+      }
+    } else if (!formData.neighborhoodId) {
+      setServerError("Neighborhood is required");
       return;
     }
 
@@ -77,12 +111,20 @@ export default function AddAssignment() {
       setLoading(true);
       setServerError(null);
 
-      const res = await createAssignment({
-        neighborhoodId: formData.neighborhoodId,
+      const payload = {
+        type: formData.type,
         assignedToId: formData.assignedToId,
         notes: formData.notes || undefined,
         dueAt: formData.dueAt || undefined,
-      });
+      };
+
+      if (isRegisterAddresses) {
+        payload.zoneId = formData.zoneId;
+      } else {
+        payload.neighborhoodId = formData.neighborhoodId;
+      }
+
+      const res = await createAssignment(payload);
 
       navigate(`/admin/assignments/${res.data.data.id}`);
     } catch (err) {
@@ -105,7 +147,7 @@ export default function AddAssignment() {
 
         <PageHeader
           title="New Assignment"
-          description="Assign a data officer to define all zones for a neighborhood."
+          description="Assign field work to a data officer for zone definition or address registration."
         />
 
         {serverError && (
@@ -118,6 +160,21 @@ export default function AddAssignment() {
           onSubmit={handleSubmit}
           className="max-w-2xl rounded-xl border border-line bg-white p-6 shadow-card-sm space-y-5"
         >
+          <div>
+            <label className="block text-[12px] font-semibold text-ink mb-1.5">
+              Assignment Type
+            </label>
+            <select
+              name="type"
+              value={formData.type}
+              onChange={handleChange}
+              className="w-full h-[40px] rounded-lg border border-line bg-white px-3 text-[13px] text-ink outline-none focus:border-blue focus:ring-2 focus:ring-blue/10"
+            >
+              <option value="DEFINE_ZONES">Define Zones</option>
+              <option value="REGISTER_ADDRESSES">Register Addresses</option>
+            </select>
+          </div>
+
           <div>
             <label className="block text-[12px] font-semibold text-ink mb-1.5">
               District
@@ -153,6 +210,30 @@ export default function AddAssignment() {
               ))}
             </select>
           </div>
+
+          {isRegisterAddresses && (
+            <div>
+              <label className="block text-[12px] font-semibold text-ink mb-1.5">
+                Zone
+              </label>
+              <select
+                name="zoneId"
+                value={formData.zoneId}
+                onChange={handleChange}
+                className="w-full h-[40px] rounded-lg border border-line bg-white px-3 text-[13px] text-ink outline-none focus:border-blue focus:ring-2 focus:ring-blue/10"
+              >
+                {zones.length > 0 ? (
+                  zones.map((zone) => (
+                    <option key={zone.id} value={zone.id}>
+                      {zone.name} ({zone.code})
+                    </option>
+                  ))
+                ) : (
+                  <option value="">No published zones available</option>
+                )}
+              </select>
+            </div>
+          )}
 
           <div>
             <label className="block text-[12px] font-semibold text-ink mb-1.5">

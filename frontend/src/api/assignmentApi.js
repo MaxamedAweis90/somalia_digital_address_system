@@ -2,16 +2,16 @@ import api from "./axios";
 
 export const getAssignments = () => api.get("/admin/assignments");
 
-export const getMyAssignments = () => api.get("/admin/assignments/my");
+export const getMyAssignments = () => api.get("/officer/assignments");
 
 export const getAssignmentById = (id) => api.get(`/admin/assignments/${id}`);
 
 export const createAssignment = (data) => api.post("/admin/assignments", data);
 
 export const saveAssignmentDraft = (id, payload) =>
-  api.put(`/admin/assignments/${id}/draft`, { payload });
+  api.put(`/collector/assignments/${id}/draft`, { payload });
 
-export const submitAssignment = (id) => api.post(`/admin/assignments/${id}/submit`);
+export const submitAssignment = (id) => api.post(`/collector/assignments/${id}/submit`);
 
 export const approveAssignment = (id) => api.post(`/admin/assignments/${id}/approve`);
 

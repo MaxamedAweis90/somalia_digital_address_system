@@ -12,6 +12,56 @@ import {
   OSM_TILE_URL,
 } from "@/lib/leafletSetup";
 
+function BoundaryLayer({ geometry, color = "#64748b", fillOpacity = 0.08 }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!geometry) return undefined;
+
+    const layer = L.geoJSON(
+      { type: "Feature", geometry },
+      {
+        style: {
+          color,
+          weight: 2,
+          fillOpacity,
+          dashArray: "6 4",
+        },
+      }
+    );
+
+    layer.addTo(map);
+
+    return () => {
+      map.removeLayer(layer);
+    };
+  }, [geometry, map, color, fillOpacity]);
+
+  return null;
+}
+
+function FitToGeometries({ geometries }) {
+  const map = useMap();
+
+  useEffect(() => {
+    const valid = (geometries || []).filter(Boolean);
+    if (!valid.length) return;
+
+    const group = L.featureGroup();
+    valid.forEach((geometry) => {
+      L.geoJSON({ type: "Feature", geometry }).eachLayer((layer) => {
+        group.addLayer(layer);
+      });
+    });
+
+    if (group.getLayers().length > 0) {
+      map.fitBounds(group.getBounds(), { padding: [24, 24] });
+    }
+  }, [geometries, map]);
+
+  return null;
+}
+
 function MapDrawHandler({ geometry, onChange, editable }) {
   const map = useMap();
   const layerRef = useRef(null);
@@ -112,6 +162,8 @@ export default function ZoneMapEditor({
   onChange,
   editable = true,
   height = "420px",
+  boundaryGeometry = null,
+  boundaryLabel = "Neighborhood boundary",
 }) {
   return (
     <div className="space-y-2">
@@ -126,6 +178,8 @@ export default function ZoneMapEditor({
           scrollWheelZoom
         >
           <TileLayer attribution={OSM_ATTRIBUTION} url={OSM_TILE_URL} />
+          <BoundaryLayer geometry={boundaryGeometry} />
+          <FitToGeometries geometries={[boundaryGeometry, geometry]} />
           <MapDrawHandler
             geometry={geometry}
             onChange={onChange}
@@ -134,11 +188,19 @@ export default function ZoneMapEditor({
         </MapContainer>
       </div>
 
-      <p className="text-[11px] text-ink-soft">
-        {editable
-          ? "Use the map tools to draw a zone boundary polygon. One polygon per zone."
-          : "Zone boundary preview."}
-      </p>
+      <div className="flex flex-wrap items-center gap-4 text-[11px] text-ink-soft">
+        <p>
+          {editable
+            ? "Use the map tools to draw a zone boundary polygon. One polygon per zone."
+            : "Zone boundary preview."}
+        </p>
+        {boundaryGeometry && (
+          <span className="inline-flex items-center gap-1.5">
+            <span className="inline-block h-2 w-4 border border-slate-500 border-dashed rounded-sm" />
+            {boundaryLabel}
+          </span>
+        )}
+      </div>
     </div>
   );
 }

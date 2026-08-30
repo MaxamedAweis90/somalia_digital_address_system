@@ -1,5 +1,6 @@
 import { AddressService } from "../service/address.service.js";
 import { getErrorMessage } from "../utils/prisma-error.utils.js";
+import { getSettingValue } from "../utils/settings.utils.js";
 
 export const previewNextAddressCode = async (req, res) => {
   try {
@@ -107,6 +108,14 @@ export const deleteAddress = async (req, res) => {
 
 export const lookupAddressByCode = async (req, res) => {
   try {
+    const enabled = await getSettingValue("public_lookup_enabled", true);
+    if (!enabled) {
+      return res.status(503).json({
+        success: false,
+        message: "Public address lookup is currently disabled",
+      });
+    }
+
     const address = await AddressService.getAddressByCode(req.params.code);
 
     return res.status(200).json({
