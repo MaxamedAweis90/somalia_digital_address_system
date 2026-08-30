@@ -18,6 +18,7 @@ import EditDistrict from "@/pages/districts/EditDistrict";
 import Zones from "@/pages/zones/Zones";
 import AddZone from "@/pages/zones/AddZone";
 import EditZone from "@/pages/zones/EditZone";
+import ViewZone from "@/pages/zones/ViewZone";
 import Neighborhoods from "@/pages/neighborhoods/Neighborhoods";
 import AddNeighborhood from "@/pages/neighborhoods/AddNeighborhood";
 import EditNeighborhood from "@/pages/neighborhoods/EditNeighborhood";
@@ -104,6 +105,7 @@ export default function AppRoutes() {
         {/* Zone routes */}
         <Route path="zones" element={<Zones />} />
         <Route path="zones/add" element={<AddZone />} />
+        <Route path="zones/view/:id" element={<ViewZone />} />
         <Route path="zones/edit/:id" element={<EditZone />} />
 
         {/* Other routes */}
@@ -177,6 +179,7 @@ export default function AppRoutes() {
         {/* Zone routes */}
         <Route path="zones" element={<Zones />} />
         <Route path="zones/add" element={<AddZone />} />
+        <Route path="zones/view/:id" element={<ViewZone />} />
         <Route path="zones/edit/:id" element={<EditZone />} />
 
         {/* Other routes */}
