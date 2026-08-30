@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { createDistrict } from "@/api/districtApi";
+import { getRegions } from "@/api/regionApi";
 
 const AddDistrict = () => {
   const navigate = useNavigate();
@@ -7,15 +9,36 @@ const AddDistrict = () => {
   const [formData, setFormData] = useState({
     districtName: "",
     districtCode: "",
+    regionId: "",
     active: true,
   });
+
+  const [regions, setRegions] = useState([]);
+  const [loadingRegions, setLoadingRegions] = useState(true);
 
   const [errors, setErrors] = useState({
     districtName: "",
     districtCode: "",
+    regionId: "",
   });
 
   const [loading, setLoading] = useState(false);
+  const [serverError, setServerError] = useState(null);
+
+  useEffect(() => {
+    getRegions()
+      .then((res) => {
+        const data = res.data.data || [];
+        setRegions(data);
+        if (data.length > 0) {
+          setFormData((prev) => ({ ...prev, regionId: data[0].id }));
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to load regions:", err);
+      })
+      .finally(() => setLoadingRegions(false));
+  }, []);
 
   // Handle input changes
   const handleChange = (e) => {
@@ -45,6 +68,7 @@ const AddDistrict = () => {
     const newErrors = {
       districtName: "",
       districtCode: "",
+      regionId: "",
     };
 
     let isValid = true;
@@ -57,9 +81,14 @@ const AddDistrict = () => {
     if (!formData.districtCode.trim()) {
       newErrors.districtCode = "District code is required";
       isValid = false;
-    } else if (formData.districtCode.trim().length < 3) {
+    } else if (formData.districtCode.trim().length < 2) {
       newErrors.districtCode =
-        "District code must be at least 3 characters";
+        "District code must be at least 2 characters";
+      isValid = false;
+    }
+
+    if (!formData.regionId) {
+      newErrors.regionId = "Please select a region";
       isValid = false;
     }
 
@@ -76,38 +105,33 @@ const AddDistrict = () => {
 
     try {
       setLoading(true);
+      setServerError(null);
 
-      const newDistrict = {
-        id: Date.now(),
-        ...formData,
-      };
-
-      console.log("Created District:", newDistrict);
-
-      await new Promise((resolve) => setTimeout(resolve, 800));
+      await createDistrict({
+        name: formData.districtName.trim(),
+        code: formData.districtCode.trim().toUpperCase(),
+        regionId: formData.regionId,
+        status: formData.active ? "ACTIVE" : "INACTIVE",
+      });
 
       navigate(-1);
     } catch (error) {
       console.error("Error creating district:", error);
+      setServerError(error.response?.data?.message || error.message || "Failed to create district");
     } finally {
       setLoading(false);
     }
   };
 
-  // Cancel
-  const handleCancel = () => {
-    navigate(-1);
-  };
-
   return (
     <div className="min-h-screen bg-bg font-sans">
-      <div className="px-4 sm:px-6 lg:px-5 pt-5">
+      <div className="px-4 sm:px-6 lg:px-5 pt-5 pb-10">
         {/* =========================
             BREADCRUMB
         ========================= */}
         <div className="flex items-center gap-2 text-[11px] font-medium text-ink-soft mb-6">
           <span
-            onClick={() => navigate("/dashboard")}
+            onClick={() => navigate("../dashboard")}
             className="hover:text-blue cursor-pointer"
           >
             Dashboard
@@ -141,6 +165,13 @@ const AddDistrict = () => {
           </p>
         </div>
 
+        {/* Server Error */}
+        {serverError && (
+          <div className="mb-6 max-w-[635px] rounded-lg bg-red-50 p-4 border border-red-200 text-red-700 text-sm">
+            {serverError}
+          </div>
+        )}
+
         {/* =========================
             MAIN CARD
         ========================= */}
@@ -173,11 +204,63 @@ const AddDistrict = () => {
               FORM
           ========================= */}
           <form onSubmit={handleSubmit}>
-            <div className="px-5 pt-5 pb-4">
-              {/* =========================
-                  DISTRICT NAME
-              ========================= */}
-              <div className="mb-4">
+            <div className="px-5 pt-5 pb-4 space-y-4">
+              {/* REGION SELECT */}
+              <div>
+                <label
+                  htmlFor="regionId"
+                  className="block text-[12px] font-semibold text-ink mb-2"
+                >
+                  Parent Region
+                  <span className="text-red-500 ml-1">*</span>
+                </label>
+
+                <select
+                  id="regionId"
+                  name="regionId"
+                  value={formData.regionId}
+                  onChange={handleChange}
+                  disabled={loadingRegions}
+                  className="
+                    w-full
+                    h-[38px]
+                    rounded-lg
+                    border
+                    border-[#B9C2CE]
+                    bg-white
+                    px-3
+                    text-[13px]
+                    text-ink
+                    outline-none
+                    transition-all
+                    focus:border-blue
+                    focus:ring-2
+                    focus:ring-blue/10
+                    cursor-pointer
+                  "
+                >
+                  {loadingRegions ? (
+                    <option>Loading regions...</option>
+                  ) : regions.length > 0 ? (
+                    regions.map((reg) => (
+                      <option key={reg.id} value={reg.id}>
+                        {reg.name} ({reg.code})
+                      </option>
+                    ))
+                  ) : (
+                    <option value="">No regions available</option>
+                  )}
+                </select>
+
+                {errors.regionId && (
+                  <p className="mt-1.5 text-[11px] text-red-500">
+                    {errors.regionId}
+                  </p>
+                )}
+              </div>
+
+              {/* DISTRICT NAME */}
+              <div>
                 <label
                   htmlFor="districtName"
                   className="block text-[12px] font-semibold text-ink mb-2"
@@ -192,7 +275,7 @@ const AddDistrict = () => {
                   type="text"
                   value={formData.districtName}
                   onChange={handleChange}
-                  placeholder="e.g. Banadir"
+                  placeholder="e.g. Hodan"
                   className={`
                     w-full
                     h-[38px]
@@ -222,10 +305,8 @@ const AddDistrict = () => {
                 )}
               </div>
 
-              {/* =========================
-                  DISTRICT CODE
-              ========================= */}
-              <div className="mb-5">
+              {/* DISTRICT CODE */}
+              <div>
                 <label
                   htmlFor="districtCode"
                   className="block text-[12px] font-semibold text-ink mb-2"
@@ -278,9 +359,7 @@ const AddDistrict = () => {
                 )}
               </div>
 
-              {/* =========================
-                  STATUS TOGGLE
-              ========================= */}
+              {/* STATUS TOGGLE */}
               <div className="flex items-center justify-between pt-4 border-t border-line">
                 <div>
                   <label
@@ -328,13 +407,11 @@ const AddDistrict = () => {
               </div>
             </div>
 
-            {/* =========================
-                CARD FOOTER
-            ========================= */}
+            {/* CARD FOOTER */}
             <div className="flex items-center justify-end gap-3 px-5 py-4 bg-[#FBFBFC] border-t border-line">
               <button
                 type="button"
-                onClick={handleCancel}
+                onClick={() => navigate(-1)}
                 disabled={loading}
                 className="
                   h-[36px]
@@ -372,7 +449,7 @@ const AddDistrict = () => {
                   disabled:opacity-50
                 "
               >
-                {loading ? "Saving..." : "Add District"}
+                {loading ? "Creating..." : "Add District"}
               </button>
             </div>
           </form>
