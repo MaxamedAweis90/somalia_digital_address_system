@@ -5,6 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import { ROLES } from "@/constants/roles";
 import { Loader2 } from "lucide-react";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import Pagination from "@/components/common/Pagination";
 
 const District = () => {
   const navigate = useNavigate();
@@ -12,19 +13,55 @@ const District = () => {
   const isAdmin = user?.role === ROLES.SYS_ADMIN;
 
   const [districts, setDistricts] = useState([]);
+  const [pagination, setPagination] = useState({
+    total: 0,
+    page: 1,
+    limit: 10,
+    totalPages: 1,
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
+  const [page, setPage] = useState(1);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
+
+  const limit = 10;
+
+  // Handle search debouncing
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+      setPage(1); // Reset to first page on search change
+    }, 450);
+
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
 
   const fetchDistricts = async () => {
     try {
       setLoading(true);
       setError(null);
-      const res = await getDistricts();
-      setDistricts(res.data.data || []);
+      const res = await getDistricts({
+        page,
+        limit,
+        search: debouncedSearch || undefined,
+      });
+
+      const responseData = res.data?.data;
+
+      if (responseData?.data && responseData?.pagination) {
+        // Paginated response
+        setDistricts(responseData.data);
+        setPagination(responseData.pagination);
+      } else if (Array.isArray(responseData)) {
+        // Legacy format
+        setDistricts(responseData);
+      } else {
+        setDistricts([]);
+      }
     } catch (err) {
       console.error("Failed to load districts:", err);
       setError(err.response?.data?.message || "Failed to load districts from server");
@@ -35,7 +72,7 @@ const District = () => {
 
   useEffect(() => {
     fetchDistricts();
-  }, []);
+  }, [page, debouncedSearch]);
 
   const handleDelete = (district) => {
     setDeleteTarget(district);
@@ -50,6 +87,8 @@ const District = () => {
       await deleteDistrict(deleteTarget.id);
       setDistricts((current) => current.filter((d) => d.id !== deleteTarget.id));
       setDeleteTarget(null);
+      // Refetch to update pagination
+      fetchDistricts();
     } catch (err) {
       setError(err.response?.data?.message || "Failed to delete district");
     } finally {
@@ -57,24 +96,17 @@ const District = () => {
     }
   };
 
-  // Search and filter
+  // Client-side filtering for status (since backend doesn't filter status yet)
   const filteredDistricts = useMemo(() => {
     return districts.filter((district) => {
-      const name = district.name || "";
-      const code = district.code || "";
-      const matchesSearch =
-        name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        code.toLowerCase().includes(searchTerm.toLowerCase());
-
       const status = (district.status || "ACTIVE").toUpperCase();
-      const matchesStatus =
+      return (
         statusFilter === "All" ||
         (statusFilter === "Active" && status === "ACTIVE") ||
-        (statusFilter === "Inactive" && status === "INACTIVE");
-
-      return matchesSearch && matchesStatus;
+        (statusFilter === "Inactive" && status === "INACTIVE")
+      );
     });
-  }, [districts, searchTerm, statusFilter]);
+  }, [districts, statusFilter]);
 
   return (
     <div className="min-h-screen bg-bg font-sans">
@@ -93,7 +125,7 @@ const District = () => {
       />
 
       <div className="px-4 sm:px-6 lg:px-5 pt-5 pb-10">
-        
+
         {/* =========================
             BREADCRUMB
         ========================= */}
@@ -168,7 +200,7 @@ const District = () => {
             MAIN CARD
         ========================= */}
         <div className="w-full bg-white border border-line rounded-xl shadow-card-sm overflow-hidden">
-          
+
           {/* =========================
               CARD HEADER / FILTERS
           ========================= */}
@@ -179,7 +211,7 @@ const District = () => {
                   All Districts
                 </h2>
                 <p className="mt-1 text-[12px] text-ink-soft">
-                  Total {districts.length} districts in the registry
+                  Total {pagination.total} districts in the registry
                 </p>
               </div>
 
@@ -340,10 +372,9 @@ const District = () => {
                               py-1
                               text-[10px]
                               font-semibold
-                              ${
-                                isActive
-                                  ? "bg-green-50 text-green-600 border border-green-100"
-                                  : "bg-gray-100 text-gray-500 border border-gray-200"
+                              ${isActive
+                                ? "bg-green-50 text-green-600 border border-green-100"
+                                : "bg-gray-100 text-gray-500 border border-gray-200"
                               }
                             `}
                           >
@@ -353,10 +384,9 @@ const District = () => {
                                 h-1.5
                                 w-1.5
                                 rounded-full
-                                ${
-                                  isActive
-                                    ? "bg-green-500"
-                                    : "bg-gray-400"
+                                ${isActive
+                                  ? "bg-green-500"
+                                  : "bg-gray-400"
                                 }
                               `}
                             />
@@ -444,10 +474,21 @@ const District = () => {
           {/* =========================
               CARD FOOTER
           ========================= */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-t border-line px-5 py-4">
-            <p className="text-[11px] text-ink-soft">
-              Showing {filteredDistricts.length} of {districts.length} districts
+          <div className="px-5 py-4 border-t border-line">
+            <p className="text-[11px] text-ink-soft mb-4">
+              {/* Showing {districts.length > 0 ? (pagination.page - 1) * pagination.limit + 1 : 0}-{Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} districts */}
             </p>
+
+            {pagination.totalPages > 1 && (
+              <Pagination
+                page={pagination.page}
+                totalPages={pagination.totalPages}
+                total={pagination.total}
+                pageSize={pagination.limit}
+                onPageChange={setPage}
+                disabled={loading}
+              />
+            )}
           </div>
         </div>
       </div>

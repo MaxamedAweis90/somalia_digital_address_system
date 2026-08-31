@@ -5,36 +5,66 @@ import { getDataCollectors } from "@/api/dataCollectorApi";
 import DataCollectorTable from "./components/DataCollectorTable";
 import RegeneratePasswordModal from "./components/RegeneratePasswordModal";
 import DeleteCollectorDialog from "./components/DeleteCollectorDialog";
+import Pagination from "@/components/common/Pagination";
 
 export default function DataCollectorsPage() {
   const navigate = useNavigate();
 
   const [collectors, setCollectors] = useState([]);
+  const [pagination, setPagination] = useState({
+    total: 0,
+    page: 1,
+    limit: 10,
+    totalPages: 1,
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const limit = 10;
 
   const [regenerateTarget, setRegenerateTarget] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
+
+  // Handle search debouncing
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+      setPage(1); // Reset to first page on search change
+    }, 450);
+
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
 
   const fetchCollectors = async () => {
     try {
       setLoading(true);
       setError(null);
-      const res = await getDataCollectors();
+      const res = await getDataCollectors({
+        page,
+        limit,
+        search: debouncedSearch || undefined,
+      });
 
-      // Support different possible backend response shapes
-      const dataList =
-        res.data?.data?.collectors ||
-        res.data?.collectors ||
-        res.data?.data ||
-        (Array.isArray(res.data) ? res.data : []);
+      // Handle different response shapes
+      const responseData = res.data?.data;
 
-      setCollectors(dataList);
+      if (responseData?.data && responseData?.pagination) {
+        // New paginated response format
+        setCollectors(responseData.data);
+        setPagination(responseData.pagination);
+      } else if (Array.isArray(responseData)) {
+        // Legacy format: just an array
+        setCollectors(responseData);
+      } else {
+        // Fallback
+        setCollectors([]);
+      }
     } catch (err) {
       setError(
         err.response?.data?.message ||
-          "Failed to load data collectors. Please try again."
+        "Failed to load data collectors. Please try again."
       );
     } finally {
       setLoading(false);
@@ -43,34 +73,12 @@ export default function DataCollectorsPage() {
 
   useEffect(() => {
     fetchCollectors();
-  }, []);
-
-  const filteredCollectors = useMemo(() => {
-    const query = searchTerm.trim().toLowerCase();
-    if (!query) return collectors;
-
-    return collectors.filter((collector) => {
-      const name = collector.name?.toLowerCase() || "";
-      const email = collector.email?.toLowerCase() || "";
-      const supervisorName =
-        collector.supervisor?.name?.toLowerCase() ||
-        collector.supervisorName?.toLowerCase() ||
-        "";
-      const supervisorEmail =
-        collector.supervisor?.email?.toLowerCase() ||
-        collector.supervisorEmail?.toLowerCase() ||
-        "";
-      return (
-        name.includes(query) ||
-        email.includes(query) ||
-        supervisorName.includes(query) ||
-        supervisorEmail.includes(query)
-      );
-    });
-  }, [collectors, searchTerm]);
+  }, [page, debouncedSearch]);
 
   const handleDeleted = (deletedId) => {
     setCollectors((prev) => prev.filter((c) => c.id !== deletedId));
+    // Refetch to update pagination info
+    fetchCollectors();
   };
 
   return (
@@ -140,7 +148,7 @@ export default function DataCollectorsPage() {
                   All Data Collectors
                 </h2>
                 <p className="mt-1 text-[12px] text-ink-soft">
-                  Total {collectors.length} registered field data collectors
+                  Total {pagination.total} registered field data collectors
                 </p>
               </div>
 
@@ -166,9 +174,9 @@ export default function DataCollectorsPage() {
                 </p>
               </div>
             </div>
-          ) : filteredCollectors.length > 0 ? (
+          ) : collectors.length > 0 ? (
             <DataCollectorTable
-              collectors={filteredCollectors}
+              collectors={collectors}
               onRegeneratePassword={(collector) => setRegenerateTarget(collector)}
               onDelete={(collector) => setDeleteTarget(collector)}
             />
@@ -199,11 +207,16 @@ export default function DataCollectorsPage() {
             </div>
           )}
 
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-t border-line px-5 py-4">
-            <p className="text-[11px] text-ink-soft">
-              Showing {filteredCollectors.length} of {collectors.length} data collectors
-            </p>
-          </div>
+          {pagination.totalPages > 1 && (
+            <Pagination
+              page={pagination.page}
+              totalPages={pagination.totalPages}
+              total={pagination.total}
+              pageSize={limit}
+              onPageChange={setPage}
+              disabled={loading}
+            />
+          )}
         </div>
       </div>
     </div>
