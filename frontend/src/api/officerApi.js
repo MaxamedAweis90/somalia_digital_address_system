@@ -6,6 +6,9 @@ export const getOfficerAssignmentById = (id) => api.get(`/officer/assignments/${
 
 export const getReviewQueue = () => api.get("/officer/assignments/reviews");
 
+export const getCollectorReviewQueue = () =>
+  api.get("/officer/assignments/collector-reviews");
+
 export const getParentChildren = (parentId) =>
   api.get(`/officer/assignments/${parentId}/children`);
 

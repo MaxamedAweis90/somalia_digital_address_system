@@ -533,6 +533,18 @@ export const AssignmentService = {
   getOfficerReviewQueue: async (officerId) => {
     return prisma.assignment.findMany({
       where: {
+        tier: "PARENT",
+        assignedToId: officerId,
+        status: "SUBMITTED",
+      },
+      include: assignmentInclude,
+      orderBy: { submittedAt: "asc" },
+    });
+  },
+
+  getOfficerCollectorReviewQueue: async (officerId) => {
+    return prisma.assignment.findMany({
+      where: {
         tier: "CHILD",
         status: "SUBMITTED",
         parent: { assignedToId: officerId },

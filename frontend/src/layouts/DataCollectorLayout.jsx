@@ -2,10 +2,23 @@ import { useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import AppTopBar, { navLinkClass } from "@/components/layout/AppTopBar";
-import { ClipboardList, LogOut, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import {
+  CheckCircle2,
+  ClipboardList,
+  Clock3,
+  LayoutDashboard,
+  LogOut,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Send,
+} from "lucide-react";
 
 const navItems = [
-  { to: "/collector/dashboard", label: "My Tasks", icon: ClipboardList },
+  { to: "/collector/dashboard", label: "Dashboard", icon: LayoutDashboard, end: true },
+  { to: "/collector/assignments", label: "Assigned Work", icon: ClipboardList, end: true },
+  { to: "/collector/assignments/in-progress", label: "In Progress", icon: Clock3, end: true },
+  { to: "/collector/assignments/submitted", label: "Submitted", icon: Send, end: true },
+  { to: "/collector/assignments/completed", label: "Completed", icon: CheckCircle2, end: true },
 ];
 
 export default function DataCollectorLayout() {
@@ -52,8 +65,14 @@ export default function DataCollectorLayout() {
         </div>
 
         <nav className="mt-3 flex-1 space-y-1 px-3 overflow-y-auto">
-          {navItems.map(({ to, label, icon: Icon }) => (
-            <NavLink key={to} to={to} title={collapsed ? label : undefined} className={({ isActive }) => navLinkClass(collapsed, isActive)}>
+          {navItems.map(({ to, label, icon: Icon, end }) => (
+            <NavLink
+              key={to}
+              to={to}
+              end={end}
+              title={collapsed ? label : undefined}
+              className={({ isActive }) => navLinkClass(collapsed, isActive)}
+            >
               <Icon className="h-4 w-4 shrink-0" />
               {!collapsed && <span className="truncate">{label}</span>}
             </NavLink>

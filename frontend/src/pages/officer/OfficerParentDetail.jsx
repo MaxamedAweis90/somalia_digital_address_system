@@ -69,6 +69,8 @@ export default function OfficerParentDetail() {
   };
 
   useEffect(() => {
+    // The loader synchronizes this screen with the selected assignment API data.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     load();
   }, [id]);
 
@@ -177,7 +179,7 @@ export default function OfficerParentDetail() {
       <div className="px-4 sm:px-6 lg:px-5 pt-5 pb-10 space-y-6">
         <Breadcrumb
           items={[
-            { label: "Zones", to: "/officer/dashboard" },
+            { label: "Zones", to: "/officer/zones" },
             { label: formatAssignmentLocation(assignment) },
           ]}
         />
@@ -251,7 +253,13 @@ export default function OfficerParentDetail() {
             to="/officer/reviews"
             className="h-[39px] px-4 inline-flex items-center rounded-lg border border-line bg-white text-[12px] font-semibold text-ink-soft"
           >
-            Review Queue
+            Submitted Zones
+          </Link>
+          <Link
+            to="/officer/collector-reviews"
+            className="h-[39px] px-4 inline-flex items-center rounded-lg border border-line bg-white text-[12px] font-semibold text-ink-soft"
+          >
+            Collector Reviews
           </Link>
         </div>
 

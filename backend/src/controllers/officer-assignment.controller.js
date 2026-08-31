@@ -34,6 +34,19 @@ export const getReviewQueue = async (req, res) => {
   }
 };
 
+export const getCollectorReviewQueue = async (req, res) => {
+  try {
+    const assignments = await AssignmentService.getOfficerCollectorReviewQueue(
+      req.user.id,
+    );
+    return res.status(200).json({ success: true, data: assignments });
+  } catch (error) {
+    return res
+      .status(500)
+      .json({ success: false, message: getErrorMessage(error) });
+  }
+};
+
 export const getParentChildren = async (req, res) => {
   try {
     const children = await AssignmentService.getParentChildren(

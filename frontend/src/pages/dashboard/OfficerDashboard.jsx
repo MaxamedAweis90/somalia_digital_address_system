@@ -2,14 +2,16 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { getMyAssignments } from "@/api/assignmentApi";
+import { getCollectors } from "@/api/officerApi";
 import AssignmentStatusBadge from "@/components/assignments/AssignmentStatusBadge";
 import Breadcrumb from "@/components/ui/Breadcrumb";
 import PageHeader from "@/components/ui/PageHeader";
 import OfficerWorkflowGuide from "@/components/assignments/OfficerWorkflowGuide";
 
-export default function OfficerDashboard() {
+export default function OfficerDashboard({ zonesOnly = false }) {
   const navigate = useNavigate();
   const [assignments, setAssignments] = useState([]);
+  const [collectors, setCollectors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -17,8 +19,12 @@ export default function OfficerDashboard() {
     try {
       setLoading(true);
       setError(null);
-      const res = await getMyAssignments();
-      setAssignments(res.data.data || []);
+      const [assignmentsRes, collectorsRes] = await Promise.all([
+        getMyAssignments(),
+        getCollectors(),
+      ]);
+      setAssignments(assignmentsRes.data.data || []);
+      setCollectors(collectorsRes.data.data || []);
     } catch (err) {
       setError(err.response?.data?.message || "Failed to load assignments");
     } finally {
@@ -27,27 +33,50 @@ export default function OfficerDashboard() {
   };
 
   useEffect(() => {
+    // The loader synchronizes the dashboard with the authenticated officer's API data.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchAssignments();
   }, []);
 
   const summary = useMemo(() => {
+    const blockTasks = assignments.reduce(
+      (total, assignment) => total + (assignment.children?.length || 0),
+      0
+    );
+    const addressDrafts = assignments.reduce(
+      (total, assignment) =>
+        total +
+        (assignment.children || []).reduce(
+          (childTotal, child) => childTotal + (child.payload?.addresses?.length || 0),
+          0
+        ),
+      0
+    );
+
     return {
+      total: assignments.length,
       active: assignments.filter((item) =>
         ["ASSIGNED", "IN_PROGRESS", "REJECTED"].includes(item.status)
       ).length,
       submitted: assignments.filter((item) => item.status === "SUBMITTED").length,
       completed: assignments.filter((item) => item.status === "APPROVED").length,
+      blockTasks,
+      addressDrafts,
     };
   }, [assignments]);
 
   return (
     <div className="min-h-full bg-bg font-sans">
       <div className="px-4 sm:px-6 lg:px-5 pt-5 pb-10 space-y-6">
-        <Breadcrumb items={[{ label: "Zones" }]} />
+        <Breadcrumb items={[{ label: zonesOnly ? "Zones" : "Dashboard" }]} />
 
         <PageHeader
-          title="Assigned Zones"
-          description="Open a zone, assign its zone blocks to collectors, review their address work, and submit the completed zone to admin."
+          title={zonesOnly ? "Assigned Zones" : "Officer Dashboard"}
+          description={
+            zonesOnly
+              ? "Only zones assigned to you are shown here. Open one to allocate its blocks."
+              : "Track your assigned zones, collector team, block tasks, and address registration progress."
+          }
         />
 
         {error && (
@@ -63,7 +92,12 @@ export default function OfficerDashboard() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        {!zonesOnly && (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="rounded-xl border border-line bg-white p-5 shadow-card-sm">
+            <p className="text-[12px] text-ink-soft">Assigned Zones</p>
+            <p className="mt-2 text-[28px] font-semibold text-ink">{summary.total}</p>
+          </div>
           <div className="rounded-xl border border-line bg-white p-5 shadow-card-sm">
             <p className="text-[12px] text-ink-soft">Active Zones</p>
             <p className="mt-2 text-[28px] font-semibold text-ink">{summary.active}</p>
@@ -76,13 +110,28 @@ export default function OfficerDashboard() {
             <p className="text-[12px] text-ink-soft">Completed Zones</p>
             <p className="mt-2 text-[28px] font-semibold text-ink">{summary.completed}</p>
           </div>
+          <div className="rounded-xl border border-line bg-white p-5 shadow-card-sm">
+            <p className="text-[12px] text-ink-soft">Collectors on Team</p>
+            <p className="mt-2 text-[28px] font-semibold text-ink">{collectors.length}</p>
+          </div>
+          <div className="rounded-xl border border-line bg-white p-5 shadow-card-sm">
+            <p className="text-[12px] text-ink-soft">Block Tasks</p>
+            <p className="mt-2 text-[28px] font-semibold text-ink">{summary.blockTasks}</p>
+          </div>
+          <div className="rounded-xl border border-line bg-white p-5 shadow-card-sm">
+            <p className="text-[12px] text-ink-soft">Addresses in Progress</p>
+            <p className="mt-2 text-[28px] font-semibold text-ink">{summary.addressDrafts}</p>
+          </div>
         </div>
+        )}
 
-        <OfficerWorkflowGuide />
+        {!zonesOnly && <OfficerWorkflowGuide />}
 
         <div className="rounded-xl border border-line bg-white shadow-card-sm overflow-hidden">
           <div className="border-b border-line px-5 py-4">
-            <h2 className="text-[16px] font-semibold text-ink">Zones Assigned to You</h2>
+            <h2 className="text-[16px] font-semibold text-ink">
+              {zonesOnly ? "Zones Assigned to You" : "Zone Overview"}
+            </h2>
             <p className="mt-1 text-[12px] text-ink-soft">
               Open a zone to choose zone blocks and assign them to your data collectors.
             </p>

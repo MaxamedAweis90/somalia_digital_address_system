@@ -117,6 +117,13 @@ test("admin, officer, and collector complete one field-work flow", async ({ brow
 
     // Officer: open the parent, choose the block, and delegate it to a collector.
     await login(officer, ACCOUNTS.officer);
+    await expect(officer.getByRole("heading", { name: "Officer Dashboard" })).toBeVisible();
+    await officer.getByRole("link", { name: "Zones", exact: true }).click();
+    await expect(officer).toHaveURL(/\/officer\/zones$/);
+    await expect(officer.getByRole("heading", { name: "Assigned Zones" })).toBeVisible();
+    await officer.getByRole("link", { name: "My Team", exact: true }).click();
+    await expect(officer).toHaveURL(/\/officer\/collectors$/);
+    await expect(officer.getByRole("button", { name: /Add Collector/ })).toHaveCount(0);
     await officer.goto(`/officer/assignments/${parentId}`);
     await expect(
       officer.getByRole("heading", { name: "Supervise Field Assignment" })
@@ -199,6 +206,8 @@ test("admin, officer, and collector complete one field-work flow", async ({ brow
     await expect(
       officer.getByText("Parent assignment submitted to admin for approval.")
     ).toBeVisible();
+    await officer.goto("/officer/reviews");
+    await expect(officer.getByText("Playwright Test Zone")).toBeVisible();
 
     // Admin: approve the merged parent and publish the address.
     await admin.goto(`/admin/assignments/${parentId}`);
