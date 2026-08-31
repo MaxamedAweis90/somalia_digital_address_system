@@ -63,8 +63,8 @@ export default function AssignmentDetail() {
         <Breadcrumb
           items={[
             {
-              label: isAdmin ? "Assignments" : isOfficer ? "Zones" : "My Tasks",
-              to: `${basePath}/dashboard`,
+              label: isAdmin ? "Assignments" : isOfficer ? "Zones" : "Assigned Work",
+              to: isOfficer ? "/officer/zones" : `${basePath}/dashboard`,
             },
             { label: isRegisterAddresses ? "Register Addresses" : "Define Zone Blocks" },
           ]}

@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:16-alpine
@@ -15,6 +13,7 @@ services:
       - pgdata:/var/lib/postgresql/data
 
   backend:
+    image: "${DOCKERHUB_USERNAME:-local}/sdas-backend:${IMAGE_TAG:-latest}"
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -29,6 +28,7 @@ services:
       - postgres
 
   frontend:
+    image: "${DOCKERHUB_USERNAME:-local}/sdas-frontend:${IMAGE_TAG:-latest}"
     build:
       context: ./frontend
       dockerfile: Dockerfile

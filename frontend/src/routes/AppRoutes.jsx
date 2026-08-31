@@ -5,12 +5,16 @@ import GuestRoute from "./GuestRoute";
 import SysAdminLayout from "@/layouts/SysAdminLayout";
 import DataOfficerLayout from "@/layouts/DataOfficerLayout";
 import OfficerDashboard from "@/pages/dashboard/OfficerDashboard";
+import OfficerZones from "@/pages/officer/OfficerZones";
+import OfficerWorkflow from "@/pages/officer/OfficerWorkflow";
 import DataCollectorLayout from "@/layouts/DataCollectorLayout";
 import Login from "@/pages/auth/Login";
 import Dashboard from "@/pages/dashboard/Dashboard";
 import OfficerParentDetail from "@/pages/officer/OfficerParentDetail";
 import CollectorDashboard from "@/pages/dashboard/CollectorDashboard";
+import CollectorAssignments from "@/pages/collector/CollectorAssignments";
 import OfficerReviewQueue from "@/pages/officer/OfficerReviewQueue";
+import OfficerCollectorReviewQueue from "@/pages/officer/OfficerCollectorReviewQueue";
 import OfficerCollectors from "@/pages/officer/OfficerCollectors";
 import PlaceholderPage from "@/pages/admin/PlaceholderPage";
 
@@ -157,9 +161,12 @@ export default function AppRoutes() {
       >
         <Route index element={<Navigate to="dashboard" replace />} />
         <Route path="dashboard" element={<OfficerDashboard />} />
+        <Route path="workflow" element={<OfficerWorkflow />} />
+        <Route path="zones" element={<OfficerZones />} />
         <Route path="assignments/:id" element={<OfficerParentDetail />} />
         <Route path="children/:id" element={<AssignmentDetail />} />
         <Route path="reviews" element={<OfficerReviewQueue />} />
+        <Route path="collector-reviews" element={<OfficerCollectorReviewQueue />} />
         <Route path="collectors" element={<OfficerCollectors />} />
       </Route>
 
@@ -173,6 +180,19 @@ export default function AppRoutes() {
       >
         <Route index element={<Navigate to="dashboard" replace />} />
         <Route path="dashboard" element={<CollectorDashboard />} />
+        <Route path="assignments" element={<CollectorAssignments />} />
+        <Route
+          path="assignments/in-progress"
+          element={<CollectorAssignments view="inProgress" />}
+        />
+        <Route
+          path="assignments/submitted"
+          element={<CollectorAssignments view="submitted" />}
+        />
+        <Route
+          path="assignments/completed"
+          element={<CollectorAssignments view="completed" />}
+        />
         <Route path="assignments/:id" element={<AssignmentDetail />} />
       </Route>
 
