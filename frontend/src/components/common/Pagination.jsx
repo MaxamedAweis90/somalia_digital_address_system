@@ -107,7 +107,7 @@ export default function Pagination({
                     className="flex items-center gap-1 rounded-lg border border-line bg-white px-3 py-2 text-[12px] font-medium text-ink transition-colors hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     <ChevronLeft className="h-4 w-4" />
-                    <span className="hidden sm:inline">Previous</span>
+                    <span className="hidden sm:inline cursor-pointer">Previous</span>
                 </button>
 
                 {/* Page Numbers */}
@@ -115,7 +115,7 @@ export default function Pagination({
                     {pages.map((p, idx) => {
                         if (p === "...") {
                             return (
-                                <span key={`ellipsis-${idx}`} className="px-2 text-ink-soft">
+                                <span key={`ellipsis-${idx}`} className="px-2 text-ink-soft ">
                                     …
                                 </span>
                             );
@@ -129,7 +129,7 @@ export default function Pagination({
                                 disabled={disabled}
                                 aria-current={isActive ? "page" : undefined}
                                 className={`
-                  h-9 w-9 rounded-lg text-[12px] font-medium transition-colors
+                  h-9 w-9 rounded-lg text-[12px] font-medium transition-colors cursor-pointer
                   ${isActive
                                         ? "bg-blue-deep text-white"
                                         : "border border-line bg-white text-ink hover:bg-gray-50 disabled:cursor-not-allowed"
@@ -149,7 +149,7 @@ export default function Pagination({
                     aria-label="Next page"
                     className="flex items-center gap-1 rounded-lg border border-line bg-white px-3 py-2 text-[12px] font-medium text-ink transition-colors hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                    <span className="hidden sm:inline">Next</span>
+                    <span className="hidden sm:inline cursor-pointer">Next</span>
                     <ChevronRight className="h-4 w-4" />
                 </button>
             </nav>
