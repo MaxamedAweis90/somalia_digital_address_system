@@ -147,7 +147,7 @@ npm install
 npm run dev
 ```
 
-The app runs at **http://localhost:5173**.
+The app runs at **http://localhost:5173**. `/login` is the sole public entry point; unauthenticated users visiting `/` or any unknown route are redirected to `/login`.
 
 The Vite dev server proxies `/api` requests to the backend at `http://localhost:5000`, so cookies work correctly in development.
 

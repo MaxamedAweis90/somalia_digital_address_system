@@ -7,6 +7,7 @@ import { validateStatus } from "../utils/validation.utils.js";
 const zoneFromSql = Prisma.sql`
   FROM zones z
   INNER JOIN districts d ON d.id = z.district_id
+  INNER JOIN regions r ON r.id = d.region_id
 `;
 
 async function fetchZoneById(id) {
@@ -26,7 +27,12 @@ async function fetchZoneById(id) {
       json_build_object(
         'id', d.id,
         'name', d.name,
-        'code', d.code
+        'code', d.code,
+        'region', json_build_object(
+          'id', r.id,
+          'name', r.name,
+          'code', r.code
+        )
       ) AS district
     ${zoneFromSql}
     WHERE z.id = ${id}
@@ -116,7 +122,12 @@ export const ZoneService = {
         json_build_object(
           'id', d.id,
           'name', d.name,
-          'code', d.code
+          'code', d.code,
+          'region', json_build_object(
+            'id', r.id,
+            'name', r.name,
+            'code', r.code
+          )
         ) AS district
       ${zoneFromSql}
       ${whereClause}

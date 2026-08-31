@@ -1,9 +1,17 @@
 import { ZoneBlockService } from "../service/zone-block.service.js";
+import { AuditLogService } from "../service/auditLog.service.js";
 import { getErrorMessage } from "../utils/prisma-error.utils.js";
 
 export const createZoneBlock = async (req, res) => {
   try {
     const zoneBlock = await ZoneBlockService.createZoneBlock(req.body);
+
+    await AuditLogService.logSafe({
+      userId: req.user?.id,
+      action: `Created Zone Block: ${zoneBlock.name} (${zoneBlock.code})`,
+      actionType: "CREATE",
+      entityId: zoneBlock.id,
+    });
 
     return res.status(201).json({
       success: true,
@@ -56,6 +64,13 @@ export const updateZoneBlock = async (req, res) => {
   try {
     const zoneBlock = await ZoneBlockService.updateZoneBlock(req.params.id, req.body);
 
+    await AuditLogService.logSafe({
+      userId: req.user?.id,
+      action: `Updated Zone Block: ${zoneBlock.name} (${zoneBlock.code})`,
+      actionType: "UPDATE",
+      entityId: zoneBlock.id,
+    });
+
     return res.status(200).json({
       success: true,
       message: "Zone block updated successfully",
@@ -73,6 +88,13 @@ export const updateZoneBlock = async (req, res) => {
 export const deleteZoneBlock = async (req, res) => {
   try {
     const result = await ZoneBlockService.deleteZoneBlock(req.params.id);
+
+    await AuditLogService.logSafe({
+      userId: req.user?.id,
+      action: `Deleted Zone Block: ${result.name || req.params.id}`,
+      actionType: "DELETE",
+      entityId: req.params.id,
+    });
 
     return res.status(200).json({
       success: true,

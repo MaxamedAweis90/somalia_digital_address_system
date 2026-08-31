@@ -10,14 +10,15 @@ import AssignmentStatusBadge, {
 import Breadcrumb from "@/components/ui/Breadcrumb";
 import PageHeader from "@/components/ui/PageHeader";
 
-function getChildProgress(assignment) {
+function formatProgress(assignment) {
   const children = assignment.children || [];
-  if (!children.length) return "—";
   const approved = children.filter((child) => child.status === "APPROVED").length;
   const submitted = children.filter((child) =>
     ["SUBMITTED", "APPROVED"].includes(child.status)
   ).length;
-  return `${approved}/${children.length} approved · ${submitted}/${children.length} submitted`;
+  const expected = assignment.expectedCollectorCount || children.length;
+
+  return `${children.length}/${expected} delegated · ${approved} approved · ${submitted} submitted`;
 }
 
 export default function Assignments() {
@@ -129,20 +130,20 @@ export default function Assignments() {
                     Status
                   </th>
                   <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
-                    Team Progress
-                  </th>
-                  <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
                     Draft Items
                   </th>
                   <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
                     Due
+                  </th>
+                  <th className="px-5 py-4 text-right text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
+                    Actions
                   </th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={7} className="px-5 py-12 text-center">
+                    <td colSpan={8} className="px-5 py-12 text-center">
                       <Loader2 className="mx-auto h-5 w-5 animate-spin text-blue" />
                     </td>
                   </tr>
@@ -177,9 +178,6 @@ export default function Assignments() {
                       <td className="px-5 py-4">
                         <AssignmentStatusBadge status={assignment.status} />
                       </td>
-                      <td className="px-5 py-4 text-[12px] text-ink-soft">
-                        {getChildProgress(assignment)}
-                      </td>
                       <td className="px-5 py-4 text-[12px] text-ink">
                         {getAssignmentDraftCount(assignment)}
                       </td>
@@ -188,11 +186,25 @@ export default function Assignments() {
                           ? new Date(assignment.dueAt).toLocaleDateString()
                           : "—"}
                       </td>
+                      <td className="px-5 py-4">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              navigate(`/admin/assignments/${assignment.id}`);
+                            }}
+                            className="h-[32px] rounded-md border border-line bg-white px-3 text-[11px] font-semibold text-ink transition-all hover:bg-bg cursor-pointer"
+                          >
+                            View
+                          </button>
+                        </div>
+                      </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={7} className="px-5 py-12 text-center">
+                    <td colSpan={8} className="px-5 py-12 text-center">
                       <p className="text-[13px] font-medium text-ink">No assignments yet</p>
                       <p className="mt-1 text-[12px] text-ink-soft">
                         Create an assignment to have an officer complete field work in a zone or zone block.

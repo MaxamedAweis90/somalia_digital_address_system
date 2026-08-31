@@ -1,9 +1,18 @@
 import { DataCollectorService } from "../service/data-collector.service.js";
+import { AuditLogService } from "../service/auditLog.service.js";
 import { getErrorMessage } from "../utils/prisma-error.utils.js";
 
 export const createCollector = async (req, res) => {
   try {
     const collector = await DataCollectorService.createCollector(req.user.id, req.body);
+
+    await AuditLogService.logSafe({
+      userId: req.user.id,
+      action: `Officer created collector account for ${collector.name} (${collector.email})`,
+      actionType: "CREATE",
+      entityId: collector.id,
+    });
+
     return res.status(201).json({
       success: true,
       message: "Data collector created successfully",
@@ -40,6 +49,14 @@ export const updateCollector = async (req, res) => {
       req.user.id,
       req.body
     );
+
+    await AuditLogService.logSafe({
+      userId: req.user.id,
+      action: `Officer updated collector account for ${collector.name} (${collector.email})`,
+      actionType: "UPDATE",
+      entityId: collector.id,
+    });
+
     return res.status(200).json({
       success: true,
       message: "Data collector updated successfully",
@@ -54,6 +71,14 @@ export const updateCollector = async (req, res) => {
 export const regenerateCollectorPassword = async (req, res) => {
   try {
     const result = await DataCollectorService.regeneratePassword(req.params.id, req.user.id);
+
+    await AuditLogService.logSafe({
+      userId: req.user.id,
+      action: `Officer regenerated password for collector ${result.collector?.name || req.params.id}`,
+      actionType: "UPDATE",
+      entityId: req.params.id,
+    });
+
     return res.status(200).json({
       success: true,
       message: "Temporary password generated",

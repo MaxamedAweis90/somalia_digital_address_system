@@ -1,4 +1,5 @@
 import { SettingsService } from "../service/settings.service.js";
+import { AuditLogService } from "../service/auditLog.service.js";
 import { getErrorMessage } from "../utils/prisma-error.utils.js";
 
 export const getSettings = async (req, res) => {
@@ -38,6 +39,13 @@ export const createSetting = async (req, res) => {
   try {
     const setting = await SettingsService.createSetting(req.body);
 
+    await AuditLogService.logSafe({
+      userId: req.user?.id,
+      action: `Created system setting: ${setting.label || setting.key} (${setting.key} = "${setting.value}")`,
+      actionType: "CREATE",
+      entityId: setting.id,
+    });
+
     return res.status(201).json({
       success: true,
       message: "Setting created successfully",
@@ -54,6 +62,13 @@ export const createSetting = async (req, res) => {
 export const updateSetting = async (req, res) => {
   try {
     const setting = await SettingsService.updateSetting(req.params.id, req.body);
+
+    await AuditLogService.logSafe({
+      userId: req.user?.id,
+      action: `Updated system setting: ${setting.label || setting.key} (${setting.key} = "${setting.value}")`,
+      actionType: "UPDATE",
+      entityId: setting.id,
+    });
 
     return res.status(200).json({
       success: true,
@@ -72,6 +87,13 @@ export const updateSetting = async (req, res) => {
 export const deleteSetting = async (req, res) => {
   try {
     const result = await SettingsService.deleteSetting(req.params.id);
+
+    await AuditLogService.logSafe({
+      userId: req.user?.id,
+      action: `Deleted system setting: ${result.key || req.params.id}`,
+      actionType: "DELETE",
+      entityId: req.params.id,
+    });
 
     return res.status(200).json({
       success: true,

@@ -1,0 +1,383 @@
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { Loader2 } from "lucide-react";
+import {
+  getDataCollectorById,
+  updateDataCollector,
+} from "@/api/dataCollectorApi";
+import { getDataOfficers } from "@/api/dataOfficerApi";
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+export default function EditDataCollector() {
+  const navigate = useNavigate();
+  const { id } = useParams();
+
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    supervisorId: "",
+    password: "",
+    confirmPassword: "",
+  });
+
+  const [officers, setOfficers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [errors, setErrors] = useState({});
+  const [serverError, setServerError] = useState(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        setServerError(null);
+
+        const [collectorRes, officersRes] = await Promise.all([
+          getDataCollectorById(id),
+          getDataOfficers(),
+        ]);
+
+        const collector = collectorRes.data.data;
+        const officersList = officersRes.data.data || [];
+
+        setOfficers(officersList);
+        setFormData({
+          name: collector.name || "",
+          email: collector.email || "",
+          supervisorId: collector.supervisorId || collector.supervisor?.id || "",
+          password: "",
+          confirmPassword: "",
+        });
+      } catch (err) {
+        setServerError(
+          err.response?.data?.message ||
+            "Failed to load collector details. Please try again."
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [id]);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    setErrors((prev) => ({ ...prev, [name]: "" }));
+    setServerError(null);
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+    let isValid = true;
+
+    if (!formData.name.trim()) {
+      newErrors.name = "Full name is required";
+      isValid = false;
+    } else if (formData.name.trim().length < 2) {
+      newErrors.name = "Full name must be at least 2 characters";
+      isValid = false;
+    }
+
+    if (!formData.email.trim()) {
+      newErrors.email = "Email address is required";
+      isValid = false;
+    } else if (!EMAIL_REGEX.test(formData.email.trim())) {
+      newErrors.email = "Please enter a valid email address";
+      isValid = false;
+    }
+
+    if (!formData.supervisorId) {
+      newErrors.supervisorId = "Supervising data officer is required";
+      isValid = false;
+    }
+
+    if (formData.password) {
+      if (formData.password.length < 8) {
+        newErrors.password = "Password must be at least 8 characters long";
+        isValid = false;
+      } else if (
+        !/[A-Za-z]/.test(formData.password) ||
+        !/[0-9]/.test(formData.password)
+      ) {
+        newErrors.password =
+          "Password must contain at least one letter and one number";
+        isValid = false;
+      }
+
+      if (formData.password !== formData.confirmPassword) {
+        newErrors.confirmPassword = "Passwords do not match";
+        isValid = false;
+      }
+    }
+
+    setErrors(newErrors);
+    return isValid;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!validateForm()) return;
+
+    try {
+      setSaving(true);
+      setServerError(null);
+
+      const payload = {
+        name: formData.name.trim(),
+        email: formData.email.trim().toLowerCase(),
+        supervisorId: formData.supervisorId,
+      };
+
+      if (formData.password) {
+        payload.password = formData.password;
+      }
+
+      await updateDataCollector(id, payload);
+      navigate("/admin/data-collectors");
+    } catch (error) {
+      setServerError(
+        error.response?.data?.message ||
+          "Failed to update data collector. Please try again."
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-bg font-sans flex items-center justify-center p-6">
+        <div className="flex flex-col items-center gap-2">
+          <Loader2 className="h-6 w-6 animate-spin text-blue-deep" />
+          <p className="text-[13px] text-ink-soft">Loading collector details...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-bg font-sans">
+      <div className="px-4 sm:px-6 lg:px-5 pt-5 pb-10">
+        <div className="flex items-center gap-2 text-[11px] font-medium text-ink-soft mb-6">
+          <span
+            onClick={() => navigate("/admin/dashboard")}
+            className="hover:text-blue cursor-pointer"
+          >
+            Dashboard
+          </span>
+          <span className="text-gray-400">›</span>
+          <span
+            onClick={() => navigate("/admin/data-collectors")}
+            className="hover:text-blue cursor-pointer"
+          >
+            Data Collectors
+          </span>
+          <span className="text-gray-400">›</span>
+          <span className="text-ink font-semibold">Edit Data Collector</span>
+        </div>
+
+        <div className="mb-6">
+          <h1 className="font-display text-[25px] font-semibold tracking-tight text-ink">
+            Edit Data Collector
+          </h1>
+          <p className="mt-1 text-[13px] text-ink-soft">
+            Update account details or reassign supervising officer.
+          </p>
+        </div>
+
+        {serverError && (
+          <div className="mb-6 max-w-[635px] rounded-lg bg-red-50 p-4 border border-red-200 text-red-700 text-sm">
+            {serverError}
+          </div>
+        )}
+
+        <div className="w-full max-w-[635px] bg-white border border-line rounded-xl shadow-card-sm overflow-hidden">
+          <div className="px-5 py-5 border-b border-line">
+            <h2 className="text-[18px] font-semibold text-ink">
+              Update Information
+            </h2>
+            <p className="mt-1 text-[13px] text-ink-soft">
+              Modify officer assignment or collector profile fields.
+            </p>
+          </div>
+
+          <form onSubmit={handleSubmit}>
+            <div className="px-5 pt-5 pb-4 space-y-4">
+              <div>
+                <label
+                  htmlFor="name"
+                  className="block text-[12px] font-semibold text-ink mb-2"
+                >
+                  Full Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  id="name"
+                  name="name"
+                  type="text"
+                  value={formData.name}
+                  onChange={handleChange}
+                  placeholder="e.g. Hassan Jama"
+                  className={`w-full h-[38px] rounded-lg border bg-white px-3 text-[13px] text-ink outline-none transition-all placeholder:text-gray-400 focus:ring-2 focus:ring-blue/10 ${
+                    errors.name
+                      ? "border-red-400 focus:border-red-400"
+                      : "border-[#B9C2CE] focus:border-blue"
+                  }`}
+                />
+                {errors.name && (
+                  <p className="mt-1.5 text-[11px] text-red-500">
+                    {errors.name}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label
+                  htmlFor="email"
+                  className="block text-[12px] font-semibold text-ink mb-2"
+                >
+                  Official Email <span className="text-red-500">*</span>
+                </label>
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  placeholder="collector@organization.so"
+                  className={`w-full h-[38px] rounded-lg border bg-white px-3 text-[13px] text-ink outline-none transition-all placeholder:text-gray-400 focus:ring-2 focus:ring-blue/10 ${
+                    errors.email
+                      ? "border-red-400 focus:border-red-400"
+                      : "border-[#B9C2CE] focus:border-blue"
+                  }`}
+                />
+                {errors.email && (
+                  <p className="mt-1.5 text-[11px] text-red-500">
+                    {errors.email}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label
+                  htmlFor="supervisorId"
+                  className="block text-[12px] font-semibold text-ink mb-2"
+                >
+                  Supervising Data Officer <span className="text-red-500">*</span>
+                </label>
+                <select
+                  id="supervisorId"
+                  name="supervisorId"
+                  value={formData.supervisorId}
+                  onChange={handleChange}
+                  className={`w-full h-[38px] rounded-lg border bg-white px-3 text-[13px] text-ink outline-none transition-all focus:ring-2 focus:ring-blue/10 ${
+                    errors.supervisorId
+                      ? "border-red-400 focus:border-red-400"
+                      : "border-[#B9C2CE] focus:border-blue"
+                  }`}
+                >
+                  <option value="">-- Select Supervising Officer --</option>
+                  {officers.map((officer) => (
+                    <option key={officer.id} value={officer.id}>
+                      {officer.name} ({officer.email})
+                    </option>
+                  ))}
+                </select>
+                {errors.supervisorId && (
+                  <p className="mt-1.5 text-[11px] text-red-500">
+                    {errors.supervisorId}
+                  </p>
+                )}
+              </div>
+
+              <div className="pt-2 border-t border-line">
+                <p className="text-[12px] font-semibold text-ink mb-1">
+                  Change Password (Optional)
+                </p>
+                <p className="text-[11px] text-ink-soft mb-3">
+                  Leave blank if you do not wish to change the current password.
+                </p>
+
+                <div className="space-y-3">
+                  <div>
+                    <label
+                      htmlFor="password"
+                      className="block text-[12px] font-medium text-ink-soft mb-1"
+                    >
+                      New Password
+                    </label>
+                    <input
+                      id="password"
+                      name="password"
+                      type="password"
+                      value={formData.password}
+                      onChange={handleChange}
+                      placeholder="Enter new password"
+                      className={`w-full h-[38px] rounded-lg border bg-white px-3 text-[13px] text-ink outline-none transition-all placeholder:text-gray-400 focus:ring-2 focus:ring-blue/10 ${
+                        errors.password
+                          ? "border-red-400 focus:border-red-400"
+                          : "border-[#B9C2CE] focus:border-blue"
+                      }`}
+                    />
+                    {errors.password && (
+                      <p className="mt-1.5 text-[11px] text-red-500">
+                        {errors.password}
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="confirmPassword"
+                      className="block text-[12px] font-medium text-ink-soft mb-1"
+                    >
+                      Confirm New Password
+                    </label>
+                    <input
+                      id="confirmPassword"
+                      name="confirmPassword"
+                      type="password"
+                      value={formData.confirmPassword}
+                      onChange={handleChange}
+                      placeholder="Confirm new password"
+                      className={`w-full h-[38px] rounded-lg border bg-white px-3 text-[13px] text-ink outline-none transition-all placeholder:text-gray-400 focus:ring-2 focus:ring-blue/10 ${
+                        errors.confirmPassword
+                          ? "border-red-400 focus:border-red-400"
+                          : "border-[#B9C2CE] focus:border-blue"
+                      }`}
+                    />
+                    {errors.confirmPassword && (
+                      <p className="mt-1.5 text-[11px] text-red-500">
+                        {errors.confirmPassword}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 px-5 py-4 bg-[#FBFBFC] border-t border-line">
+              <button
+                type="button"
+                onClick={() => navigate("/admin/data-collectors")}
+                disabled={saving}
+                className="h-[36px] px-4 rounded-lg border border-line bg-white text-[12px] font-semibold text-ink-soft hover:bg-bg transition-all cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={saving}
+                className="h-[36px] px-5 rounded-lg bg-blue-deep text-[12px] font-semibold text-white hover:bg-[#0F2B4D] transition-all shadow-cta cursor-pointer disabled:opacity-50"
+              >
+                {saving ? "Saving..." : "Save Changes"}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -28,25 +28,190 @@ const SOMALI_OFFICIAL_REGIONS = [
   { name: "Woqooyi Galbeed", code: "WQG" },
 ];
 
+const DISTRICTS_BY_REGION = {
+  AWD: [
+    { name: "Baki", code: "SO1102" },
+    { name: "Borama", code: "SO1101" },
+    { name: "Lughaye", code: "SO1103" },
+    { name: "Zeylac", code: "SO1104" },
+  ],
+  BKL: [
+    { name: "Ceel Barde", code: "SO2502" },
+    { name: "Rab Dhuure", code: "SO2505" },
+    { name: "Tayeeglow", code: "SO2503" },
+    { name: "Waajid", code: "SO2504" },
+    { name: "Xudur", code: "SO2501" },
+  ],
+  BND: [
+    { name: "Bondhere", code: "SO2201" },
+    { name: "Cabdulasis", code: "SO2202" },
+    { name: "Daynile", code: "SO2203" },
+    { name: "Dharkenley", code: "SO2204" },
+    { name: "Hamar Jabjab", code: "SO2205" },
+    { name: "Hamar Weyne", code: "SO2206" },
+    { name: "Hawl Wadaag", code: "SO2207" },
+    { name: "Heliwa", code: "SO2208" },
+    { name: "Hodan", code: "SO2209" },
+    { name: "Kahda", code: "SO2210" },
+    { name: "Karaan", code: "SO2211" },
+    { name: "Shangaani", code: "SO2212" },
+    { name: "Shibis", code: "SO2213" },
+    { name: "Unspecified", code: "SO2200" },
+    { name: "Waaberi", code: "SO2214" },
+    { name: "Wadajir (Medina)", code: "SO2215" },
+    { name: "Wardhigley", code: "SO2216" },
+    { name: "Yaaqshid", code: "SO2217" },
+  ],
+  BAR: [
+    { name: "Bandarbeyla", code: "SO1602" },
+    { name: "Bossaso", code: "SO1601" },
+    { name: "Caluula", code: "SO1603" },
+    { name: "Iskushuban", code: "SO1604" },
+    { name: "Qandala", code: "SO1605" },
+    { name: "Qardho", code: "SO1606" },
+  ],
+  BAY: [
+    { name: "Baydhaba", code: "SO2401" },
+    { name: "Buur Hakaba", code: "SO2402" },
+    { name: "Diinsoor", code: "SO2403" },
+    { name: "Qansax Dheere", code: "SO2404" },
+  ],
+  GLG: [
+    { name: "Cabudwaaq", code: "SO1902" },
+    { name: "Cadaado", code: "SO1903" },
+    { name: "Ceel Buur", code: "SO1904" },
+    { name: "Ceel Dheer", code: "SO1905" },
+    { name: "Dhuusamarreeb", code: "SO1901" },
+  ],
+  GED: [
+    { name: "Baardheere", code: "SO2602" },
+    { name: "Belet Xaawo", code: "SO2603" },
+    { name: "Ceel Waaq", code: "SO2604" },
+    { name: "Doolow", code: "SO2605" },
+    { name: "Garbahaarey", code: "SO2601" },
+    { name: "Luuq", code: "SO2606" },
+  ],
+  HIR: [
+    { name: "Belet Weyne", code: "SO2001" },
+    { name: "Bulo Burto", code: "SO2002" },
+    { name: "Jalalaqsi", code: "SO2003" },
+  ],
+  JHS: [
+    { name: "Afmadow", code: "SO2802" },
+    { name: "Badhaadhe", code: "SO2803" },
+    { name: "Jamaame", code: "SO2804" },
+    { name: "Kismaayo", code: "SO2801" },
+  ],
+  SHS: [
+    { name: "Afgooye", code: "SO2302" },
+    { name: "Baraawe", code: "SO2303" },
+    { name: "Kurtunwaarey", code: "SO2304" },
+    { name: "Marka", code: "SO2301" },
+    { name: "Qoryooley", code: "SO2305" },
+    { name: "Sablaale", code: "SO2306" },
+    { name: "Wanla Weyn", code: "SO2307" },
+  ],
+  JDX: [
+    { name: "Bu'aale", code: "SO2701" },
+    { name: "Jilib", code: "SO2702" },
+    { name: "Saakow", code: "SO2703" },
+  ],
+  SDX: [
+    { name: "Adan Yabaal", code: "SO2102" },
+    { name: "Balcad", code: "SO2103" },
+    { name: "Cadale", code: "SO2104" },
+    { name: "Jowhar", code: "SO2101" },
+  ],
+  MDG: [
+    { name: "Gaalkacyo", code: "SO1801" },
+    { name: "Galdogob", code: "SO1802" },
+    { name: "Hobyo", code: "SO1803" },
+    { name: "Jariiban", code: "SO1804" },
+    { name: "Xarardheere", code: "SO1805" },
+  ],
+  NGL: [
+    { name: "Burtinle", code: "SO1702" },
+    { name: "Eyl", code: "SO1703" },
+    { name: "Garoowe", code: "SO1701" },
+  ],
+  SNG: [
+    { name: "Ceel Afweyn", code: "SO1502" },
+    { name: "Ceerigaabo", code: "SO1501" },
+    { name: "Laasqoray", code: "SO1503" },
+  ],
+  SOL: [
+    { name: "Caynabo", code: "SO1402" },
+    { name: "Laas Caanood", code: "SO1401" },
+    { name: "Taleex", code: "SO1403" },
+    { name: "Xudun", code: "SO1404" },
+  ],
+  TGD: [
+    { name: "Burco", code: "SO1301" },
+    { name: "Buuhoodle", code: "SO1302" },
+    { name: "Owdweyne", code: "SO1303" },
+    { name: "Sheikh", code: "SO1304" },
+  ],
+  WQG: [
+    { name: "Berbera", code: "SO1202" },
+    { name: "Gebiley", code: "SO1203" },
+    { name: "Hargeysa", code: "SO1201" },
+  ],
+};
+
 async function withRetry(operation, { retries = 3, delayMs = 2_000 } = {}) {
   let lastError;
-
   for (let attempt = 1; attempt <= retries; attempt += 1) {
     try {
       return await operation();
     } catch (error) {
       lastError = error;
-
       if (attempt === retries || error.code !== "ETIMEDOUT") {
         throw error;
       }
-
       console.log(`Connection timed out. Retrying (${attempt}/${retries})...`);
       await new Promise((resolve) => setTimeout(resolve, delayMs));
     }
   }
-
   throw lastError;
+}
+
+async function upsertUser(email, data) {
+  const existing = await prisma.user.findFirst({ where: { email } });
+  if (existing) {
+    return prisma.user.update({
+      where: { id: existing.id },
+      data,
+    });
+  }
+  return prisma.user.create({
+    data: { email, ...data },
+  });
+}
+
+async function upsertRegion(code, data) {
+  const existing = await prisma.region.findFirst({ where: { code } });
+  if (existing) {
+    return prisma.region.update({
+      where: { id: existing.id },
+      data,
+    });
+  }
+  return prisma.region.create({
+    data: { code, ...data },
+  });
+}
+
+async function upsertDistrict(code, data) {
+  const existing = await prisma.district.findFirst({ where: { code } });
+  if (existing) {
+    return prisma.district.update({
+      where: { id: existing.id },
+      data,
+    });
+  }
+  return prisma.district.create({
+    data: { code, ...data },
+  });
 }
 
 async function main() {
@@ -56,386 +221,69 @@ async function main() {
 
   // 1. Seed Super Admin
   const adminUser = await withRetry(() =>
-    prisma.user.upsert({
-      where: { email: "admin@somalia.gov.so" },
-      update: { role: "SYS_ADMIN" },
-      create: {
-        name: "Ahmed Admin",
-        email: "admin@somalia.gov.so",
-        password: hashedPassword,
-        role: "SYS_ADMIN",
-      },
+    upsertUser("admin@somalia.gov.so", {
+      name: "Ahmed Admin",
+      password: hashedPassword,
+      role: "SYS_ADMIN",
     })
   );
   console.log("✅ Admin user seeded:", adminUser.email);
 
   // 2. Seed Data Officer
   const officerUser = await withRetry(() =>
-    prisma.user.upsert({
-      where: { email: "officer@somalia.gov.so" },
-      update: { role: "DATA_OFFICER" },
-      create: {
-        name: "Farah Data Officer",
-        email: "officer@somalia.gov.so",
-        password: hashedPassword,
-        role: "DATA_OFFICER",
-      },
+    upsertUser("officer@somalia.gov.so", {
+      name: "Farah Data Officer",
+      password: hashedPassword,
+      role: "DATA_OFFICER",
     })
   );
   console.log("✅ Data Officer user seeded:", officerUser.email);
 
   const collectorOne = await withRetry(() =>
-    prisma.user.upsert({
-      where: { email: "collector1@somalia.gov.so" },
-      update: { role: "DATA_COLLECTOR", supervisorId: officerUser.id },
-      create: {
-        name: "Amina Collector",
-        email: "collector1@somalia.gov.so",
-        password: hashedPassword,
-        role: "DATA_COLLECTOR",
-        supervisorId: officerUser.id,
-      },
+    upsertUser("collector1@somalia.gov.so", {
+      name: "Amina Collector",
+      password: hashedPassword,
+      role: "DATA_COLLECTOR",
+      supervisorId: officerUser.id,
     })
   );
 
   const collectorTwo = await withRetry(() =>
-    prisma.user.upsert({
-      where: { email: "collector2@somalia.gov.so" },
-      update: { role: "DATA_COLLECTOR", supervisorId: officerUser.id },
-      create: {
-        name: "Hassan Collector",
-        email: "collector2@somalia.gov.so",
-        password: hashedPassword,
-        role: "DATA_COLLECTOR",
-        supervisorId: officerUser.id,
-      },
+    upsertUser("collector2@somalia.gov.so", {
+      name: "Hassan Collector",
+      password: hashedPassword,
+      role: "DATA_COLLECTOR",
+      supervisorId: officerUser.id,
     })
   );
   console.log("✅ Data Collectors seeded:", collectorOne.email, collectorTwo.email);
 
-  // 3. Seed 18 Official Somali Regions
-  let createdCount = 0;
+  // 3. Seed 18 official Somali regions and all 91 districts
+  let regionCount = 0;
+  let districtCount = 0;
   for (const reg of SOMALI_OFFICIAL_REGIONS) {
-    await withRetry(() =>
-      prisma.region.upsert({
-        where: { code: reg.code },
-        update: { name: reg.name, status: "ACTIVE" },
-        create: {
-          name: reg.name,
-          code: reg.code,
+    const region = await withRetry(() =>
+      upsertRegion(reg.code, {
+        name: reg.name,
+        status: "ACTIVE",
+      })
+    );
+
+    regionCount += 1;
+    for (const district of DISTRICTS_BY_REGION[reg.code] || []) {
+      await withRetry(() =>
+        upsertDistrict(district.code, {
+          name: district.name,
           status: "ACTIVE",
-        },
-      })
-    );
-    createdCount += 1;
-  }
-  console.log(`✅ ${createdCount} official Somali regions successfully seeded.`);
-
-  const defaultSettings = [
-    {
-      key: "system_name",
-      label: "System Name",
-      value: "Somalia Digital Address System",
-      description: "Official name displayed across the portal.",
-      category: "general",
-      type: "STRING",
-    },
-    {
-      key: "support_email",
-      label: "Support Email",
-      value: "support@somalia.gov.so",
-      description: "Contact email for registry support.",
-      category: "general",
-      type: "STRING",
-    },
-    {
-      key: "dac_house_number_pad",
-      label: "DAC House Number Padding",
-      value: "4",
-      description: "Number of digits used for the house segment in DAC codes.",
-      category: "addressing",
-      type: "NUMBER",
-    },
-    {
-      key: "public_lookup_enabled",
-      label: "Public Address Lookup",
-      value: "true",
-      description: "Allow citizens to search addresses on the public portal.",
-      category: "addressing",
-      type: "BOOLEAN",
-    },
-    {
-      key: "default_map_latitude",
-      label: "Default Map Latitude",
-      value: "2.0469",
-      description: "Default map center latitude (Mogadishu).",
-      category: "maps",
-      type: "NUMBER",
-    },
-    {
-      key: "default_map_longitude",
-      label: "Default Map Longitude",
-      value: "45.3186",
-      description: "Default map center longitude (Mogadishu).",
-      category: "maps",
-      type: "NUMBER",
-    },
-    {
-      key: "maintenance_mode",
-      label: "Maintenance Mode",
-      value: "false",
-      description: "When enabled, non-admin users see a maintenance notice.",
-      category: "system",
-      type: "BOOLEAN",
-    },
-  ];
-
-  for (const setting of defaultSettings) {
-    await withRetry(() =>
-      prisma.appSetting.upsert({
-        where: { key: setting.key },
-        update: {
-          label: setting.label,
-          description: setting.description,
-          category: setting.category,
-          type: setting.type,
-        },
-        create: {
-          ...setting,
-          isSystem: true,
-        },
-      })
-    );
-  }
-
-  console.log(`✅ ${defaultSettings.length} system settings seeded.`);
-
-  const banaadir = await withRetry(() =>
-    prisma.region.findUnique({ where: { code: "BND" } })
-  );
-
-  if (banaadir) {
-    const district = await withRetry(() =>
-      prisma.district.upsert({
-        where: { code: "HOD" },
-        update: { name: "Hodan", status: "ACTIVE", regionId: banaadir.id },
-        create: {
-          name: "Hodan",
-          code: "HOD",
-          status: "ACTIVE",
-          regionId: banaadir.id,
-        },
-      })
-    );
-
-    const zoneGeometry = {
-      type: "Polygon",
-      coordinates: [
-        [
-          [45.308, 2.038],
-          [45.328, 2.038],
-          [45.328, 2.056],
-          [45.308, 2.056],
-          [45.308, 2.038],
-        ],
-      ],
-    };
-
-    const existingZone = await withRetry(() =>
-      prisma.zone.findUnique({ where: { code: "TLX" } })
-    );
-
-    const zoneId = existingZone?.id || "seed-zone-taleex";
-
-    if (existingZone) {
-      await withRetry(() =>
-        prisma.$executeRaw`
-          UPDATE zones
-          SET
-            district_id = ${district.id},
-            name = 'Taleex',
-            status = 'ACTIVE'::"Status",
-            geometry = ST_SetSRID(ST_GeomFromGeoJSON(${JSON.stringify(zoneGeometry)}), 4326),
-            updated_at = CURRENT_TIMESTAMP
-          WHERE id = ${zoneId}
-        `
+          regionId: region.id,
+        })
       );
-    } else {
-      await withRetry(() =>
-        prisma.$executeRaw`
-          INSERT INTO zones (
-            id,
-            district_id,
-            name,
-            code,
-            status,
-            geometry,
-            created_at,
-            updated_at
-          )
-          VALUES (
-            ${zoneId},
-            ${district.id},
-            'Taleex',
-            'TLX',
-            'ACTIVE'::"Status",
-            ST_SetSRID(ST_GeomFromGeoJSON(${JSON.stringify(zoneGeometry)}), 4326),
-            CURRENT_TIMESTAMP,
-            CURRENT_TIMESTAMP
-          )
-        `
-      );
+      districtCount += 1;
     }
-
-    const zoneBlockGeometry = {
-      type: "Polygon",
-      coordinates: [
-        [
-          [45.312, 2.042],
-          [45.322, 2.042],
-          [45.322, 2.052],
-          [45.312, 2.052],
-          [45.312, 2.042],
-        ],
-      ],
-    };
-
-    const existingZoneBlock = await withRetry(() =>
-      prisma.zoneBlock.findUnique({ where: { code: "Z01" } })
-    );
-
-    const zoneBlockId = existingZoneBlock?.id || "seed-zone-block-z01";
-
-    if (existingZoneBlock) {
-      await withRetry(() =>
-        prisma.$executeRaw`
-          UPDATE zone_blocks
-          SET
-            zone_id = ${zoneId},
-            name = 'Block 01',
-            status = 'ACTIVE'::"Status",
-            geometry = ST_SetSRID(ST_GeomFromGeoJSON(${JSON.stringify(zoneBlockGeometry)}), 4326),
-            updated_at = CURRENT_TIMESTAMP
-          WHERE id = ${zoneBlockId}
-        `
-      );
-    } else {
-      await withRetry(() =>
-        prisma.$executeRaw`
-          INSERT INTO zone_blocks (
-            id,
-            zone_id,
-            name,
-            code,
-            status,
-            geometry,
-            created_at,
-            updated_at
-          )
-          VALUES (
-            ${zoneBlockId},
-            ${zoneId},
-            'Block 01',
-            'Z01',
-            'ACTIVE'::"Status",
-            ST_SetSRID(ST_GeomFromGeoJSON(${JSON.stringify(zoneBlockGeometry)}), 4326),
-            CURRENT_TIMESTAMP,
-            CURRENT_TIMESTAMP
-          )
-        `
-      );
-    }
-
-    await withRetry(() =>
-      prisma.assignment.upsert({
-        where: { id: "seed-assignment-define-zone-blocks" },
-        update: {
-          type: "DEFINE_ZONE_BLOCKS",
-          tier: "PARENT",
-          status: "ASSIGNED",
-          zoneId,
-          zoneBlockId: null,
-          assignedToId: officerUser.id,
-          assignedById: adminUser.id,
-          payload: { zoneBlocks: [] },
-          notes: "Define remaining zone blocks inside the Taleex zone boundary.",
-        },
-        create: {
-          id: "seed-assignment-define-zone-blocks",
-          type: "DEFINE_ZONE_BLOCKS",
-          tier: "PARENT",
-          status: "ASSIGNED",
-          zoneId,
-          assignedToId: officerUser.id,
-          assignedById: adminUser.id,
-          payload: { zoneBlocks: [] },
-          notes: "Define remaining zone blocks inside the Taleex zone boundary.",
-        },
-      })
-    );
-
-    await withRetry(() =>
-      prisma.assignment.upsert({
-        where: { id: "seed-child-define-zone-blocks-east" },
-        update: {
-          type: "DEFINE_ZONE_BLOCKS",
-          tier: "CHILD",
-          status: "ASSIGNED",
-          parentAssignmentId: "seed-assignment-define-zone-blocks",
-          zoneId,
-          assignedToId: collectorOne.id,
-          assignedById: officerUser.id,
-          mergeOrder: 1,
-          payload: { zoneBlocks: [] },
-          notes: "East sector zone block boundaries.",
-        },
-        create: {
-          id: "seed-child-define-zone-blocks-east",
-          type: "DEFINE_ZONE_BLOCKS",
-          tier: "CHILD",
-          status: "ASSIGNED",
-          parentAssignmentId: "seed-assignment-define-zone-blocks",
-          zoneId,
-          assignedToId: collectorOne.id,
-          assignedById: officerUser.id,
-          mergeOrder: 1,
-          payload: { zoneBlocks: [] },
-          notes: "East sector zone block boundaries.",
-        },
-      })
-    );
-
-    await withRetry(() =>
-      prisma.assignment.upsert({
-        where: { id: "seed-assignment-register-addresses" },
-        update: {
-          type: "REGISTER_ADDRESSES",
-          tier: "PARENT",
-          status: "ASSIGNED",
-          zoneId,
-          zoneBlockId,
-          assignedToId: officerUser.id,
-          assignedById: adminUser.id,
-          payload: { addresses: [] },
-          notes: "Register sample residential addresses inside Block 01.",
-        },
-        create: {
-          id: "seed-assignment-register-addresses",
-          type: "REGISTER_ADDRESSES",
-          tier: "PARENT",
-          status: "ASSIGNED",
-          zoneId,
-          zoneBlockId,
-          assignedToId: officerUser.id,
-          assignedById: adminUser.id,
-          payload: { addresses: [] },
-          notes: "Register sample residential addresses inside Block 01.",
-        },
-      })
-    );
-
-    console.log("✅ Demo zone, zone block, collectors, and assignments seeded for Hodan / Taleex.");
   }
+  console.log(`✅ ${regionCount} official Somali regions successfully seeded.`);
+  console.log(`✅ ${districtCount} districts successfully seeded.`);
+
 }
 
 main()

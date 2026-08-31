@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { getZoneBlockById } from "@/api/zoneBlockApi";
+import { getZoneById } from "@/api/zoneApi";
 import ZoneMapPreview from "@/components/zone-blocks/ZoneMapPreview";
 import { useAuth } from "@/context/AuthContext";
 import { ROLES } from "@/constants/roles";
@@ -30,6 +31,7 @@ export default function ViewZoneBlock() {
   const isAdmin = user?.role === ROLES.SYS_ADMIN;
 
   const [zoneBlock, setZoneBlock] = useState(null);
+  const [zoneGeometry, setZoneGeometry] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -39,7 +41,13 @@ export default function ViewZoneBlock() {
         setLoading(true);
         setError(null);
         const res = await getZoneBlockById(id);
-        setZoneBlock(res.data.data);
+        const data = res.data.data;
+        setZoneBlock(data);
+
+        if (data?.zoneId) {
+          const zoneRes = await getZoneById(data.zoneId);
+          setZoneGeometry(zoneRes.data.data?.geometry || null);
+        }
       } catch (err) {
         setError(err.response?.data?.message || "Failed to load zone block details");
       } finally {
@@ -216,16 +224,16 @@ export default function ViewZoneBlock() {
               <DetailItem
                 label="Created"
                 value={
-                  zone.createdAt
-                    ? new Date(zone.createdAt).toLocaleString()
+                  zoneBlock.createdAt
+                    ? new Date(zoneBlock.createdAt).toLocaleString()
                     : "—"
                 }
               />
               <DetailItem
                 label="Last Updated"
                 value={
-                  zone.updatedAt
-                    ? new Date(zone.updatedAt).toLocaleString()
+                  zoneBlock.updatedAt
+                    ? new Date(zoneBlock.updatedAt).toLocaleString()
                     : "—"
                 }
               />
@@ -234,14 +242,20 @@ export default function ViewZoneBlock() {
 
           <div className="bg-white border border-line rounded-xl shadow-card-sm overflow-hidden">
             <div className="px-5 py-5 border-b border-line">
-              <h2 className="text-[18px] font-semibold text-ink">Zone Block Boundary</h2>
+              <h2 className="text-[18px] font-semibold text-ink">
+                Zone Block Shape
+              </h2>
               <p className="mt-1 text-[13px] text-ink-soft">
-                Geographic shape of the zone block on the map.
+                The zone boundary is shown as a dashed outline and this block is highlighted in blue.
               </p>
             </div>
 
             <div className="p-5">
-              <ZoneMapPreview geometry={zoneBlock.geometry} height="520px" />
+              <ZoneMapPreview
+                geometry={zoneBlock.geometry}
+                parentGeometry={zoneGeometry}
+                height="520px"
+              />
             </div>
           </div>
         </div>

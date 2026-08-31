@@ -8,11 +8,11 @@ import {
   Home,
   Grid3x3,
   MapPin,
-  Search,
   ShieldCheck,
   Settings,
   LogOut,
   UserCog,
+  Users,
   Globe,
   PanelLeftClose,
   PanelLeftOpen,
@@ -27,8 +27,8 @@ const navItems = [
   { to: "/admin/zone-blocks", label: "Zone Blocks", icon: Grid3x3 },
   { to: "/admin/addresses", label: "Addresses", icon: MapPin },
   { to: "/admin/assignments", label: "Assignments", icon: ClipboardList },
-  { to: "/admin/search", label: "Search", icon: Search },
   { to: "/admin/data-officers", label: "Data Officers", icon: UserCog },
+  { to: "/admin/data-collectors", label: "Data Collectors", icon: Users },
   { to: "/admin/audit-logs", label: "Audit Logs", icon: ShieldCheck },
 ];
 

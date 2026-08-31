@@ -284,66 +284,80 @@ export const AddressService = {
     });
   },
 
-  createAddressesFromDraftBatch: async (zoneBlockId, addresses) => {
+  createAddressesFromDraftBatch: async (zoneBlockId, addresses) =>
+    AddressService.createAddressesFromDraftBatches([
+      { zoneBlockId, addresses },
+    ]),
+
+  createAddressesFromDraftBatches: async (batches) => {
     return prisma.$transaction(async (tx) => {
       const created = [];
       const pad = await getHouseNumberPad();
+      const orderedBatches = [...batches].sort((a, b) =>
+        a.zoneBlockId.localeCompare(b.zoneBlockId)
+      );
 
-      const zoneBlock = await tx.zoneBlock.findUnique({
-        where: { id: zoneBlockId },
-        include: {
-          zone: {
-            include: { district: true },
+      for (const batch of orderedBatches) {
+        await tx.$queryRaw`
+          SELECT id FROM zone_blocks WHERE id = ${batch.zoneBlockId} FOR UPDATE
+        `;
+
+        const zoneBlock = await tx.zoneBlock.findUnique({
+          where: { id: batch.zoneBlockId },
+          include: {
+            zone: {
+              include: { district: true },
+            },
           },
-        },
-      });
+        });
 
-      if (!zoneBlock) {
-        throw new Error("Zone block not found");
-      }
-
-      let nextHouse = await getNextHouseNumber(zoneBlockId, tx);
-
-      for (const address of addresses) {
-        if (!address.streetName?.trim()) {
-          throw new Error("Street name is required for every address");
+        if (!zoneBlock) {
+          throw new Error("Zone block not found");
         }
 
-        if (address.latitude === undefined || address.longitude === undefined) {
-          throw new Error("GPS coordinates are required for every address");
-        }
+        let nextHouse = await getNextHouseNumber(batch.zoneBlockId, tx);
 
-        const addressCode = buildDac(
-          {
-            districtCode: zoneBlock.zone.district.code,
-            zoneCode: zoneBlock.zone.code,
-            zoneBlockCode: zoneBlock.code,
-            houseNumber: nextHouse.toString(),
-          },
-          pad
-        );
+        for (const address of batch.addresses) {
+          if (!address.streetName?.trim()) {
+            throw new Error("Street name is required for every address");
+          }
 
-        const createdAddress = await createAddressRecord(
-          {
-            districtId: zoneBlock.zone.districtId,
-            zoneId: zoneBlock.zoneId,
-            zoneBlockId,
-            streetName: address.streetName,
-            description: address.description,
-            latitude: address.latitude,
-            longitude: address.longitude,
-            status: "ACTIVE",
-            houseNumber: nextHouse,
-            addressCode,
-          },
-          tx
-        );
+          if (address.latitude === undefined || address.longitude === undefined) {
+            throw new Error("GPS coordinates are required for every address");
+          }
 
-        created.push(createdAddress);
-        nextHouse += 1n;
+          const addressCode = buildDac(
+            {
+              districtCode: zoneBlock.zone.district.code,
+              zoneCode: zoneBlock.zone.code,
+              zoneBlockCode: zoneBlock.code,
+              houseNumber: nextHouse.toString(),
+            },
+            pad
+          );
 
-        if (nextHouse > BigInt(MAX_HOUSE_NUMBER)) {
-          throw new Error(`Zone block has reached the maximum house number (${MAX_HOUSE_NUMBER})`);
+          const createdAddress = await createAddressRecord(
+            {
+              districtId: zoneBlock.zone.districtId,
+              zoneId: zoneBlock.zoneId,
+              zoneBlockId: batch.zoneBlockId,
+              streetName: address.streetName,
+              description: address.description,
+              latitude: address.latitude,
+              longitude: address.longitude,
+              status: "ACTIVE",
+              houseNumber: nextHouse,
+              addressCode,
+            },
+            tx
+          );
+
+          created.push(createdAddress);
+          nextHouse += 1n;
+
+          if (nextHouse > BigInt(MAX_HOUSE_NUMBER)) {
+            throw new Error(`Zone block has reached the maximum house number (${MAX_HOUSE_NUMBER})`);
+          }
         }
       }
 
