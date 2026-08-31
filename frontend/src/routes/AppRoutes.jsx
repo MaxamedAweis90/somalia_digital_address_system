@@ -77,8 +77,9 @@ export default function AppRoutes() {
         <Route path="regions/add" element={<AddRegion />} />
         <Route path="regions/edit/:id" element={<EditRegion />} />
 
-        {/* District routes (Full CRUD) */}
+        {/* District & Neighborhood routes (Full CRUD) */}
         <Route path="districts" element={<Districts />} />
+        <Route path="neighborhoods" element={<Navigate to="/admin/districts" replace />} />
         <Route path="districts/add" element={<AddDistrict />} />
         <Route path="districts/edit/:id" element={<EditDistrict />} />
         <Route path="districts/:id" element={<EditDistrict />} />

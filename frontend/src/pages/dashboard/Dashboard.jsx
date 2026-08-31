@@ -1,6 +1,6 @@
 
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 import StatCard from "@/components/dashboard/StatCard";
 import RecentActivity from "@/components/dashboard/RecentActivity";
@@ -61,21 +61,25 @@ export default function Dashboard() {
       {
         title: "Total Districts",
         value: formatCount(counts.districts),
+        to: `${basePath}/districts`,
       },
       {
         title: "Total Neighborhoods",
         value: formatCount(counts.neighborhoods),
+        to: `${basePath}/neighborhoods`,
       },
       {
         title: "Total Zones",
         value: formatCount(counts.zones),
+        to: `${basePath}/zones`,
       },
       {
         title: "Total Addresses",
         value: formatCount(counts.addresses),
+        to: `${basePath}/addresses`,
       },
     ];
-  }, [summary]);
+  }, [summary, basePath]);
 
   const recentAddresses = summary?.recentAddresses || [];
   const recentActivity = summary?.recentActivity || [];
@@ -120,6 +124,7 @@ export default function Dashboard() {
               key={stat.title}
               title={stat.title}
               value={stat.value}
+              to={stat.to}
             />
           ))}
         </div>
@@ -128,14 +133,23 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           {/* Recent Addresses */}
           <div className="w-full bg-white border border-line rounded-xl shadow-card-sm overflow-hidden lg:col-span-2">
-            <div className="px-5 py-4 border-b border-line">
-              <h2 className="text-[16px] font-semibold text-ink">
-                Recent Addresses
-              </h2>
+            <div className="px-5 py-4 border-b border-line flex items-center justify-between">
+              <div>
+                <h2 className="text-[16px] font-semibold text-ink">
+                  Recent Addresses
+                </h2>
 
-              <p className="mt-1 text-[12px] text-ink-soft">
-                Latest registered digital addresses.
-              </p>
+                <p className="mt-1 text-[12px] text-ink-soft">
+                  Latest registered digital addresses.
+                </p>
+              </div>
+
+              <Link
+                to={`${basePath}/addresses`}
+                className="text-[12px] font-semibold text-blue-deep hover:underline cursor-pointer"
+              >
+                View All →
+              </Link>
             </div>
 
             <div className="overflow-x-auto">
