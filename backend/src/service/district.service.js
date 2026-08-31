@@ -50,18 +50,22 @@ export const DistrictService = {
       where: regionId ? { regionId } : undefined,
       select: {
         ...districtSelect,
-        _count: { select: { neighborhoods: true } },
+        _count: { select: { zones: true } },
       },
       orderBy: { name: "asc" },
     });
   },
 
   getDistrictById: async (id) => {
+    if (!id || typeof id !== "string" || !id.trim()) {
+      throw new Error("District ID is required");
+    }
+
     const district = await prisma.district.findUnique({
-      where: { id },
+      where: { id: id.trim() },
       select: {
         ...districtSelect,
-        neighborhoods: {
+        zones: {
           select: {
             id: true,
             name: true,
@@ -81,14 +85,21 @@ export const DistrictService = {
   },
 
   updateDistrict: async (id, { regionId, name, code, status }) => {
-    const existing = await prisma.district.findUnique({ where: { id } });
+    if (!id || typeof id !== "string" || !id.trim()) {
+      throw new Error("District ID is required");
+    }
+
+    const existing = await prisma.district.findUnique({ where: { id: id.trim() } });
 
     if (!existing) {
       throw new Error("District not found");
     }
 
     if (regionId) {
-      const region = await prisma.region.findUnique({ where: { id: regionId } });
+      if (typeof regionId !== "string" || !regionId.trim()) {
+        throw new Error("Region ID must be a valid string");
+      }
+      const region = await prisma.region.findUnique({ where: { id: regionId.trim() } });
 
       if (!region) {
         throw new Error("Region not found");
@@ -98,9 +109,9 @@ export const DistrictService = {
     validateStatus(status);
 
     return prisma.district.update({
-      where: { id },
+      where: { id: id.trim() },
       data: {
-        ...(regionId !== undefined && { regionId }),
+        ...(regionId !== undefined && { regionId: regionId.trim() }),
         ...(name !== undefined && { name: name.trim() }),
         ...(code !== undefined && { code: code.trim().toUpperCase() }),
         ...(status !== undefined && { status }),
@@ -110,23 +121,27 @@ export const DistrictService = {
   },
 
   deleteDistrict: async (id) => {
+    if (!id || typeof id !== "string" || !id.trim()) {
+      throw new Error("District ID is required");
+    }
+
     const district = await prisma.district.findUnique({
-      where: { id },
-      include: { _count: { select: { neighborhoods: true } } },
+      where: { id: id.trim() },
+      include: { _count: { select: { zones: true } } },
     });
 
     if (!district) {
       throw new Error("District not found");
     }
 
-    if (district._count.neighborhoods > 0) {
+    if (district._count.zones > 0) {
       throw new Error(
-        "Cannot delete district with existing neighborhoods. Remove neighborhoods first."
+        "Cannot delete district with existing zones. Remove zones first."
       );
     }
 
-    await prisma.district.delete({ where: { id } });
+    await prisma.district.delete({ where: { id: id.trim() } });
 
-    return { id };
+    return { id: id.trim() };
   },
 };

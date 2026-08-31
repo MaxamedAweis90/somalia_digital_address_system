@@ -5,16 +5,22 @@ import {
   deleteAddress,
   getAddressById,
   getAddresses,
+  previewNextAddressCode,
   updateAddress,
 } from "../controllers/address.controller.js";
 
 const AddressRouter = Router();
 
-// Address CRUD operations are accessible to both SYS_ADMIN and DATA_OFFICER
-AddressRouter.post("/", authorize("SYS_ADMIN", "DATA_OFFICER"), createAddress);
+AddressRouter.get(
+  "/preview",
+  authorize("SYS_ADMIN", "DATA_OFFICER", "DATA_COLLECTOR"),
+  previewNextAddressCode
+);
 AddressRouter.get("/", authorize("SYS_ADMIN", "DATA_OFFICER"), getAddresses);
 AddressRouter.get("/:id", authorize("SYS_ADMIN", "DATA_OFFICER"), getAddressById);
-AddressRouter.patch("/:id", authorize("SYS_ADMIN", "DATA_OFFICER"), updateAddress);
-AddressRouter.delete("/:id", authorize("SYS_ADMIN", "DATA_OFFICER"), deleteAddress);
+
+AddressRouter.post("/", authorize("SYS_ADMIN"), createAddress);
+AddressRouter.put("/:id", authorize("SYS_ADMIN"), updateAddress);
+AddressRouter.delete("/:id", authorize("SYS_ADMIN"), deleteAddress);
 
 export default AddressRouter;

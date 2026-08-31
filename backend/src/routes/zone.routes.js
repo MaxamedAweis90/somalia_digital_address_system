@@ -10,13 +10,11 @@ import {
 
 const ZoneRouter = Router();
 
-// Read operations: Available to both SYS_ADMIN and DATA_OFFICER
-ZoneRouter.get("/", authorize("SYS_ADMIN", "DATA_OFFICER"), getZones);
-ZoneRouter.get("/:id", authorize("SYS_ADMIN", "DATA_OFFICER"), getZoneById);
+ZoneRouter.get("/", authorize("SYS_ADMIN", "DATA_OFFICER", "DATA_COLLECTOR"), getZones);
+ZoneRouter.get("/:id", authorize("SYS_ADMIN", "DATA_OFFICER", "DATA_COLLECTOR"), getZoneById);
 
-// Write operations: Strictly restricted to SYS_ADMIN
 ZoneRouter.post("/", authorize("SYS_ADMIN"), createZone);
-ZoneRouter.patch("/:id", authorize("SYS_ADMIN"), updateZone);
+ZoneRouter.put("/:id", authorize("SYS_ADMIN"), updateZone);
 ZoneRouter.delete("/:id", authorize("SYS_ADMIN"), deleteZone);
 
 export default ZoneRouter;

@@ -11,8 +11,8 @@ import {
 const DistrictRouter = Router();
 
 // Read operations: Available to both SYS_ADMIN and DATA_OFFICER for lookups & address forms
-DistrictRouter.get("/", authorize("SYS_ADMIN", "DATA_OFFICER"), getDistricts);
-DistrictRouter.get("/:id", authorize("SYS_ADMIN", "DATA_OFFICER"), getDistrictById);
+DistrictRouter.get("/", authorize("SYS_ADMIN", "DATA_OFFICER", "DATA_COLLECTOR"), getDistricts);
+DistrictRouter.get("/:id", authorize("SYS_ADMIN", "DATA_OFFICER", "DATA_COLLECTOR"), getDistrictById);
 
 // Write operations: Strictly restricted to SYS_ADMIN (Super Admin)
 DistrictRouter.post("/", authorize("SYS_ADMIN"), createDistrict);

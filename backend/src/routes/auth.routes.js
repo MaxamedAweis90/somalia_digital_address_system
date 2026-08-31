@@ -1,15 +1,27 @@
-import { Router } from "express";
-import { getMe, loginUser, logoutUser, registerUser } from "../controllers/auth.controller.js";
-import { protect } from "../middleware/auth.midleware.js";
+import express from "express";
+import {
+  registerUser,
+  loginUser,
+  verifyLoginOtp,
+  resendOtp,
+  logoutUser,
+  getMe,
+} from "../controllers/auth.controller.js";
+import { protect as requireAuth } from "../middleware/auth.midleware.js";
 
-const AuthRouter = Router();
+import {
+  otpVerifyLimiter,
+  loginLimiter,
+  resendLimiter,
+} from "../middleware/rateLimiter.middleware.js";
 
-AuthRouter.post('/register', registerUser)
+const router = express.Router();
 
-AuthRouter.post('/login', loginUser)
+router.post("/register", registerUser);
+router.post("/login", loginLimiter, loginUser);
+router.post("/verify-otp", otpVerifyLimiter, verifyLoginOtp);
+router.post("/resend-otp", resendLimiter, resendOtp);
+router.post("/logout", logoutUser);
+router.get("/me", requireAuth, getMe);
 
-AuthRouter.post('/logout', logoutUser)
-
-AuthRouter.get('/me', protect, getMe)
-
-export default AuthRouter;
+export default router;

@@ -1,213 +1,151 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { createZone } from "@/api/zoneApi";
+import { getDistricts } from "@/api/districtApi";
+import ZoneMapEditor from "@/components/zones/ZoneMapEditor";
 
 export default function AddZone() {
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
     name: "",
-    district: "",
     code: "",
-    status: "Active",
-    description: "",
+    districtId: "",
+    active: true,
   });
+
+  const [districts, setDistricts] = useState([]);
+  const [loadingDistricts, setLoadingDistricts] = useState(true);
+  const [errors, setErrors] = useState({ name: "", code: "", districtId: "" });
+  const [loading, setLoading] = useState(false);
+  const [serverError, setServerError] = useState(null);
+  const [geometry, setGeometry] = useState(null);
+
+  useEffect(() => {
+    getDistricts()
+      .then((res) => {
+        const data = res.data.data || [];
+        setDistricts(data);
+        if (data.length > 0) {
+          setFormData((prev) => ({ ...prev, districtId: data[0].id }));
+        }
+      })
+      .finally(() => setLoadingDistricts(false));
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-
-    setFormData((current) => ({
-      ...current,
-      [name]: value,
-    }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    setErrors((prev) => ({ ...prev, [name]: "" }));
   };
 
-  const handleSubmit = (e) => {
+  const validateForm = () => {
+    const newErrors = { name: "", code: "", districtId: "" };
+    let isValid = true;
+    if (!formData.name.trim()) {
+      newErrors.name = "Zone name is required";
+      isValid = false;
+    }
+    if (!formData.code.trim() || formData.code.trim().length < 2) {
+      newErrors.code = "Zone code is required (min 2 characters)";
+      isValid = false;
+    }
+    if (!formData.districtId) {
+      newErrors.districtId = "Please select a parent district";
+      isValid = false;
+    }
+    setErrors(newErrors);
+    return isValid;
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!validateForm()) return;
 
-    console.log("New Zone:", formData);
-
-    alert("Zone added successfully!");
-
-    navigate(-1);
+    try {
+      setLoading(true);
+      setServerError(null);
+      await createZone({
+        name: formData.name.trim(),
+        code: formData.code.trim().toUpperCase(),
+        districtId: formData.districtId,
+        status: formData.active ? "ACTIVE" : "INACTIVE",
+        geometry: geometry || undefined,
+      });
+      navigate(-1);
+    } catch (error) {
+      setServerError(error.response?.data?.message || "Failed to create zone");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 p-6">
+    <div className="min-h-screen bg-bg font-sans">
+      <div className="px-4 sm:px-6 lg:px-5 pt-5 pb-10">
+        <div className="mb-6">
+          <h1 className="font-display text-[25px] font-semibold tracking-tight text-ink">Add Zone</h1>
+          <p className="mt-1 text-[13px] text-ink-soft">
+            Register a new zone under an administrative district.
+          </p>
+        </div>
 
-      {/* Header */}
-      <div className="mb-6">
+        {serverError && (
+          <div className="mb-6 max-w-[900px] rounded-lg bg-red-50 p-4 border border-red-200 text-red-700 text-sm">
+            {serverError}
+          </div>
+        )}
 
-        <button
-          type="button"
-          onClick={() => navigate(-1)}
-          className="text-sm font-medium text-[#0056B3] hover:underline cursor-pointer"
-        >
-          ← Back to Zones
-        </button>
+        <div className="w-full max-w-[900px] bg-white border border-line rounded-xl shadow-card-sm overflow-hidden">
+          <form onSubmit={handleSubmit}>
+            <div className="px-5 pt-5 pb-4 space-y-4">
+              <div>
+                <label className="block text-[12px] font-semibold text-ink mb-2">Parent District *</label>
+                <select
+                  name="districtId"
+                  value={formData.districtId}
+                  onChange={handleChange}
+                  disabled={loadingDistricts}
+                  className="w-full h-[38px] rounded-lg border border-[#B9C2CE] px-3 text-[13px]"
+                >
+                  {districts.map((d) => (
+                    <option key={d.id} value={d.id}>{d.name} ({d.code})</option>
+                  ))}
+                </select>
+                {errors.districtId && <p className="mt-1 text-[11px] text-red-500">{errors.districtId}</p>}
+              </div>
 
-        <h1 className="mt-4 text-3xl font-bold text-[#172B4D]">
-          Add Zone
-        </h1>
+              <div>
+                <label className="block text-[12px] font-semibold text-ink mb-2">Zone Name *</label>
+                <input name="name" value={formData.name} onChange={handleChange} placeholder="e.g. Taleex"
+                  className="w-full h-[38px] rounded-lg border border-[#B9C2CE] px-3 text-[13px]" />
+                {errors.name && <p className="mt-1 text-[11px] text-red-500">{errors.name}</p>}
+              </div>
 
-        <p className="mt-1 text-gray-500">
-          Create a new zone.
-        </p>
+              <div>
+                <label className="block text-[12px] font-semibold text-ink mb-2">Zone Code *</label>
+                <input name="code" value={formData.code} onChange={(e) => handleChange({ target: { name: "code", value: e.target.value.toUpperCase() } })}
+                  placeholder="e.g. TLX" maxLength={10}
+                  className="w-full h-[38px] rounded-lg border border-[#B9C2CE] px-3 text-[13px]" />
+                {errors.code && <p className="mt-1 text-[11px] text-red-500">{errors.code}</p>}
+              </div>
 
+              <div>
+                <label className="block text-[12px] font-semibold text-ink mb-2">Zone Boundary</label>
+                <p className="mb-3 text-[12px] text-ink-soft">Optional official boundary polygon used to validate zone blocks.</p>
+                <ZoneMapEditor geometry={geometry} onChange={setGeometry} height="420px" boundaryLabel="Zone boundary" />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 px-5 py-4 bg-[#FBFBFC] border-t border-line">
+              <button type="button" onClick={() => navigate(-1)} className="h-[36px] px-4 rounded-lg border border-line text-[12px] cursor-pointer">Cancel</button>
+              <button type="submit" disabled={loading} className="h-[36px] px-5 rounded-lg bg-blue-deep text-white text-[12px] cursor-pointer">
+                {loading ? "Creating..." : "Add Zone"}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
-
-      {/* Form */}
-      <div className="max-w-3xl rounded-xl bg-white p-6 shadow-sm">
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-
-          {/* Zone Name */}
-          <div>
-
-            <label className="mb-2 block text-sm font-semibold text-gray-700">
-              Zone Name
-            </label>
-
-            <input
-              type="text"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              placeholder="Enter zone name"
-              required
-              className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm outline-none focus:border-[#0056B3] focus:ring-1 focus:ring-[#0056B3]"
-            />
-
-          </div>
-
-          {/* District */}
-          <div>
-
-            <label className="mb-2 block text-sm font-semibold text-gray-700">
-              District
-            </label>
-
-            <select
-              name="district"
-              value={formData.district}
-              onChange={handleChange}
-              required
-              className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm outline-none focus:border-[#0056B3] focus:ring-1 focus:ring-[#0056B3]"
-            >
-
-              <option value="">
-                Select District
-              </option>
-
-              <option value="Hodan">
-                Hodan
-              </option>
-
-              <option value="Wadajir">
-                Wadajir
-              </option>
-
-              <option value="Karaan">
-                Karaan
-              </option>
-
-              <option value="Waberi">
-                Waberi
-              </option>
-
-              <option value="Yaqshid">
-                Yaqshid
-              </option>
-
-            </select>
-
-          </div>
-
-          {/* Zone Code */}
-          <div>
-
-            <label className="mb-2 block text-sm font-semibold text-gray-700">
-              Zone Code
-            </label>
-
-            <input
-              type="text"
-              name="code"
-              value={formData.code}
-              onChange={handleChange}
-              placeholder="Example: ZN-004"
-              required
-              className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm uppercase outline-none focus:border-[#0056B3] focus:ring-1 focus:ring-[#0056B3]"
-            />
-
-          </div>
-
-          {/* Status */}
-          <div>
-
-            <label className="mb-2 block text-sm font-semibold text-gray-700">
-              Status
-            </label>
-
-            <select
-              name="status"
-              value={formData.status}
-              onChange={handleChange}
-              className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm outline-none focus:border-[#0056B3] focus:ring-1 focus:ring-[#0056B3]"
-            >
-
-              <option value="Active">
-                Active
-              </option>
-
-              <option value="Inactive">
-                Inactive
-              </option>
-
-            </select>
-
-          </div>
-
-          {/* Description */}
-          <div>
-
-            <label className="mb-2 block text-sm font-semibold text-gray-700">
-              Description
-            </label>
-
-            <textarea
-              name="description"
-              value={formData.description}
-              onChange={handleChange}
-              rows="4"
-              placeholder="Enter zone description..."
-              className="w-full resize-none rounded-lg border border-gray-300 px-4 py-3 text-sm outline-none focus:border-[#0056B3] focus:ring-1 focus:ring-[#0056B3]"
-            />
-
-          </div>
-
-          {/* Buttons */}
-          <div className="flex justify-end gap-3 border-t pt-5">
-
-            <Link
-              to="/admin/zones"
-              className="rounded-lg border border-gray-300 px-5 py-3 text-sm font-semibold text-gray-600 hover:bg-gray-50"
-            >
-              Cancel
-            </Link>
-
-            <button
-              type="submit"
-              className="rounded-lg bg-[#0056B3] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#00458F]"
-            >
-              Add Zone
-            </button>
-
-          </div>
-
-        </form>
-
-      </div>
-
     </div>
   );
 }
