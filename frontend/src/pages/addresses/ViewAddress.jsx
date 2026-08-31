@@ -113,11 +113,11 @@ export default function ViewAddress() {
               <DetailItem label="DAC" value={address.addressCode} />
               <DetailItem label="House Number" value={address.houseNumber} />
               <DetailItem label="District" value={`${address.district?.name} (${address.district?.code})`} />
-              <DetailItem
-                label="Neighborhood"
-                value={`${address.neighborhood?.name} (${address.neighborhood?.code})`}
-              />
               <DetailItem label="Zone" value={`${address.zone?.name} (${address.zone?.code})`} />
+              <DetailItem
+                label="Zone Block"
+                value={`${address.zoneBlock?.name} (${address.zoneBlock?.code})`}
+              />
               <DetailItem label="Street" value={address.streetName} />
               <DetailItem label="Description" value={address.description || "—"} />
               <DetailItem label="GPS Coordinates" value={formatLocationLabel(address.location)} />

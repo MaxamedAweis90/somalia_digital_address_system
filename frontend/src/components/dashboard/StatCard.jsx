@@ -7,8 +7,8 @@ import {
 
 const icons = {
   "Total Districts": Building2,
-  "Total Neighborhoods": Map,
-  "Total Zones": MapPinned,
+  "Total Zones": Map,
+  "Total Zone Blocks": MapPinned,
   "Total Addresses": MapPin,
 };
 

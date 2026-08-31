@@ -1,15 +1,29 @@
 import { prisma } from "../db.js";
 import { validatePolygonGeometry } from "../utils/geojson.utils.js";
-import { ZoneService } from "./zone.service.js";
+import {
+  assertZoneBlocksDoNotOverlap,
+  assertZoneBlocksWithinZone,
+  isPointWithinZoneBlock,
+} from "../utils/geo.validation.utils.js";
+import {
+  assertAdminParentAccess,
+  assertCollectorAccess,
+  assertOfficerParentAccess,
+  assertSupervisedCollector,
+  assertUserRole,
+} from "../utils/assignment-access.utils.js";
+import { AddressService } from "./address.service.js";
+import { ZoneBlockService } from "./zone-block.service.js";
 
 const userSelect = {
   id: true,
   name: true,
   email: true,
+  role: true,
 };
 
 const assignmentInclude = {
-  neighborhood: {
+  zone: {
     include: {
       district: {
         include: {
@@ -20,186 +34,294 @@ const assignmentInclude = {
       },
     },
   },
+  zoneBlock: {
+    select: {
+      id: true,
+      name: true,
+      code: true,
+      status: true,
+      zoneId: true,
+    },
+  },
   assignedTo: { select: userSelect },
   assignedBy: { select: userSelect },
   reviewedBy: { select: userSelect },
+  officerReviewedBy: { select: userSelect },
   parent: {
-    include: {
-      assignedTo: { select: userSelect },
+    select: {
+      id: true,
+      type: true,
+      status: true,
+      assignedToId: true,
     },
   },
   children: {
     include: {
       assignedTo: { select: userSelect },
-      assignedBy: { select: userSelect },
     },
-    orderBy: { createdAt: "asc" },
+    orderBy: [{ mergeOrder: "asc" }, { createdAt: "asc" }],
   },
 };
 
-const EDITABLE_STATUSES = ["ASSIGNED", "IN_PROGRESS", "REJECTED"];
+const COLLECTOR_EDITABLE = ["ASSIGNED", "IN_PROGRESS", "REJECTED"];
+const DEFAULT_PAYLOAD = {
+  DEFINE_ZONE_BLOCKS: { zoneBlocks: [] },
+  REGISTER_ADDRESSES: { addresses: [] },
+};
 
-function formatAssignment(item) {
-  if (!item) return item;
-  const children = item.children || [];
-  const delegatedCount = children.length;
-  const submittedCount = children.filter((c) => c.status === "SUBMITTED").length;
-  const approvedCount = children.filter((c) => c.status === "APPROVED").length;
-  const expectedCollectorCount = item.expectedCollectorCount ?? 1;
-
-  return {
-    ...item,
-    expectedCollectorCount,
-    delegatedCount,
-    submittedCount,
-    approvedCount,
-  };
+function isValidCoordinate(value) {
+  return typeof value === "number" && Number.isFinite(value);
 }
 
-function normalizePayload(payload) {
-  if (!payload || typeof payload !== "object") {
-    return { zones: [] };
-  }
-
-  const zones = Array.isArray(payload.zones) ? payload.zones : [];
-
+function normalizeZoneBlockPayload(payload) {
+  if (!payload || typeof payload !== "object") return { zoneBlocks: [] };
+  const zoneBlocks = Array.isArray(payload.zoneBlocks)
+    ? payload.zoneBlocks
+    : Array.isArray(payload.zones)
+      ? payload.zones
+      : [];
   return {
-    zones: zones.map((zone, index) => ({
-      clientId: zone.clientId || `zone-${index + 1}`,
-      name: zone.name?.trim() || "",
-      code: zone.code?.trim().toUpperCase() || "",
-      status: zone.status === "INACTIVE" ? "INACTIVE" : "ACTIVE",
-      geometry: zone.geometry || null,
+    zoneBlocks: zoneBlocks.map((zoneBlock, index) => ({
+      clientId: zoneBlock.clientId || `block-${index + 1}`,
+      name: zoneBlock.name?.trim() || "",
+      code: zoneBlock.code?.trim().toUpperCase() || "",
+      status: zoneBlock.status === "INACTIVE" ? "INACTIVE" : "ACTIVE",
+      geometry: zoneBlock.geometry || null,
     })),
   };
 }
 
-function validateDraftZones(zones, { requireGeometry = false } = {}) {
-  if (!zones.length) {
-    throw new Error("Add at least one zone before submitting");
-  }
+function normalizeAddressPayload(payload) {
+  if (!payload || typeof payload !== "object") return { addresses: [] };
+  const addresses = Array.isArray(payload.addresses) ? payload.addresses : [];
+  return {
+    addresses: addresses.map((address, index) => ({
+      clientId: address.clientId || `addr-${index + 1}`,
+      streetName: address.streetName?.trim() || "",
+      description: address.description?.trim() || "",
+      latitude:
+        address.latitude === null || address.latitude === undefined
+          ? null
+          : Number(address.latitude),
+      longitude:
+        address.longitude === null || address.longitude === undefined
+          ? null
+          : Number(address.longitude),
+    })),
+  };
+}
 
+function normalizePayload(type, payload) {
+  if (type === "REGISTER_ADDRESSES") return normalizeAddressPayload(payload);
+  return normalizeZoneBlockPayload(payload);
+}
+
+function validateDraftZoneBlocks(zoneBlocks, { requireGeometry = false } = {}) {
+  if (!zoneBlocks.length) throw new Error("Add at least one zone block before submitting");
   const codes = new Set();
-
-  zones.forEach((zone, index) => {
-    const label = `Zone ${index + 1}`;
-
-    if (!zone.name) {
-      throw new Error(`${label}: name is required`);
+  zoneBlocks.forEach((zoneBlock, index) => {
+    const label = `Zone block ${index + 1}`;
+    if (!zoneBlock.name) throw new Error(`${label}: name is required`);
+    if (!zoneBlock.code) throw new Error(`${label}: code is required`);
+    if (codes.has(zoneBlock.code)) {
+      throw new Error(`Duplicate zone block code "${zoneBlock.code}" in draft`);
     }
+    codes.add(zoneBlock.code);
+    if (requireGeometry) validatePolygonGeometry(zoneBlock.geometry);
+    else if (zoneBlock.geometry) validatePolygonGeometry(zoneBlock.geometry);
+  });
+}
 
-    if (!zone.code) {
-      throw new Error(`${label}: code is required`);
+function validateDraftAddresses(addresses, { requireCoordinates = false } = {}) {
+  addresses.forEach((address, index) => {
+    const label = `Address ${index + 1}`;
+    if (address.latitude !== null && !isValidCoordinate(address.latitude)) {
+      throw new Error(`${label}: latitude must be a valid number`);
     }
-
-    if (codes.has(zone.code)) {
-      throw new Error(`Duplicate zone code "${zone.code}" in draft`);
+    if (address.longitude !== null && !isValidCoordinate(address.longitude)) {
+      throw new Error(`${label}: longitude must be a valid number`);
     }
-
-    codes.add(zone.code);
-
-    if (requireGeometry) {
-      validatePolygonGeometry(zone.geometry);
-    } else if (zone.geometry) {
-      validatePolygonGeometry(zone.geometry);
+  });
+  if (!requireCoordinates) return;
+  if (!addresses.length) throw new Error("Add at least one address before submitting");
+  addresses.forEach((address, index) => {
+    const label = `Address ${index + 1}`;
+    if (!address.streetName) throw new Error(`${label}: street name is required`);
+    if (!isValidCoordinate(address.latitude) || !isValidCoordinate(address.longitude)) {
+      throw new Error(`${label}: GPS coordinates are required`);
     }
   });
 }
 
-function validateExpectedCollectorCount(value) {
-  if (value === undefined || value === null || value === "") {
-    throw new Error("expectedCollectorCount is required when creating an assignment");
-  }
-
-  const num = Number(value);
-  if (!Number.isInteger(num) || num < 1 || num > 50) {
-    throw new Error("expectedCollectorCount must be an integer between 1 and 50");
-  }
-
-  return num;
-}
-
-async function assertOfficer(userId) {
-  if (!userId || typeof userId !== "string" || !userId.trim()) {
-    throw new Error("Assigned user must be a data officer");
-  }
-
-  const officer = await prisma.user.findUnique({
-    where: { id: userId.trim() },
-    select: { id: true, role: true },
-  });
-
-  if (!officer || officer.role !== "DATA_OFFICER") {
-    throw new Error("Assigned user must be a data officer");
-  }
-}
-
-async function assertNeighborhood(neighborhoodId) {
-  const neighborhood = await prisma.neighborhood.findUnique({
-    where: { id: neighborhoodId },
+async function assertZone(zoneId) {
+  const zone = await prisma.zone.findUnique({
+    where: { id: zoneId },
     select: { id: true },
   });
-
-  if (!neighborhood) {
-    throw new Error("Neighborhood not found");
-  }
+  if (!zone) throw new Error("Zone not found");
 }
 
-async function assertNoCodeConflicts(neighborhoodId, zones) {
-  const codes = zones.map((zone) => zone.code);
+async function assertZoneBlockForAssignment(zoneBlockId) {
+  const rows = await prisma.$queryRaw`
+    SELECT zb.id, zb.zone_id AS "zoneId", zb.status,
+      (zb.geometry IS NOT NULL) AS "hasGeometry"
+    FROM zone_blocks zb WHERE zb.id = ${zoneBlockId} LIMIT 1
+  `;
+  const zoneBlock = rows[0];
+  if (!zoneBlock) throw new Error("Zone block not found");
+  if (zoneBlock.status !== "ACTIVE") {
+    throw new Error("Zone block must be active to register addresses");
+  }
+  if (!zoneBlock.hasGeometry) {
+    throw new Error(
+      "Zone block must have a boundary polygon before address registration can be assigned"
+    );
+  }
+  return zoneBlock;
+}
 
+async function assertNoCodeConflicts(zoneId, zoneBlocks) {
+  const codes = zoneBlocks.map((zb) => zb.code);
   if (!codes.length) return;
-
-  const existing = await prisma.zone.findMany({
-    where: {
-      neighborhoodId,
-      code: { in: codes },
-    },
+  const existing = await prisma.zoneBlock.findMany({
+    where: { zoneId, code: { in: codes } },
     select: { code: true },
   });
-
   if (existing.length) {
     throw new Error(
-      `Zone code(s) already exist in this neighborhood: ${existing.map((z) => z.code).join(", ")}`
+      `Zone block code(s) already exist in this zone: ${existing.map((z) => z.code).join(", ")}`
     );
   }
 }
 
-function assertOfficerAccess(assignment, userId) {
-  if (assignment.assignedToId !== userId) {
-    throw new Error("You do not have access to this assignment");
+async function assertAddressesWithinZoneBlock(zoneBlockId, addresses) {
+  for (const address of addresses) {
+    const within = await isPointWithinZoneBlock({
+      latitude: address.latitude,
+      longitude: address.longitude,
+      zoneBlockId,
+    });
+    if (!within) {
+      throw new Error(`Address "${address.streetName}" is outside the assigned zone block boundary`);
+    }
   }
 }
 
-function assertEditable(assignment) {
-  if (!EDITABLE_STATUSES.includes(assignment.status)) {
-    throw new Error("This assignment can no longer be edited");
+async function validateDefineZoneBlocksSubmission(zoneId, zoneBlocks) {
+  validateDraftZoneBlocks(zoneBlocks, { requireGeometry: true });
+  await assertNoCodeConflicts(zoneId, zoneBlocks);
+  await assertZoneBlocksWithinZone(zoneBlocks, zoneId);
+  await assertZoneBlocksDoNotOverlap(zoneBlocks);
+}
+
+async function validateRegisterAddressesSubmission(zoneBlockId, addresses) {
+  validateDraftAddresses(addresses, { requireCoordinates: true });
+  await assertAddressesWithinZoneBlock(zoneBlockId, addresses);
+}
+
+async function syncParentStatus(parentId) {
+  const children = await prisma.assignment.findMany({
+    where: { parentAssignmentId: parentId },
+    select: { status: true },
+  });
+
+  if (!children.length) return;
+
+  const allApproved = children.every((child) => child.status === "APPROVED");
+  const parent = await prisma.assignment.findUnique({
+    where: { id: parentId },
+    select: { status: true },
+  });
+
+  if (!parent || ["SUBMITTED", "APPROVED"].includes(parent.status)) return;
+
+  await prisma.assignment.update({
+    where: { id: parentId },
+    data: {
+      status: allApproved ? "READY_FOR_REVIEW" : "IN_PROGRESS",
+    },
+  });
+}
+
+async function fetchAssignment(id) {
+  const assignment = await prisma.assignment.findUnique({
+    where: { id },
+    include: assignmentInclude,
+  });
+  if (!assignment) throw new Error("Assignment not found");
+  return assignment;
+}
+
+function assertAssignmentAccess(assignment, user) {
+  if (user.role === "SYS_ADMIN") {
+    if (assignment.tier === "CHILD") {
+      throw new Error("Admin should access child assignments through the parent");
+    }
+    return;
   }
+
+  if (user.role === "DATA_OFFICER") {
+    if (assignment.tier === "PARENT") {
+      assertOfficerParentAccess(assignment, user.id);
+      return;
+    }
+    if (assignment.parent?.assignedToId !== user.id) {
+      throw new Error("You do not have access to this assignment");
+    }
+    return;
+  }
+
+  if (user.role === "DATA_COLLECTOR") {
+    assertCollectorAccess(assignment, user.id);
+    return;
+  }
+
+  throw new Error("You do not have access to this assignment");
 }
 
 export const AssignmentService = {
   createAssignment: async (
-    { neighborhoodId, assignedToId, notes, dueAt, type, expectedCollectorCount },
+    { type = "DEFINE_ZONE_BLOCKS", zoneId, zoneBlockId, assignedToId, notes, dueAt },
     actorId
   ) => {
-    if (!neighborhoodId || !assignedToId) {
-      throw new Error("Neighborhood and data officer are required");
+    if (!assignedToId) throw new Error("Data officer is required");
+    await assertUserRole(assignedToId, "DATA_OFFICER");
+
+    const assignmentType = type || "DEFINE_ZONE_BLOCKS";
+    if (!["DEFINE_ZONE_BLOCKS", "REGISTER_ADDRESSES"].includes(assignmentType)) {
+      throw new Error("Invalid assignment type");
     }
 
-    const count = validateExpectedCollectorCount(expectedCollectorCount);
-    await assertNeighborhood(neighborhoodId);
-    await assertOfficer(assignedToId);
+    let resolvedZoneId = zoneId;
+    let resolvedZoneBlockId = null;
+    let initialPayload = DEFAULT_PAYLOAD.DEFINE_ZONE_BLOCKS;
+
+    if (assignmentType === "DEFINE_ZONE_BLOCKS") {
+      if (!zoneId) throw new Error("Zone is required for zone block definition assignments");
+      await assertZone(zoneId);
+      initialPayload = DEFAULT_PAYLOAD.DEFINE_ZONE_BLOCKS;
+    } else {
+      if (!zoneBlockId) {
+        throw new Error("Zone block is required for address registration assignments");
+      }
+      const zoneBlock = await assertZoneBlockForAssignment(zoneBlockId);
+      resolvedZoneId = zoneBlock.zoneId;
+      resolvedZoneBlockId = zoneBlock.id;
+      initialPayload = DEFAULT_PAYLOAD.REGISTER_ADDRESSES;
+    }
 
     const assignment = await prisma.assignments.create({
       data: {
-        type: type || "DEFINE_ZONES",
-        neighborhoodId,
+        type: assignmentType,
+        tier: "PARENT",
+        zoneId: resolvedZoneId,
+        zoneBlockId: resolvedZoneBlockId,
         assignedToId,
         assignedById: actorId,
         expectedCollectorCount: count,
         notes: notes?.trim() || null,
         dueAt: dueAt ? new Date(dueAt) : null,
-        payload: { zones: [] },
+        payload: initialPayload,
       },
       include: assignmentInclude,
     });
@@ -267,63 +389,133 @@ export const AssignmentService = {
     });
   },
 
+  createChildAssignment: async (
+    parentId,
+    officerId,
+    { assignedToId, notes, dueAt, scope, mergeOrder }
+  ) => {
+    const parent = await fetchAssignment(parentId);
+    assertOfficerParentAccess(parent, officerId);
+
+    if (!assignedToId) throw new Error("Data collector is required");
+    await assertSupervisedCollector(assignedToId, officerId);
+
+    if (["SUBMITTED", "APPROVED"].includes(parent.status)) {
+      throw new Error("This parent assignment can no longer accept new child tasks");
+    }
+
+    const initialPayload =
+      parent.type === "REGISTER_ADDRESSES"
+        ? DEFAULT_PAYLOAD.REGISTER_ADDRESSES
+        : DEFAULT_PAYLOAD.DEFINE_ZONE_BLOCKS;
+
+    const child = await prisma.assignment.create({
+      data: {
+        type: parent.type,
+        tier: "CHILD",
+        parentAssignmentId: parent.id,
+        zoneId: parent.zoneId,
+        zoneBlockId: parent.zoneBlockId,
+        assignedToId,
+        assignedById: officerId,
+        notes: notes?.trim() || null,
+        dueAt: dueAt ? new Date(dueAt) : null,
+        scope: scope || null,
+        mergeOrder: mergeOrder ?? null,
+        payload: initialPayload,
+      },
+      include: assignmentInclude,
+    });
+
+    if (parent.status === "ASSIGNED" || parent.status === "REJECTED") {
+      await prisma.assignment.update({
+        where: { id: parent.id },
+        data: { status: "IN_PROGRESS", rejectionReason: null },
+      });
+    }
+
+    return child;
+  },
+
+  deleteChildAssignment: async (childId, officerId) => {
+    const child = await fetchAssignment(childId);
+    if (child.tier !== "CHILD" || child.parent?.assignedToId !== officerId) {
+      throw new Error("You do not have access to this assignment");
+    }
+    if (child.status !== "ASSIGNED") {
+      throw new Error("Only unstarted child assignments can be deleted");
+    }
+
+    const parentId = child.parentAssignmentId;
+    await prisma.assignment.delete({ where: { id: childId } });
+    await syncParentStatus(parentId);
+    return { id: childId };
+  },
+
   getAssignments: async () => {
-    const list = await prisma.assignments.findMany({
+    return prisma.assignment.findMany({
+      where: { tier: "PARENT" },
       include: assignmentInclude,
       orderBy: { createdAt: "desc" },
     });
     return list.map(formatAssignment);
   },
 
-  getMyAssignments: async (userId) => {
-    const list = await prisma.assignments.findMany({
-      where: { assignedToId: userId },
+  getOfficerParentAssignments: async (officerId) => {
+    return prisma.assignment.findMany({
+      where: { tier: "PARENT", assignedToId: officerId },
       include: assignmentInclude,
       orderBy: { createdAt: "desc" },
     });
     return list.map(formatAssignment);
+  },
+
+  getCollectorAssignments: async (collectorId) => {
+    return prisma.assignment.findMany({
+      where: { tier: "CHILD", assignedToId: collectorId },
+      include: assignmentInclude,
+      orderBy: { createdAt: "desc" },
+    });
+  },
+
+  getOfficerReviewQueue: async (officerId) => {
+    return prisma.assignment.findMany({
+      where: {
+        tier: "CHILD",
+        status: "SUBMITTED",
+        parent: { assignedToId: officerId },
+      },
+      include: assignmentInclude,
+      orderBy: { submittedAt: "asc" },
+    });
+  },
+
+  getParentChildren: async (parentId, officerId) => {
+    const parent = await fetchAssignment(parentId);
+    assertOfficerParentAccess(parent, officerId);
+    return parent.children;
   },
 
   getAssignmentById: async (id, user) => {
-    const assignment = await prisma.assignments.findUnique({
-      where: { id },
-      include: assignmentInclude,
-    });
-
-    if (!assignment) {
-      throw new Error("Assignment not found");
-    }
-
-    if (user.role === "DATA_OFFICER") {
-      if (assignment.assignedToId !== user.id && assignment.parentId) {
-        const parent = await prisma.assignments.findUnique({
-          where: { id: assignment.parentId },
-        });
-        if (!parent || parent.assignedToId !== user.id) {
-          assertOfficerAccess(assignment, user.id);
-        }
-      } else {
-        assertOfficerAccess(assignment, user.id);
-      }
-    }
-
-    return formatAssignment(assignment);
+    const assignment = await fetchAssignment(id);
+    assertAssignmentAccess(assignment, user);
+    return assignment;
   },
 
-  saveDraft: async (id, payload, userId) => {
-    const assignment = await prisma.assignments.findUnique({
-      where: { id },
-    });
-
-    if (!assignment) {
-      throw new Error("Assignment not found");
+  saveCollectorDraft: async (id, payload, collectorId) => {
+    const assignment = await prisma.assignment.findUnique({ where: { id } });
+    if (!assignment) throw new Error("Assignment not found");
+    assertCollectorAccess(assignment, collectorId);
+    if (!COLLECTOR_EDITABLE.includes(assignment.status)) {
+      throw new Error("This assignment can no longer be edited");
     }
 
-    assertOfficerAccess(assignment, userId);
-    assertEditable(assignment);
-
-    const normalized = normalizePayload(payload);
-    validateDraftZones(normalized.zones, { requireGeometry: false });
+    const normalized = normalizePayload(assignment.type, payload);
+    if (assignment.type === "REGISTER_ADDRESSES") {
+      validateDraftAddresses(normalized.addresses, { requireCoordinates: false });
+    } else {
+      validateDraftZoneBlocks(normalized.zoneBlocks, { requireGeometry: false });
+    }
 
     const updated = await prisma.assignments.update({
       where: { id },
@@ -338,24 +530,149 @@ export const AssignmentService = {
     return formatAssignment(updated);
   },
 
-  submitAssignment: async (id, userId) => {
-    const assignment = await prisma.assignments.findUnique({
-      where: { id },
-    });
-
-    if (!assignment) {
-      throw new Error("Assignment not found");
+  submitChildAssignment: async (id, collectorId) => {
+    const assignment = await prisma.assignment.findUnique({ where: { id } });
+    if (!assignment) throw new Error("Assignment not found");
+    assertCollectorAccess(assignment, collectorId);
+    if (!COLLECTOR_EDITABLE.includes(assignment.status)) {
+      throw new Error("This assignment can no longer be edited");
     }
 
-    assertOfficerAccess(assignment, userId);
-    assertEditable(assignment);
+    const normalized = normalizePayload(assignment.type, assignment.payload);
+    if (assignment.type === "REGISTER_ADDRESSES") {
+      if (!assignment.zoneBlockId) throw new Error("Assignment zone block is missing");
+      await validateRegisterAddressesSubmission(assignment.zoneBlockId, normalized.addresses);
+    } else {
+      await validateDefineZoneBlocksSubmission(assignment.zoneId, normalized.zoneBlocks);
+    }
 
-    const normalized = normalizePayload(assignment.payload);
-    validateDraftZones(normalized.zones, { requireGeometry: true });
-    await assertNoCodeConflicts(assignment.neighborhoodId, normalized.zones);
-
-    const updated = await prisma.assignments.update({
+    return prisma.assignment.update({
       where: { id },
+      data: {
+        payload: normalized,
+        status: "SUBMITTED",
+        submittedAt: new Date(),
+        rejectionReason: null,
+      },
+      include: assignmentInclude,
+    });
+  },
+
+  approveChildAssignment: async (childId, officerId) => {
+    const child = await fetchAssignment(childId);
+    if (child.tier !== "CHILD" || child.parent?.assignedToId !== officerId) {
+      throw new Error("You do not have access to this assignment");
+    }
+    if (child.status !== "SUBMITTED") {
+      throw new Error("Only submitted child assignments can be approved");
+    }
+
+    const updated = await prisma.assignment.update({
+      where: { id: childId },
+      data: {
+        status: "APPROVED",
+        officerReviewedAt: new Date(),
+        officerReviewedById: officerId,
+        rejectionReason: null,
+      },
+      include: assignmentInclude,
+    });
+
+    await syncParentStatus(child.parentAssignmentId);
+    return updated;
+  },
+
+  rejectChildAssignment: async (childId, officerId, rejectionReason) => {
+    const child = await fetchAssignment(childId);
+    if (child.tier !== "CHILD" || child.parent?.assignedToId !== officerId) {
+      throw new Error("You do not have access to this assignment");
+    }
+    if (child.status !== "SUBMITTED") {
+      throw new Error("Only submitted child assignments can be rejected");
+    }
+    if (!rejectionReason?.trim()) throw new Error("Rejection reason is required");
+
+    const updated = await prisma.assignment.update({
+      where: { id: childId },
+      data: {
+        status: "REJECTED",
+        officerReviewedAt: new Date(),
+        officerReviewedById: officerId,
+        rejectionReason: rejectionReason.trim(),
+      },
+      include: assignmentInclude,
+    });
+
+    if (child.parentAssignmentId) {
+      await prisma.assignment.update({
+        where: { id: child.parentAssignmentId },
+        data: { status: "IN_PROGRESS" },
+      });
+    }
+
+    return updated;
+  },
+
+  mergeParentAssignment: async (parentId, officerId) => {
+    const parent = await fetchAssignment(parentId);
+    assertOfficerParentAccess(parent, officerId);
+
+    const children = await prisma.assignment.findMany({
+      where: { parentAssignmentId: parentId, status: "APPROVED" },
+      orderBy: [{ mergeOrder: "asc" }, { createdAt: "asc" }],
+    });
+
+    if (!children.length) {
+      throw new Error("At least one approved child assignment is required to merge");
+    }
+
+    let mergedPayload;
+    if (parent.type === "REGISTER_ADDRESSES") {
+      mergedPayload = {
+        addresses: children.flatMap((child) =>
+          normalizePayload(child.type, child.payload).addresses
+        ),
+      };
+      if (!parent.zoneBlockId) throw new Error("Parent assignment zone block is missing");
+      await validateRegisterAddressesSubmission(parent.zoneBlockId, mergedPayload.addresses);
+    } else {
+      mergedPayload = {
+        zoneBlocks: children.flatMap(
+          (child) => normalizePayload(child.type, child.payload).zoneBlocks
+        ),
+      };
+      await validateDefineZoneBlocksSubmission(parent.zoneId, mergedPayload.zoneBlocks);
+    }
+
+    return prisma.assignment.update({
+      where: { id: parentId },
+      data: {
+        payload: mergedPayload,
+        status: "READY_FOR_REVIEW",
+      },
+      include: assignmentInclude,
+    });
+  },
+
+  submitParentToAdmin: async (parentId, officerId) => {
+    const parent = await prisma.assignment.findUnique({ where: { id: parentId } });
+    if (!parent) throw new Error("Assignment not found");
+    assertOfficerParentAccess(parent, officerId);
+
+    if (!["READY_FOR_REVIEW", "REJECTED"].includes(parent.status)) {
+      throw new Error("Parent assignment must be ready for review before submitting to admin");
+    }
+
+    const normalized = normalizePayload(parent.type, parent.payload);
+    if (parent.type === "REGISTER_ADDRESSES") {
+      if (!parent.zoneBlockId) throw new Error("Assignment zone block is missing");
+      await validateRegisterAddressesSubmission(parent.zoneBlockId, normalized.addresses);
+    } else {
+      await validateDefineZoneBlocksSubmission(parent.zoneId, normalized.zoneBlocks);
+    }
+
+    return prisma.assignment.update({
+      where: { id: parentId },
       data: {
         payload: normalized,
         status: "SUBMITTED",
@@ -369,33 +686,51 @@ export const AssignmentService = {
   },
 
   approveAssignment: async (id, reviewerId) => {
-    const assignment = await prisma.assignments.findUnique({
-      where: { id },
-    });
-
-    if (!assignment) {
-      throw new Error("Assignment not found");
-    }
+    const assignment = await prisma.assignment.findUnique({ where: { id } });
+    if (!assignment) throw new Error("Assignment not found");
+    assertAdminParentAccess(assignment);
 
     if (assignment.status !== "SUBMITTED") {
       throw new Error("Only submitted assignments can be approved");
     }
 
-    const normalized = normalizePayload(assignment.payload);
-    validateDraftZones(normalized.zones, { requireGeometry: true });
-    await assertNoCodeConflicts(assignment.neighborhoodId, normalized.zones);
+    const normalized = normalizePayload(assignment.type, assignment.payload);
 
-    const createdZones = [];
+    if (assignment.type === "REGISTER_ADDRESSES") {
+      if (!assignment.zoneBlockId) throw new Error("Assignment zone block is missing");
+      await validateRegisterAddressesSubmission(assignment.zoneBlockId, normalized.addresses);
 
-    for (const zone of normalized.zones) {
-      const created = await ZoneService.createZone({
-        neighborhoodId: assignment.neighborhoodId,
-        name: zone.name,
-        code: zone.code,
-        status: zone.status,
-        geometry: zone.geometry,
+      const createdAddresses = await AddressService.createAddressesFromDraftBatch(
+        assignment.zoneBlockId,
+        normalized.addresses
+      );
+
+      const updated = await prisma.assignment.update({
+        where: { id },
+        data: {
+          status: "APPROVED",
+          reviewedAt: new Date(),
+          reviewedById: reviewerId,
+          rejectionReason: null,
+        },
+        include: assignmentInclude,
       });
-      createdZones.push(created);
+
+      return { assignment: updated, createdAddresses };
+    }
+
+    await validateDefineZoneBlocksSubmission(assignment.zoneId, normalized.zoneBlocks);
+    const createdZoneBlocks = [];
+    for (const zoneBlock of normalized.zoneBlocks) {
+      createdZoneBlocks.push(
+        await ZoneBlockService.createZoneBlock({
+          zoneId: assignment.zoneId,
+          name: zoneBlock.name,
+          code: zoneBlock.code,
+          status: zoneBlock.status,
+          geometry: zoneBlock.geometry,
+        })
+      );
     }
 
     const updated = await prisma.assignments.update({
@@ -409,25 +744,18 @@ export const AssignmentService = {
       include: assignmentInclude,
     });
 
-    return { assignment: formatAssignment(updated), createdZones };
+    return { assignment: updated, createdZoneBlocks };
   },
 
   rejectAssignment: async (id, reviewerId, rejectionReason) => {
-    const assignment = await prisma.assignments.findUnique({
-      where: { id },
-    });
-
-    if (!assignment) {
-      throw new Error("Assignment not found");
-    }
+    const assignment = await prisma.assignment.findUnique({ where: { id } });
+    if (!assignment) throw new Error("Assignment not found");
+    assertAdminParentAccess(assignment);
 
     if (assignment.status !== "SUBMITTED") {
       throw new Error("Only submitted assignments can be rejected");
     }
-
-    if (!rejectionReason?.trim()) {
-      throw new Error("Rejection reason is required");
-    }
+    if (!rejectionReason?.trim()) throw new Error("Rejection reason is required");
 
     const updated = await prisma.assignments.update({
       where: { id },

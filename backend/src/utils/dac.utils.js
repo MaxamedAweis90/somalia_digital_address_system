@@ -1,14 +1,22 @@
-export const DAC_PATTERN = /^[A-Z0-9]+-[A-Z0-9]+-[A-Z0-9]+-\d{4}$/;
 export const HOUSE_NUMBER_PAD = 4;
 export const MAX_HOUSE_NUMBER = 9999;
 
-export function formatHouseNumber(houseNumber) {
-  return String(houseNumber).padStart(HOUSE_NUMBER_PAD, "0");
+export function buildDacPattern(pad = HOUSE_NUMBER_PAD) {
+  return new RegExp(`^[A-Z0-9]+-[A-Z0-9]+-[A-Z0-9]+-\\d{${pad}}$`);
 }
 
-export function buildDac({ districtCode, neighborhoodCode, zoneCode, houseNumber }) {
-  if (!districtCode || !neighborhoodCode || !zoneCode || houseNumber === undefined) {
-    throw new Error("District, neighborhood, zone codes, and house number are required");
+export const DAC_PATTERN = buildDacPattern();
+
+export function formatHouseNumber(houseNumber, pad = HOUSE_NUMBER_PAD) {
+  return String(houseNumber).padStart(pad, "0");
+}
+
+export function buildDac(
+  { districtCode, zoneCode, zoneBlockCode, houseNumber },
+  pad = HOUSE_NUMBER_PAD
+) {
+  if (!districtCode || !zoneCode || !zoneBlockCode || houseNumber === undefined) {
+    throw new Error("District, zone, zone block codes, and house number are required");
   }
 
   const numericHouse = Number(houseNumber);
@@ -17,28 +25,28 @@ export function buildDac({ districtCode, neighborhoodCode, zoneCode, houseNumber
     throw new Error(`House number must be between 1 and ${MAX_HOUSE_NUMBER}`);
   }
 
-  return `${districtCode}-${neighborhoodCode}-${zoneCode}-${formatHouseNumber(numericHouse)}`.toUpperCase();
+  return `${districtCode}-${zoneCode}-${zoneBlockCode}-${formatHouseNumber(numericHouse, pad)}`.toUpperCase();
 }
 
-export function parseDac(addressCode) {
+export function parseDac(addressCode, pad = HOUSE_NUMBER_PAD) {
   if (!addressCode?.trim()) {
     throw new Error("Address code is required");
   }
 
   const normalized = addressCode.trim().toUpperCase();
 
-  if (!DAC_PATTERN.test(normalized)) {
+  if (!buildDacPattern(pad).test(normalized)) {
     throw new Error(
-      "Invalid DAC format. Expected DISTRICT-NEIGHBORHOOD-ZONE-0001 (e.g. HOD-TLX-Z01-0001)"
+      `Invalid DAC format. Expected DISTRICT-ZONE-ZONEBLOCK-${"0".repeat(pad - 1)}1 (e.g. HOD-TLX-Z01-0001)`
     );
   }
 
-  const [districtCode, neighborhoodCode, zoneCode, houseSegment] = normalized.split("-");
+  const [districtCode, zoneCode, zoneBlockCode, houseSegment] = normalized.split("-");
 
   return {
     districtCode,
-    neighborhoodCode,
     zoneCode,
+    zoneBlockCode,
     houseNumber: Number(houseSegment),
     addressCode: normalized,
   };

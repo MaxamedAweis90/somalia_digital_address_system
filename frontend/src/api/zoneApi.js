@@ -1,11 +1,9 @@
 import api from "./axios";
 
-export const getZones = (neighborhoodId) =>
-  api.get("/admin/zones", {
-    params: neighborhoodId ? { neighborhoodId } : undefined,
-  });
+export const getZones = (districtId) =>
+  api.get("/admin/zones", { params: districtId ? { districtId } : {} });
 
-export const getZoneByIdApi = (id) => api.get(`/admin/zones/${id}`);
+export const getZoneById = (id) => api.get(`/admin/zones/${id}`);
 
 export const createZone = (data) => api.post("/admin/zones", data);
 

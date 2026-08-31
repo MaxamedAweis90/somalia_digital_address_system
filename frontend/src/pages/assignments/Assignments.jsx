@@ -3,28 +3,21 @@ import { useNavigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { getAssignments } from "@/api/assignmentApi";
 import AssignmentStatusBadge, {
+  AssignmentTypeBadge,
   formatAssignmentLocation,
+  getAssignmentDraftCount,
 } from "@/components/assignments/AssignmentStatusBadge";
 import Breadcrumb from "@/components/ui/Breadcrumb";
 import PageHeader from "@/components/ui/PageHeader";
 
-function formatProgress(assignment) {
-  const delegated = assignment.delegatedCount ?? assignment.children?.length ?? 0;
-  const expected = assignment.expectedCollectorCount ?? 1;
-  const submitted =
-    assignment.submittedCount ??
-    assignment.children?.filter((c) => c.status === "SUBMITTED").length ??
-    0;
-  const approved =
-    assignment.approvedCount ??
-    assignment.children?.filter((c) => c.status === "APPROVED").length ??
-    0;
-
-  const parts = [`${delegated}/${expected} tasks`];
-  if (approved > 0) parts.push(`${approved} approved`);
-  if (submitted > 0) parts.push(`${submitted} submitted`);
-
-  return parts.join(" · ");
+function getChildProgress(assignment) {
+  const children = assignment.children || [];
+  if (!children.length) return "—";
+  const approved = children.filter((child) => child.status === "APPROVED").length;
+  const submitted = children.filter((child) =>
+    ["SUBMITTED", "APPROVED"].includes(child.status)
+  ).length;
+  return `${approved}/${children.length} approved · ${submitted}/${children.length} submitted`;
 }
 
 export default function Assignments() {
@@ -68,7 +61,7 @@ export default function Assignments() {
 
         <PageHeader
           title="Field Assignments"
-          description="Assign neighborhood zone-mapping work to data officers and review submissions."
+          description="Assign field work to data officers and review zone or address submissions."
           actions={
             <button
               type="button"
@@ -98,7 +91,7 @@ export default function Assignments() {
             <div>
               <h2 className="text-[16px] font-semibold text-ink">All Assignments</h2>
               <p className="mt-1 text-[12px] text-ink-soft">
-                Per-neighborhood zone definition tasks with approval workflow.
+                Zone definition and address registration tasks with approval workflow.
               </p>
             </div>
 
@@ -121,7 +114,10 @@ export default function Assignments() {
               <thead>
                 <tr className="border-b border-line bg-[#FBFCFE]">
                   <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
-                    Neighborhood
+                    Type
+                  </th>
+                  <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
+                    Location
                   </th>
                   <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
                     Officer
@@ -133,7 +129,10 @@ export default function Assignments() {
                     Status
                   </th>
                   <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
-                    Draft Zones
+                    Team Progress
+                  </th>
+                  <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
+                    Draft Items
                   </th>
                   <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
                     Due
@@ -143,7 +142,7 @@ export default function Assignments() {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={6} className="px-5 py-12 text-center">
+                    <td colSpan={7} className="px-5 py-12 text-center">
                       <Loader2 className="mx-auto h-5 w-5 animate-spin text-blue" />
                     </td>
                   </tr>
@@ -154,6 +153,9 @@ export default function Assignments() {
                       onClick={() => navigate(`/admin/assignments/${assignment.id}`)}
                       className="border-b border-line last:border-b-0 hover:bg-[#FBFCFE] transition-colors cursor-pointer"
                     >
+                      <td className="px-5 py-4">
+                        <AssignmentTypeBadge type={assignment.type} />
+                      </td>
                       <td className="px-5 py-4">
                         <p className="text-[12px] font-semibold text-ink">
                           {formatAssignmentLocation(assignment)}
@@ -175,8 +177,11 @@ export default function Assignments() {
                       <td className="px-5 py-4">
                         <AssignmentStatusBadge status={assignment.status} />
                       </td>
+                      <td className="px-5 py-4 text-[12px] text-ink-soft">
+                        {getChildProgress(assignment)}
+                      </td>
                       <td className="px-5 py-4 text-[12px] text-ink">
-                        {assignment.payload?.zones?.length || 0}
+                        {getAssignmentDraftCount(assignment)}
                       </td>
                       <td className="px-5 py-4 text-[12px] text-ink-soft">
                         {assignment.dueAt
@@ -187,10 +192,10 @@ export default function Assignments() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={6} className="px-5 py-12 text-center">
+                    <td colSpan={7} className="px-5 py-12 text-center">
                       <p className="text-[13px] font-medium text-ink">No assignments yet</p>
                       <p className="mt-1 text-[12px] text-ink-soft">
-                        Create an assignment to have an officer define zones for a neighborhood.
+                        Create an assignment to have an officer complete field work in a zone or zone block.
                       </p>
                     </td>
                   </tr>

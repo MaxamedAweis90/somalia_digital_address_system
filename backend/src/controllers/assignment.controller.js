@@ -68,7 +68,7 @@ export const getAssignments = async (req, res) => {
 
 export const getMyAssignments = async (req, res) => {
   try {
-    const assignments = await AssignmentService.getMyAssignments(req.user.id);
+    const assignments = await AssignmentService.getOfficerParentAssignments(req.user.id);
 
     return res.status(200).json({
       success: true,
@@ -167,9 +167,14 @@ export const approveAssignment = async (req, res) => {
       req.user.id
     );
 
+    const message =
+      result.createdAddresses?.length
+        ? "Assignment approved and addresses registered"
+        : "Assignment approved and zones created";
+
     return res.status(200).json({
       success: true,
-      message: "Assignment approved and zones created",
+      message,
       data: result,
     });
   } catch (error) {

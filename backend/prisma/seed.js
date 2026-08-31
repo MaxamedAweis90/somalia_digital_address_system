@@ -84,6 +84,35 @@ async function main() {
   );
   console.log("✅ Data Officer user seeded:", officerUser.email);
 
+  const collectorOne = await withRetry(() =>
+    prisma.user.upsert({
+      where: { email: "collector1@somalia.gov.so" },
+      update: { role: "DATA_COLLECTOR", supervisorId: officerUser.id },
+      create: {
+        name: "Amina Collector",
+        email: "collector1@somalia.gov.so",
+        password: hashedPassword,
+        role: "DATA_COLLECTOR",
+        supervisorId: officerUser.id,
+      },
+    })
+  );
+
+  const collectorTwo = await withRetry(() =>
+    prisma.user.upsert({
+      where: { email: "collector2@somalia.gov.so" },
+      update: { role: "DATA_COLLECTOR", supervisorId: officerUser.id },
+      create: {
+        name: "Hassan Collector",
+        email: "collector2@somalia.gov.so",
+        password: hashedPassword,
+        role: "DATA_COLLECTOR",
+        supervisorId: officerUser.id,
+      },
+    })
+  );
+  console.log("✅ Data Collectors seeded:", collectorOne.email, collectorTwo.email);
+
   // 3. Seed 18 Official Somali Regions
   let createdCount = 0;
   for (const reg of SOMALI_OFFICIAL_REGIONS) {
@@ -180,6 +209,233 @@ async function main() {
   }
 
   console.log(`✅ ${defaultSettings.length} system settings seeded.`);
+
+  const banaadir = await withRetry(() =>
+    prisma.region.findUnique({ where: { code: "BND" } })
+  );
+
+  if (banaadir) {
+    const district = await withRetry(() =>
+      prisma.district.upsert({
+        where: { code: "HOD" },
+        update: { name: "Hodan", status: "ACTIVE", regionId: banaadir.id },
+        create: {
+          name: "Hodan",
+          code: "HOD",
+          status: "ACTIVE",
+          regionId: banaadir.id,
+        },
+      })
+    );
+
+    const zoneGeometry = {
+      type: "Polygon",
+      coordinates: [
+        [
+          [45.308, 2.038],
+          [45.328, 2.038],
+          [45.328, 2.056],
+          [45.308, 2.056],
+          [45.308, 2.038],
+        ],
+      ],
+    };
+
+    const existingZone = await withRetry(() =>
+      prisma.zone.findUnique({ where: { code: "TLX" } })
+    );
+
+    const zoneId = existingZone?.id || "seed-zone-taleex";
+
+    if (existingZone) {
+      await withRetry(() =>
+        prisma.$executeRaw`
+          UPDATE zones
+          SET
+            district_id = ${district.id},
+            name = 'Taleex',
+            status = 'ACTIVE'::"Status",
+            geometry = ST_SetSRID(ST_GeomFromGeoJSON(${JSON.stringify(zoneGeometry)}), 4326),
+            updated_at = CURRENT_TIMESTAMP
+          WHERE id = ${zoneId}
+        `
+      );
+    } else {
+      await withRetry(() =>
+        prisma.$executeRaw`
+          INSERT INTO zones (
+            id,
+            district_id,
+            name,
+            code,
+            status,
+            geometry,
+            created_at,
+            updated_at
+          )
+          VALUES (
+            ${zoneId},
+            ${district.id},
+            'Taleex',
+            'TLX',
+            'ACTIVE'::"Status",
+            ST_SetSRID(ST_GeomFromGeoJSON(${JSON.stringify(zoneGeometry)}), 4326),
+            CURRENT_TIMESTAMP,
+            CURRENT_TIMESTAMP
+          )
+        `
+      );
+    }
+
+    const zoneBlockGeometry = {
+      type: "Polygon",
+      coordinates: [
+        [
+          [45.312, 2.042],
+          [45.322, 2.042],
+          [45.322, 2.052],
+          [45.312, 2.052],
+          [45.312, 2.042],
+        ],
+      ],
+    };
+
+    const existingZoneBlock = await withRetry(() =>
+      prisma.zoneBlock.findUnique({ where: { code: "Z01" } })
+    );
+
+    const zoneBlockId = existingZoneBlock?.id || "seed-zone-block-z01";
+
+    if (existingZoneBlock) {
+      await withRetry(() =>
+        prisma.$executeRaw`
+          UPDATE zone_blocks
+          SET
+            zone_id = ${zoneId},
+            name = 'Block 01',
+            status = 'ACTIVE'::"Status",
+            geometry = ST_SetSRID(ST_GeomFromGeoJSON(${JSON.stringify(zoneBlockGeometry)}), 4326),
+            updated_at = CURRENT_TIMESTAMP
+          WHERE id = ${zoneBlockId}
+        `
+      );
+    } else {
+      await withRetry(() =>
+        prisma.$executeRaw`
+          INSERT INTO zone_blocks (
+            id,
+            zone_id,
+            name,
+            code,
+            status,
+            geometry,
+            created_at,
+            updated_at
+          )
+          VALUES (
+            ${zoneBlockId},
+            ${zoneId},
+            'Block 01',
+            'Z01',
+            'ACTIVE'::"Status",
+            ST_SetSRID(ST_GeomFromGeoJSON(${JSON.stringify(zoneBlockGeometry)}), 4326),
+            CURRENT_TIMESTAMP,
+            CURRENT_TIMESTAMP
+          )
+        `
+      );
+    }
+
+    await withRetry(() =>
+      prisma.assignment.upsert({
+        where: { id: "seed-assignment-define-zone-blocks" },
+        update: {
+          type: "DEFINE_ZONE_BLOCKS",
+          tier: "PARENT",
+          status: "ASSIGNED",
+          zoneId,
+          zoneBlockId: null,
+          assignedToId: officerUser.id,
+          assignedById: adminUser.id,
+          payload: { zoneBlocks: [] },
+          notes: "Define remaining zone blocks inside the Taleex zone boundary.",
+        },
+        create: {
+          id: "seed-assignment-define-zone-blocks",
+          type: "DEFINE_ZONE_BLOCKS",
+          tier: "PARENT",
+          status: "ASSIGNED",
+          zoneId,
+          assignedToId: officerUser.id,
+          assignedById: adminUser.id,
+          payload: { zoneBlocks: [] },
+          notes: "Define remaining zone blocks inside the Taleex zone boundary.",
+        },
+      })
+    );
+
+    await withRetry(() =>
+      prisma.assignment.upsert({
+        where: { id: "seed-child-define-zone-blocks-east" },
+        update: {
+          type: "DEFINE_ZONE_BLOCKS",
+          tier: "CHILD",
+          status: "ASSIGNED",
+          parentAssignmentId: "seed-assignment-define-zone-blocks",
+          zoneId,
+          assignedToId: collectorOne.id,
+          assignedById: officerUser.id,
+          mergeOrder: 1,
+          payload: { zoneBlocks: [] },
+          notes: "East sector zone block boundaries.",
+        },
+        create: {
+          id: "seed-child-define-zone-blocks-east",
+          type: "DEFINE_ZONE_BLOCKS",
+          tier: "CHILD",
+          status: "ASSIGNED",
+          parentAssignmentId: "seed-assignment-define-zone-blocks",
+          zoneId,
+          assignedToId: collectorOne.id,
+          assignedById: officerUser.id,
+          mergeOrder: 1,
+          payload: { zoneBlocks: [] },
+          notes: "East sector zone block boundaries.",
+        },
+      })
+    );
+
+    await withRetry(() =>
+      prisma.assignment.upsert({
+        where: { id: "seed-assignment-register-addresses" },
+        update: {
+          type: "REGISTER_ADDRESSES",
+          tier: "PARENT",
+          status: "ASSIGNED",
+          zoneId,
+          zoneBlockId,
+          assignedToId: officerUser.id,
+          assignedById: adminUser.id,
+          payload: { addresses: [] },
+          notes: "Register sample residential addresses inside Block 01.",
+        },
+        create: {
+          id: "seed-assignment-register-addresses",
+          type: "REGISTER_ADDRESSES",
+          tier: "PARENT",
+          status: "ASSIGNED",
+          zoneId,
+          zoneBlockId,
+          assignedToId: officerUser.id,
+          assignedById: adminUser.id,
+          payload: { addresses: [] },
+          notes: "Register sample residential addresses inside Block 01.",
+        },
+      })
+    );
+
+    console.log("✅ Demo zone, zone block, collectors, and assignments seeded for Hodan / Taleex.");
+  }
 }
 
 main()

@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Loader2 } from "lucide-react";
-import { getZoneByIdApi } from "@/api/zoneApi";
-import ZoneMapPreview from "@/components/zones/ZoneMapPreview";
+import { getZoneBlockById } from "@/api/zoneBlockApi";
+import ZoneMapPreview from "@/components/zone-blocks/ZoneMapPreview";
 import { useAuth } from "@/context/AuthContext";
 import { ROLES } from "@/constants/roles";
 
@@ -23,31 +23,31 @@ function getVertexCount(geometry) {
   return Math.max(ring.length - 1, 0);
 }
 
-export default function ViewZone() {
+export default function ViewZoneBlock() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
   const isAdmin = user?.role === ROLES.SYS_ADMIN;
 
-  const [zone, setZone] = useState(null);
+  const [zoneBlock, setZoneBlock] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const loadZone = async () => {
+    const loadZoneBlock = async () => {
       try {
         setLoading(true);
         setError(null);
-        const res = await getZoneByIdApi(id);
-        setZone(res.data.data);
+        const res = await getZoneBlockById(id);
+        setZoneBlock(res.data.data);
       } catch (err) {
-        setError(err.response?.data?.message || "Failed to load zone details");
+        setError(err.response?.data?.message || "Failed to load zone block details");
       } finally {
         setLoading(false);
       }
     };
 
-    if (id) loadZone();
+    if (id) loadZoneBlock();
   }, [id]);
 
   if (loading) {
@@ -55,32 +55,32 @@ export default function ViewZone() {
       <div className="min-h-screen bg-bg font-sans flex items-center justify-center">
         <div className="flex flex-col items-center gap-2">
           <Loader2 className="h-8 w-8 animate-spin text-blue-deep" />
-          <p className="text-[13px] text-ink-soft">Loading zone details...</p>
+          <p className="text-[13px] text-ink-soft">Loading zone block details...</p>
         </div>
       </div>
     );
   }
 
-  if (error || !zone) {
+  if (error || !zoneBlock) {
     return (
       <div className="min-h-screen bg-bg font-sans">
         <div className="px-4 sm:px-6 lg:px-5 pt-5 pb-10">
           <div className="max-w-[900px] rounded-lg bg-red-50 p-4 border border-red-200 text-red-700 text-sm">
-            {error || "Zone not found"}
+            {error || "Zone block not found"}
           </div>
           <button
             onClick={() => navigate(-1)}
             className="mt-4 h-[36px] px-4 rounded-lg border border-line bg-white text-[12px] font-semibold text-ink-soft hover:bg-bg cursor-pointer"
           >
-            Back to Zones
+            Back to Zone Blocks
           </button>
         </div>
       </div>
     );
   }
 
-  const isActive = (zone.status || "ACTIVE").toUpperCase() === "ACTIVE";
-  const vertexCount = getVertexCount(zone.geometry);
+  const isActive = (zoneBlock.status || "ACTIVE").toUpperCase() === "ACTIVE";
+  const vertexCount = getVertexCount(zoneBlock.geometry);
 
   return (
     <div className="min-h-screen bg-bg font-sans">
@@ -97,19 +97,19 @@ export default function ViewZone() {
             onClick={() => navigate(-1)}
             className="hover:text-blue cursor-pointer"
           >
-            Zones
+            Zone Blocks
           </span>
           <span className="text-gray-400">›</span>
-          <span className="text-ink font-semibold">Zone Details</span>
+          <span className="text-ink font-semibold">Zone Block Details</span>
         </div>
 
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <div>
             <h1 className="font-display text-[25px] font-semibold tracking-tight text-ink">
-              {zone.name}
+              {zoneBlock.name}
             </h1>
             <p className="mt-1 text-[13px] text-ink-soft">
-              View cadastral zone details and boundary shape.
+              View zone block details and boundary shape.
             </p>
           </div>
 
@@ -136,7 +136,7 @@ export default function ViewZone() {
 
             {isAdmin && (
               <button
-                onClick={() => navigate(`../edit/${zone.id}`)}
+                onClick={() => navigate(`../edit/${zoneBlock.id}`)}
                 className="
                   h-[36px]
                   px-5
@@ -151,7 +151,7 @@ export default function ViewZone() {
                   cursor-pointer
                 "
               >
-                Edit Zone
+                Edit Zone Block
               </button>
             )}
           </div>
@@ -160,23 +160,20 @@ export default function ViewZone() {
         <div className="grid grid-cols-1 xl:grid-cols-[360px_1fr] gap-5">
           <div className="bg-white border border-line rounded-xl shadow-card-sm overflow-hidden h-fit">
             <div className="px-5 py-5 border-b border-line">
-              <h2 className="text-[18px] font-semibold text-ink">Zone Information</h2>
+              <h2 className="text-[18px] font-semibold text-ink">Zone Block Information</h2>
               <p className="mt-1 text-[13px] text-ink-soft">
-                Official registry metadata for this zone.
+                Official registry metadata for this zone block.
               </p>
             </div>
 
             <div className="px-5 py-5 space-y-5">
-              <DetailItem label="Zone Name" value={zone.name} />
-              <DetailItem label="Zone Code" value={zone.code} />
+              <DetailItem label="Zone Block Name" value={zoneBlock.name} />
+              <DetailItem label="Zone Block Code" value={zoneBlock.code} />
               <DetailItem
                 label="District"
-                value={zone.neighborhood?.district?.name}
+                value={zoneBlock.zone?.district?.name}
               />
-              <DetailItem
-                label="Neighborhood"
-                value={zone.neighborhood?.name}
-              />
+              <DetailItem label="Zone" value={zoneBlock.zone?.name} />
 
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
@@ -237,14 +234,14 @@ export default function ViewZone() {
 
           <div className="bg-white border border-line rounded-xl shadow-card-sm overflow-hidden">
             <div className="px-5 py-5 border-b border-line">
-              <h2 className="text-[18px] font-semibold text-ink">Zone Boundary</h2>
+              <h2 className="text-[18px] font-semibold text-ink">Zone Block Boundary</h2>
               <p className="mt-1 text-[13px] text-ink-soft">
-                Geographic shape of the zone on the map.
+                Geographic shape of the zone block on the map.
               </p>
             </div>
 
             <div className="p-5">
-              <ZoneMapPreview geometry={zone.geometry} height="520px" />
+              <ZoneMapPreview geometry={zoneBlock.geometry} height="520px" />
             </div>
           </div>
         </div>

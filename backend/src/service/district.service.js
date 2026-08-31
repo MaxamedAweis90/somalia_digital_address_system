@@ -50,7 +50,7 @@ export const DistrictService = {
       where: regionId ? { regionId } : undefined,
       select: {
         ...districtSelect,
-        _count: { select: { neighborhoods: true } },
+        _count: { select: { zones: true } },
       },
       orderBy: { name: "asc" },
     });
@@ -65,7 +65,7 @@ export const DistrictService = {
       where: { id: id.trim() },
       select: {
         ...districtSelect,
-        neighborhoods: {
+        zones: {
           select: {
             id: true,
             name: true,
@@ -127,16 +127,16 @@ export const DistrictService = {
 
     const district = await prisma.district.findUnique({
       where: { id: id.trim() },
-      include: { _count: { select: { neighborhoods: true } } },
+      include: { _count: { select: { zones: true } } },
     });
 
     if (!district) {
       throw new Error("District not found");
     }
 
-    if (district._count.neighborhoods > 0) {
+    if (district._count.zones > 0) {
       throw new Error(
-        "Cannot delete district with existing neighborhoods. Remove neighborhoods first."
+        "Cannot delete district with existing zones. Remove zones first."
       );
     }
 
