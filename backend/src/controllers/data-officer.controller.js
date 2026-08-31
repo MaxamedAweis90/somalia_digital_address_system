@@ -16,8 +16,8 @@ export const createDataOfficer = async (req, res) => {
   try {
     const dataOfficer = await DataOfficerService.createDataOfficer(req.body);
 
-    // Audit Log Integration
-    await AuditLogService.createAuditLog({
+    // Non-blocking audit log
+    await AuditLogService.logSafe({
       userId: req.user.id,
       action: `Created data officer account for ${dataOfficer.name} (${dataOfficer.email})`,
       actionType: "CREATE",
@@ -69,8 +69,8 @@ export const updateDataOfficer = async (req, res) => {
       req.body
     );
 
-    // Audit Log Integration
-    await AuditLogService.createAuditLog({
+    // Non-blocking audit log
+    await AuditLogService.logSafe({
       userId: req.user.id,
       action: `Updated data officer account: ${dataOfficer.name} (${dataOfficer.email})`,
       actionType: "UPDATE",
@@ -94,8 +94,8 @@ export const deleteDataOfficer = async (req, res) => {
       req.user.id
     );
 
-    // Audit Log Integration
-    await AuditLogService.createAuditLog({
+    // Non-blocking audit log
+    await AuditLogService.logSafe({
       userId: req.user.id,
       action: `Deleted data officer account with ID ${req.params.id}`,
       actionType: "DELETE",
@@ -116,8 +116,8 @@ export const regenerateDataOfficerPassword = async (req, res) => {
   try {
     const result = await DataOfficerService.regeneratePassword(req.params.id);
 
-    // Audit Log Integration
-    await AuditLogService.createAuditLog({
+    // Non-blocking audit log
+    await AuditLogService.logSafe({
       userId: req.user.id,
       action: `Regenerated temporary password for data officer: ${result.officer.name} (${result.officer.email})`,
       actionType: "UPDATE",
