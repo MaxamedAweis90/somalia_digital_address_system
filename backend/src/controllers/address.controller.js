@@ -47,11 +47,23 @@ export const createAddress = async (req, res) => {
 
 export const getAddresses = async (req, res) => {
   try {
-    const addresses = await AddressService.getAddresses(req.query);
+    const { page, limit, search, districtId, zoneId, zoneBlockId } = req.query;
+
+    const parsedPage = page ? parseInt(page, 10) : 1;
+    const parsedLimit = limit ? parseInt(limit, 10) : 10;
+
+    const result = await AddressService.getAddresses({
+      page: isNaN(parsedPage) || parsedPage < 1 ? 1 : parsedPage,
+      limit: isNaN(parsedLimit) || parsedLimit < 1 ? 10 : parsedLimit,
+      search,
+      districtId,
+      zoneId,
+      zoneBlockId,
+    });
 
     return res.status(200).json({
       success: true,
-      data: addresses,
+      data: result,
     });
   } catch (error) {
     return res.status(500).json({

@@ -1,9 +1,6 @@
 import { DataOfficerService } from "../service/data-officer.service.js";
 import { AuditLogService } from "../service/auditLog.service.js";
-import {
-  getErrorMessage,
-  getHttpStatus,
-} from "../utils/prisma-error.utils.js";
+import { getErrorMessage, getHttpStatus } from "../utils/prisma-error.utils.js";
 
 function sendError(res, error) {
   return res.status(getHttpStatus(error)).json({
@@ -36,11 +33,20 @@ export const createDataOfficer = async (req, res) => {
 
 export const getDataOfficers = async (req, res) => {
   try {
-    const dataOfficers = await DataOfficerService.getDataOfficers();
+    const { page, limit, search } = req.query;
+
+    const parsedPage = page ? parseInt(page, 10) : 1;
+    const parsedLimit = limit ? parseInt(limit, 10) : 10;
+
+    const result = await DataOfficerService.getDataOfficers({
+      page: isNaN(parsedPage) || parsedPage < 1 ? 1 : parsedPage,
+      limit: isNaN(parsedLimit) || parsedLimit < 1 ? 10 : parsedLimit,
+      search,
+    });
 
     return res.status(200).json({
       success: true,
-      data: dataOfficers,
+      data: result,
     });
   } catch (error) {
     return sendError(res, error);
@@ -50,7 +56,7 @@ export const getDataOfficers = async (req, res) => {
 export const getDataOfficerById = async (req, res) => {
   try {
     const dataOfficer = await DataOfficerService.getDataOfficerById(
-      req.params.id
+      req.params.id,
     );
 
     return res.status(200).json({
@@ -66,7 +72,7 @@ export const updateDataOfficer = async (req, res) => {
   try {
     const dataOfficer = await DataOfficerService.updateDataOfficer(
       req.params.id,
-      req.body
+      req.body,
     );
 
     // Non-blocking audit log
@@ -91,7 +97,7 @@ export const deleteDataOfficer = async (req, res) => {
   try {
     const result = await DataOfficerService.deleteDataOfficer(
       req.params.id,
-      req.user.id
+      req.user.id,
     );
 
     // Non-blocking audit log

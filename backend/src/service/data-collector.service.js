@@ -110,7 +110,9 @@ export const DataCollectorService = {
     }
 
     if (!Object.keys(data).length) {
-      throw new Error("Provide at least one field to update: name, email, or password");
+      throw new Error(
+        "Provide at least one field to update: name, email, or password",
+      );
     }
 
     return prisma.user.update({
@@ -134,9 +136,59 @@ export const DataCollectorService = {
     return { collector, temporaryPassword };
   },
 
-  getAllCollectors: async () => {
-    return prisma.user.findMany({
-      where: { role: DATA_COLLECTOR_ROLE },
+  /**
+   * Get all data collectors with optional pagination
+   * @param {Object} params
+   * @param {number} [params.page=1] - Page number (1-indexed)
+   * @param {number} [params.limit=10] - Items per page
+   * @param {string} [params.search] - Optional search query (name or email)
+   * @returns {Promise<{data: Array, pagination: Object}>} Collectors and pagination metadata
+   */
+  getAllCollectors: async ({ page = 1, limit = 10, search } = {}) => {
+    // Robust parsing to prevent NaN/invalid inputs
+    let parsedPage = parseInt(page, 10);
+    let parsedLimit = parseInt(limit, 10);
+
+    if (isNaN(parsedPage) || parsedPage < 1) {
+      parsedPage = 1;
+    }
+    if (isNaN(parsedLimit) || parsedLimit < 1) {
+      parsedLimit = 10;
+    }
+
+    // Enforce reasonable limits
+    if (parsedLimit > 100) {
+      parsedLimit = 100;
+    }
+
+    const skip = (parsedPage - 1) * parsedLimit;
+    const take = parsedLimit;
+
+    // Build filter criteria
+    const where = { role: DATA_COLLECTOR_ROLE };
+
+    if (search && typeof search === "string" && search.trim()) {
+      const searchPattern = search.trim();
+      where.OR = [
+        { name: { contains: searchPattern, mode: "insensitive" } },
+        { email: { contains: searchPattern, mode: "insensitive" } },
+        {
+          supervisor: {
+            OR: [
+              { name: { contains: searchPattern, mode: "insensitive" } },
+              { email: { contains: searchPattern, mode: "insensitive" } },
+            ],
+          },
+        },
+      ];
+    }
+
+    // Get total count
+    const total = await prisma.user.count({ where });
+
+    // Get paginated data
+    const collectors = await prisma.user.findMany({
+      where,
       select: {
         ...collectorSelect,
         supervisor: {
@@ -144,7 +196,19 @@ export const DataCollectorService = {
         },
       },
       orderBy: { name: "asc" },
+      skip,
+      take,
     });
+
+    return {
+      data: collectors,
+      pagination: {
+        total,
+        page: parsedPage,
+        limit: parsedLimit,
+        totalPages: Math.ceil(total / parsedLimit),
+      },
+    };
   },
 
   createCollectorAdmin: async ({ name, email, password, supervisorId }) => {
@@ -251,7 +315,9 @@ export const DataCollectorService = {
     }
 
     if (!Object.keys(data).length) {
-      throw new Error("Provide at least one field to update: name, email, password, or supervisorId");
+      throw new Error(
+        "Provide at least one field to update: name, email, password, or supervisorId",
+      );
     }
 
     return prisma.user.update({
@@ -333,4 +399,3 @@ export const DataCollectorService = {
     return { collector, temporaryPassword };
   },
 };
-

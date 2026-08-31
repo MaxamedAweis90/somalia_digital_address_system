@@ -45,15 +45,72 @@ export const DistrictService = {
     });
   },
 
-  getDistricts: async (regionId) => {
-    return prisma.district.findMany({
-      where: regionId ? { regionId } : undefined,
+  /**
+   * Get districts with optional pagination and filtering
+   * @param {Object} params
+   * @param {string} [params.regionId] - Filter by region
+   * @param {number} [params.page=1] - Page number
+   * @param {number} [params.limit=10] - Items per page
+   * @param {string} [params.search] - Search by name or code
+   * @returns {Promise<{data: Array, pagination: Object}>} Districts and pagination info
+   */
+  getDistricts: async ({ regionId, page = 1, limit = 10, search } = {}) => {
+    // Robust parsing
+    let parsedPage = parseInt(page, 10);
+    let parsedLimit = parseInt(limit, 10);
+
+    if (isNaN(parsedPage) || parsedPage < 1) {
+      parsedPage = 1;
+    }
+    if (isNaN(parsedLimit) || parsedLimit < 1) {
+      parsedLimit = 10;
+    }
+
+    if (parsedLimit > 100) {
+      parsedLimit = 100;
+    }
+
+    const skip = (parsedPage - 1) * parsedLimit;
+    const take = parsedLimit;
+
+    // Build filter
+    const where = {};
+    if (regionId && typeof regionId === "string" && regionId.trim()) {
+      where.regionId = regionId.trim();
+    }
+
+    if (search && typeof search === "string" && search.trim()) {
+      const searchPattern = search.trim();
+      where.OR = [
+        { name: { contains: searchPattern, mode: "insensitive" } },
+        { code: { contains: searchPattern, mode: "insensitive" } },
+      ];
+    }
+
+    // Get total
+    const total = await prisma.district.count({ where });
+
+    // Get paginated data
+    const districts = await prisma.district.findMany({
+      where,
       select: {
         ...districtSelect,
         _count: { select: { zones: true } },
       },
       orderBy: { name: "asc" },
+      skip,
+      take,
     });
+
+    return {
+      data: districts,
+      pagination: {
+        total,
+        page: parsedPage,
+        limit: parsedLimit,
+        totalPages: Math.ceil(total / parsedLimit),
+      },
+    };
   },
 
   getDistrictById: async (id) => {
@@ -89,7 +146,9 @@ export const DistrictService = {
       throw new Error("District ID is required");
     }
 
-    const existing = await prisma.district.findUnique({ where: { id: id.trim() } });
+    const existing = await prisma.district.findUnique({
+      where: { id: id.trim() },
+    });
 
     if (!existing) {
       throw new Error("District not found");
@@ -99,7 +158,9 @@ export const DistrictService = {
       if (typeof regionId !== "string" || !regionId.trim()) {
         throw new Error("Region ID must be a valid string");
       }
-      const region = await prisma.region.findUnique({ where: { id: regionId.trim() } });
+      const region = await prisma.region.findUnique({
+        where: { id: regionId.trim() },
+      });
 
       if (!region) {
         throw new Error("Region not found");
@@ -136,7 +197,7 @@ export const DistrictService = {
 
     if (district._count.zones > 0) {
       throw new Error(
-        "Cannot delete district with existing zones. Remove zones first."
+        "Cannot delete district with existing zones. Remove zones first.",
       );
     }
 
