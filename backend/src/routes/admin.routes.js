@@ -10,6 +10,7 @@ import SettingsRouter from "./settings.routes.js";
 import DataOfficerRouter from "./data-officer.routes.js";
 import DataCollectorRouter from "./data-collector.routes.js";
 import AssignmentRouter from "./assignment.routes.js";
+import AuditLogRouter from "./auditLog.routes.js";
 
 const AdminRouter = Router();
 
@@ -25,5 +26,6 @@ AdminRouter.use("/settings", SettingsRouter);
 AdminRouter.use("/data-officers", DataOfficerRouter);
 AdminRouter.use("/data-collectors", DataCollectorRouter);
 AdminRouter.use("/assignments", AssignmentRouter);
+AdminRouter.use("/audit-logs", AuditLogRouter);
 
 export default AdminRouter;

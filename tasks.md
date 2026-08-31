@@ -241,11 +241,15 @@ See the planning doc for checkbox task lists, dependencies, and E2E scenarios.
 - `frontend/src/api/neighborhoodApi.js`
 - `frontend/src/components/zones/ZoneMapEditor.jsx` (or shared boundary editor)
 
+## Completed Modules
+
+- Two-level Field Assignment Workflow (Admin → Officer → Collector)
+- Audit Logs System (Database, Backend API, Non-blocking Event Triggers & UI)
+
 ---
 
-## Future (out of scope for this workflow)
+## Future (out of scope for current tasks)
 
-- Audit logs API + UI
 - Admin global search
 - `DEFINE_NEIGHBORHOOD_BOUNDARY` as separate officer assignment (vs admin draw on CRUD)
 - District / region geometry
