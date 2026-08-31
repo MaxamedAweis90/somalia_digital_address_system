@@ -18,7 +18,7 @@ $$\text{District} \longrightarrow \text{Neighborhood} \longrightarrow \text{Zone
 |---|---|---|---|
 | **Super Admin (`SYS_ADMIN`)** | System & administrative data management | Full CRUD on all levels, user management, audit logs, global search, dashboard | Fully operational |
 | **Data Officer (`DATA_OFFICER`)** | Field data entry & spatial address management | Address CRUD, Zone viewing, Neighborhood/District lookup, search | Fully operational (Read-only lookup for administrative boundaries; write restricted to Admin) |
-| **Public / Frontdoor** | Citizen lookup & verification | Address Search, Public coverage, Developer API specs, About | Operational |
+| **Public Entry Point** | Login & Authentication | `/login` route | Operational (`/login` is sole public entry point) |
 
 ---
 
@@ -37,7 +37,7 @@ $$\text{District} \longrightarrow \text{Neighborhood} \longrightarrow \text{Zone
 | **Addresses Management** | FR-06: Address CRUD + DAC validation | Database Model exists in Prisma (`Address`) | Placeholder route | **Pending Backend API & Frontend UI** |
 | **DAC Generation** | FR-07: Automatic code generation | Pending | Pending | Needs formula generator logic on address creation |
 | **Cascading Dropdowns** | FR-08: District $\rightarrow$ Neighborhood $\rightarrow$ Zone | Pending | Pending | To be built into Address Creation Form |
-| **Global Search** | FR-09: Search by DAC, District, Zone, Street | Pending | Public search exists (`Addresslookup.jsx`); Admin search pending API | Needs dedicated search API endpoint |
+| **Global Search** | FR-09: Search by DAC, District, Zone, Street | Pending | Admin search route (`/admin/search`) | Needs dedicated search API endpoint |
 | **Dashboard Metrics** | FR-10: Total counts & recent activity | Model count relations exist | Static count cards in `Dashboard.jsx` | Needs `/api/v1/dashboard` summary endpoint |
 | **Delete Protection** | FR-11: Block parent deletion if children exist | Enforced in Prisma services (`district.service.js`, `neighborhood.service.js`) | Error handling in UI displays server constraint message | Completed for Districts & Neighborhoods |
 | **GIS & Leaflet Map** | FR-15, FR-16, FR-17: Zone boundary polygons & GPS coords | PostGIS `geometry` column in Prisma schema | Prototype map component | Needs Leaflet polygon drawing & PostGIS integration |
@@ -48,7 +48,7 @@ $$\text{District} \longrightarrow \text{Neighborhood} \longrightarrow \text{Zone
 
 ### **What is ALREADY DONE**
 - **Granular Role-Based Access Control (RBAC)**: Configured method-level authorization in backend (`GET` allowed for `SYS_ADMIN` and `DATA_OFFICER`, while `POST`/`PUT`/`DELETE` strictly restricted to `SYS_ADMIN`).
-- **Public Frontdoor**: Clean landing page, header, navigation, coverage view, and public address lookup.
+- **Single Public Entry Point (`/login`)**: Removed public landing/frontdoor pages; unauthenticated visits to root or unknown routes redirect to `/login`.
 - **Authentication**: Enterprise login page with official SDAS branding, session persistence, role decoding, and logout flow.
 - **Layouts & Navigation**: Clean collapsible navigation sidebars for `SYS_ADMIN` and `DATA_OFFICER`.
 - **Districts**: Full end-to-end integration (Database $\leftrightarrow$ Express API $\leftrightarrow$ React Frontend CRUD with role-based action controls).
