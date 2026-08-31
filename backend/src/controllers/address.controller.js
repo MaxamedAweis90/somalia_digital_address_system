@@ -1,4 +1,5 @@
 import { AddressService } from "../service/address.service.js";
+import { AuditLogService } from "../service/auditLog.service.js";
 import { getErrorMessage } from "../utils/prisma-error.utils.js";
 import { getSettingValue } from "../utils/settings.utils.js";
 
@@ -22,6 +23,13 @@ export const previewNextAddressCode = async (req, res) => {
 export const createAddress = async (req, res) => {
   try {
     const address = await AddressService.createAddress(req.body);
+
+    await AuditLogService.logSafe({
+      userId: req.user?.id,
+      action: `Created Address: ${address.addressCode} (${address.streetName})`,
+      actionType: "CREATE",
+      entityId: address.id,
+    });
 
     return res.status(201).json({
       success: true,
@@ -74,6 +82,13 @@ export const updateAddress = async (req, res) => {
   try {
     const address = await AddressService.updateAddress(req.params.id, req.body);
 
+    await AuditLogService.logSafe({
+      userId: req.user?.id,
+      action: `Updated Address: ${address.addressCode} (${address.streetName})`,
+      actionType: "UPDATE",
+      entityId: address.id,
+    });
+
     return res.status(200).json({
       success: true,
       message: "Address updated successfully",
@@ -91,6 +106,13 @@ export const updateAddress = async (req, res) => {
 export const deleteAddress = async (req, res) => {
   try {
     const result = await AddressService.deleteAddress(req.params.id);
+
+    await AuditLogService.logSafe({
+      userId: req.user?.id,
+      action: `Deleted Address: ${result.addressCode || req.params.id}`,
+      actionType: "DELETE",
+      entityId: req.params.id,
+    });
 
     return res.status(200).json({
       success: true,

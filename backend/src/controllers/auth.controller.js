@@ -1,10 +1,10 @@
 import { AuthService } from "../service/auth.service.js";
+import { AuditLogService } from "../service/auditLog.service.js";
 import { clearAuthCookie, sethAuthCookie } from "../utils/cookies.utils.js";
 // import { verifyRecaptcha } from "../utils/recaptcha.utils.js";
 // import { sendOtpEmail, sendLoginSuccessEmail } from "../utils/email.utils.js";
-import { generateToken } from "../utils/jwt.utils.js";
+import { generateToken, verifyToken } from "../utils/jwt.utils.js";
 import { getDeviceInfo } from "../utils/device.utils.js";
-import { generateToken } from "../utils/jwt.utils.js";
 
 // -----------------------------------------------------------------------
 // POST /auth/register
@@ -13,8 +13,19 @@ export const registerUser = async (req, res) => {
   try {
     const { name, email, password } = req.body || {};
 
-    const { user, token } = await AuthService.registerUser({ name, email, password });
+    const { user, token } = await AuthService.registerUser({
+      name,
+      email,
+      password,
+    });
     sethAuthCookie(res, token);
+
+    await AuditLogService.logSafe({
+      userId: user.id,
+      action: `New user registration: ${user.name} (${user.email}) with role ${user.role}`,
+      actionType: "CREATE",
+      entityId: user.id,
+    });
 
     return res.status(201).json({
       success: true,
@@ -62,10 +73,21 @@ export const loginUser = async (req, res) => {
 
     // Direct login verification in dev mode
     const user = await AuthService.validateCredentials({ email, password });
-    const token = generateToken({ id: user.id, email: user.email, role: user.role });
+    const token = generateToken({
+      id: user.id,
+      email: user.email,
+      role: user.role,
+    });
     sethAuthCookie(res, token);
 
     const { password: _pw, ...safeUser } = user;
+
+    await AuditLogService.logSafe({
+      userId: user.id,
+      action: `User logged in successfully (${user.email}) with role ${user.role}`,
+      actionType: "UPDATE",
+      entityId: user.id,
+    });
 
     return res.status(200).json({
       success: true,
@@ -90,6 +112,13 @@ export const verifyLoginOtp = async (req, res) => {
 
     const { user, token } = await AuthService.verifyLoginOtp({ email, code });
     sethAuthCookie(res, token);
+
+    await AuditLogService.logSafe({
+      userId: user.id,
+      action: `User verified OTP and logged in (${user.email})`,
+      actionType: "UPDATE",
+      entityId: user.id,
+    });
 
     return res.status(200).json({
       success: true,
@@ -130,8 +159,24 @@ export const resendOtp = async (req, res) => {
 // POST /auth/logout
 // -----------------------------------------------------------------------
 export const logoutUser = (req, res) => {
+  const token = req.cookies?.token || req.headers?.authorization?.replace("Bearer ", "");
+  if (token) {
+    try {
+      const decoded = verifyToken(token);
+      if (decoded?.id) {
+        AuditLogService.logSafe({
+          userId: decoded.id,
+          action: `User logged out (${decoded.email || decoded.id})`,
+          actionType: "UPDATE",
+          entityId: decoded.id,
+        });
+      }
+    } catch (_) {}
+  }
   clearAuthCookie(res);
-  return res.status(200).json({ success: true, message: "Logged out successfully" });
+  return res
+    .status(200)
+    .json({ success: true, message: "Logged out successfully" });
 };
 
 // -----------------------------------------------------------------------

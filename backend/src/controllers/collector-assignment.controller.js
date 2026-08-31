@@ -1,4 +1,5 @@
 import { AssignmentService } from "../service/assignment.service.js";
+import { AuditLogService } from "../service/auditLog.service.js";
 import { getErrorMessage } from "../utils/prisma-error.utils.js";
 
 function accessStatus(error) {
@@ -45,6 +46,14 @@ export const saveCollectorDraft = async (req, res) => {
 export const submitCollectorAssignment = async (req, res) => {
   try {
     const assignment = await AssignmentService.submitChildAssignment(req.params.id, req.user.id);
+
+    await AuditLogService.logSafe({
+      userId: req.user.id,
+      action: `Collector submitted child assignment ${req.params.id} to officer for review`,
+      actionType: "UPDATE",
+      entityId: req.params.id,
+    });
+
     return res.status(200).json({
       success: true,
       message: "Assignment submitted to your data officer",

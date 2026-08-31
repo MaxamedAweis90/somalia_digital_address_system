@@ -43,8 +43,6 @@ import Settings from "@/pages/settings/Settings";
 import Assignments from "@/pages/assignments/Assignments";
 import AddAssignment from "@/pages/assignments/AddAssignment";
 import AssignmentDetail from "@/pages/assignments/AssignmentDetail";
-import OfficerParentDetail from "@/pages/officer/OfficerParentDetail";
-
 import AnnouncementBar from "@/Frontdoor/AnnouncementBar";
 import Header from "@/Frontdoor/Header";
 import Hero from "@/Frontdoor/Hero";
@@ -57,6 +55,7 @@ import Developers from "@/Frontdoor/Developers";
 import About from "@/Frontdoor/About";
 import CoveragePage from "@/Frontdoor/pages/CoveragePage";
 import "@/Frontdoor/frontdoor.css";
+import AuditLogsPage from "@/pages/admin/AuditLogsPage";
 
 function Frontdoor() {
   return (
@@ -145,23 +144,30 @@ export default function AppRoutes() {
         <Route path="data-officers/add" element={<AddDataOfficer />} />
         <Route path="data-officers/edit/:id" element={<EditDataOfficer />} />
         <Route path="data-collectors" element={<DataCollectorsPage />} />
-        <Route path="data-collectors/create" element={<CreateDataCollectorPage />} />
-        <Route path="data-collectors/add" element={<CreateDataCollectorPage />} />
-        <Route path="data-collectors/:id" element={<DataCollectorDetailsPage />} />
-        <Route path="data-collectors/:id/edit" element={<EditDataCollectorPage />} />
-        <Route path="data-collectors/edit/:id" element={<EditDataCollectorPage />} />
+        <Route
+          path="data-collectors/create"
+          element={<CreateDataCollectorPage />}
+        />
+        <Route
+          path="data-collectors/add"
+          element={<CreateDataCollectorPage />}
+        />
+        <Route
+          path="data-collectors/:id"
+          element={<DataCollectorDetailsPage />}
+        />
+        <Route
+          path="data-collectors/:id/edit"
+          element={<EditDataCollectorPage />}
+        />
+        <Route
+          path="data-collectors/edit/:id"
+          element={<EditDataCollectorPage />}
+        />
         <Route path="assignments" element={<Assignments />} />
         <Route path="assignments/add" element={<AddAssignment />} />
         <Route path="assignments/:id" element={<AssignmentDetail />} />
-        <Route
-          path="audit-logs"
-          element={
-            <PlaceholderPage
-              title="Audit Logs"
-              description="View system activity and audit trail."
-            />
-          }
-        />
+        <Route path="audit-logs" element={<AuditLogsPage />} />
         <Route path="settings" element={<Settings />} />
       </Route>
 

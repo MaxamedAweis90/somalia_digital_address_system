@@ -1,9 +1,17 @@
 import { DistrictService } from "../service/district.service.js";
+import { AuditLogService } from "../service/auditLog.service.js";
 import { getErrorMessage } from "../utils/prisma-error.utils.js";
 
 export const createDistrict = async (req, res) => {
   try {
     const district = await DistrictService.createDistrict(req.body);
+
+    await AuditLogService.logSafe({
+      userId: req.user?.id,
+      action: `Created District: ${district.name} (${district.code})`,
+      actionType: "CREATE",
+      entityId: district.id,
+    });
 
     return res.status(201).json({
       success: true,
@@ -59,6 +67,13 @@ export const updateDistrict = async (req, res) => {
       req.body
     );
 
+    await AuditLogService.logSafe({
+      userId: req.user?.id,
+      action: `Updated District: ${district.name} (${district.code})`,
+      actionType: "UPDATE",
+      entityId: district.id,
+    });
+
     return res.status(200).json({
       success: true,
       message: "District updated successfully",
@@ -76,6 +91,13 @@ export const updateDistrict = async (req, res) => {
 export const deleteDistrict = async (req, res) => {
   try {
     const result = await DistrictService.deleteDistrict(req.params.id);
+
+    await AuditLogService.logSafe({
+      userId: req.user?.id,
+      action: `Deleted District: ${result.name || req.params.id}`,
+      actionType: "DELETE",
+      entityId: req.params.id,
+    });
 
     return res.status(200).json({
       success: true,

@@ -1,4 +1,5 @@
 import { AssignmentService } from "../service/assignment.service.js";
+import { AuditLogService } from "../service/auditLog.service.js";
 import { getErrorMessage } from "../utils/prisma-error.utils.js";
 
 export const createAssignment = async (req, res) => {
@@ -7,6 +8,13 @@ export const createAssignment = async (req, res) => {
       req.body,
       req.user.id
     );
+
+    await AuditLogService.logSafe({
+      userId: req.user.id,
+      action: `Created Parent Assignment (${assignment.type}) for officer ${assignment.assignedTo?.name || assignment.assignedToId}`,
+      actionType: "CREATE",
+      entityId: assignment.id,
+    });
 
     return res.status(201).json({
       success: true,
@@ -27,9 +35,16 @@ export const createChildAssignment = async (req, res) => {
     const parentId = req.params.parentId;
     const child = await AssignmentService.createChildAssignment(
       parentId,
-      req.body,
-      req.user.id
+      req.user.id,
+      req.body
     );
+
+    await AuditLogService.logSafe({
+      userId: req.user.id,
+      action: `Delegated Child Assignment (${child.type}) under parent ${parentId} to collector ${child.assignedTo?.name || child.assignedToId}`,
+      actionType: "CREATE",
+      entityId: child.id,
+    });
 
     return res.status(201).json({
       success: true,
@@ -109,7 +124,7 @@ export const getAssignmentById = async (req, res) => {
 
 export const saveAssignmentDraft = async (req, res) => {
   try {
-    const assignment = await AssignmentService.saveDraft(
+    const assignment = await AssignmentService.saveCollectorDraft(
       req.params.id,
       req.body.payload,
       req.user.id
@@ -136,10 +151,17 @@ export const saveAssignmentDraft = async (req, res) => {
 
 export const submitAssignment = async (req, res) => {
   try {
-    const assignment = await AssignmentService.submitAssignment(
+    const assignment = await AssignmentService.submitChildAssignment(
       req.params.id,
       req.user.id
     );
+
+    await AuditLogService.logSafe({
+      userId: req.user.id,
+      action: `Submitted Assignment ${assignment.id} for review`,
+      actionType: "UPDATE",
+      entityId: assignment.id,
+    });
 
     return res.status(200).json({
       success: true,
@@ -172,6 +194,13 @@ export const approveAssignment = async (req, res) => {
         ? "Assignment approved and addresses registered"
         : "Assignment approved and zones created";
 
+    await AuditLogService.logSafe({
+      userId: req.user.id,
+      action: `Super Admin approved Assignment ${req.params.id} (${message})`,
+      actionType: "UPDATE",
+      entityId: req.params.id,
+    });
+
     return res.status(200).json({
       success: true,
       message,
@@ -193,6 +222,13 @@ export const rejectAssignment = async (req, res) => {
       req.user.id,
       req.body.rejectionReason
     );
+
+    await AuditLogService.logSafe({
+      userId: req.user.id,
+      action: `Super Admin rejected Assignment ${req.params.id}: ${req.body.rejectionReason || "No reason given"}`,
+      actionType: "UPDATE",
+      entityId: req.params.id,
+    });
 
     return res.status(200).json({
       success: true,
