@@ -43,43 +43,13 @@ import Settings from "@/pages/settings/Settings";
 import Assignments from "@/pages/assignments/Assignments";
 import AddAssignment from "@/pages/assignments/AddAssignment";
 import AssignmentDetail from "@/pages/assignments/AssignmentDetail";
-import AnnouncementBar from "@/Frontdoor/AnnouncementBar";
-import Header from "@/Frontdoor/Header";
-import Hero from "@/Frontdoor/Hero";
-import Features from "@/Frontdoor/Features";
-import FinalCTA from "@/Frontdoor/FinalCTA";
-import Footer from "@/Frontdoor/Footer";
-import Coverage from "@/Frontdoor/Coverage";
-import AddressLookup from "@/Frontdoor/Addresslookup";
-import Developers from "@/Frontdoor/Developers";
-import About from "@/Frontdoor/About";
-import CoveragePage from "@/Frontdoor/pages/CoveragePage";
-import "@/Frontdoor/frontdoor.css";
 import AuditLogsPage from "@/pages/admin/AuditLogsPage";
-
-function Frontdoor() {
-  return (
-    <div className="min-h-screen">
-      <AnnouncementBar />
-      <Header />
-      <Hero />
-      <Features />
-      <Coverage />
-      <FinalCTA />
-      <Footer />
-    </div>
-  );
-}
 
 export default function AppRoutes() {
   return (
     <Routes>
       {/* Public routes */}
-      <Route path="/" element={<Frontdoor />} />
-      <Route path="/search" element={<AddressLookup />} />
-      <Route path="/developers" element={<Developers />} />
-      <Route path="/coverage" element={<CoveragePage />} />
-      <Route path="/about" element={<About />} />
+      <Route path="/" element={<Navigate to="/login" replace />} />
 
       <Route
         path="/login"
@@ -204,7 +174,7 @@ export default function AppRoutes() {
       {/* Legacy redirect */}
       <Route path="/dashboard" element={<Navigate to="/login" replace />} />
 
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
   );
 }

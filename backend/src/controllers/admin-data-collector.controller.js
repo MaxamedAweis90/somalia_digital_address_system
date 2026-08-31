@@ -16,7 +16,7 @@ export const createDataCollector = async (req, res) => {
   try {
     const collector = await DataCollectorService.createCollectorAdmin(req.body);
 
-    await AuditLogService.createAuditLog({
+    await AuditLogService.logSafe({
       userId: req.user.id,
       action: `Created data collector account for ${collector.name} (${collector.email})`,
       actionType: "CREATE",
@@ -68,7 +68,7 @@ export const updateDataCollector = async (req, res) => {
       req.body
     );
 
-    await AuditLogService.createAuditLog({
+    await AuditLogService.logSafe({
       userId: req.user.id,
       action: `Updated data collector account: ${collector.name} (${collector.email})`,
       actionType: "UPDATE",
@@ -91,7 +91,7 @@ export const deleteDataCollector = async (req, res) => {
       req.params.id
     );
 
-    await AuditLogService.createAuditLog({
+    await AuditLogService.logSafe({
       userId: req.user.id,
       action: `Deleted data collector account with ID ${req.params.id}`,
       actionType: "DELETE",
@@ -114,7 +114,7 @@ export const regenerateDataCollectorPassword = async (req, res) => {
       req.params.id
     );
 
-    await AuditLogService.createAuditLog({
+    await AuditLogService.logSafe({
       userId: req.user.id,
       action: `Regenerated temporary password for data collector: ${result.collector.name} (${result.collector.email})`,
       actionType: "UPDATE",

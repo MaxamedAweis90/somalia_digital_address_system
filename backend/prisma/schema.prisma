@@ -7,59 +7,30 @@ datasource db {
 }
 
 model User {
-  id                          String       @id @default(cuid())
-  name                        String
-  email                       String       @unique
-  password                    String
-  role                        UserRole     @default(DATA_OFFICER)
-  supervisorId                String?      @map("supervisor_id")
-  emailVerified               Boolean      @default(false)
-  image                       String?
-  createdAt                   DateTime     @default(now())
-  updatedAt                   DateTime     @updatedAt
-  auditLogs                   AuditLog[]
-  loginOtps                   LoginOtp[]
-  supervisor                  User?        @relation("UserSupervision", fields: [supervisorId], references: [id])
-  supervisees                 User[]       @relation("UserSupervision")
-  assignmentsAssigned         Assignment[] @relation("AssignmentAssignee")
-  assignmentsCreated          Assignment[] @relation("AssignmentCreator")
-  assignmentsReviewed         Assignment[] @relation("AssignmentReviewer")
-  assignmentsOfficerReviewed  Assignment[] @relation("AssignmentOfficerReviewer")
+  id                         String       @id @default(cuid())
+  name                       String
+  email                      String       @unique
+  emailVerified              Boolean      @default(false)
+  image                      String?
+  createdAt                  DateTime     @default(now())
+  updatedAt                  DateTime     @updatedAt
+  password                   String
+  role                       UserRole     @default(DATA_OFFICER)
+  supervisorId               String?      @map("supervisor_id")
+  assignmentsCreated         Assignment[] @relation("AssignmentCreator")
+  assignmentsAssigned        Assignment[] @relation("AssignmentAssignee")
+  assignmentsOfficerReviewed Assignment[] @relation("AssignmentOfficerReviewer")
+  assignmentsReviewed        Assignment[] @relation("AssignmentReviewer")
+  auditLogs                  AuditLog[]
+  supervisor                 User?        @relation("UserSupervision", fields: [supervisorId], references: [id])
+  supervisees                User[]       @relation("UserSupervision")
 
   @@index([supervisorId], map: "user_supervisor_index")
   @@map("user")
 }
 
-model LoginOtp {
-  id        String   @id @default(cuid())
-  userId    String   @map("user_id")
-  codeHash  String   @map("code_hash")
-  expiresAt DateTime @map("expires_at")
-  attempts  Int      @default(0)
-  consumed  Boolean  @default(false)
-  createdAt DateTime @default(now()) @map("created_at")
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId, consumed], map: "login_otp_user_consumed_index")
-  @@map("login_otps")
-}
-
-model Region {
-  id        String     @id @default(cuid())
-  name      String
-  code      String     @unique
-  status    Status     @default(ACTIVE)
-  createdAt DateTime   @default(now()) @map("created_at")
-  updatedAt DateTime   @updatedAt @map("updated_at")
-  districts District[]
-
-  @@index([code], map: "region_code_index")
-  @@map("regions")
-}
-
 model District {
   id        String    @id @default(cuid())
-  regionId  String    @map("region_id")
   name      String
   code      String    @unique
   status    Status    @default(ACTIVE)
@@ -67,64 +38,62 @@ model District {
   updatedAt DateTime  @updatedAt @map("updated_at")
   addresses Address[]
   zones     Zone[]
-  region    Region    @relation(fields: [regionId], references: [id])
 
   @@index([code], map: "district_code_index")
-  @@index([regionId], map: "district_region_index")
   @@map("districts")
 }
 
 model Zone {
-  id          String                  @id @default(cuid())
-  districtId  String                  @map("district_id")
+  id          String                   @id(map: "neighborhoods_pkey") @default(cuid())
+  districtId  String                   @map("district_id")
   name        String
-  code        String                  @unique
-  status      Status                  @default(ACTIVE)
+  code        String                   @unique(map: "neighborhoods_code_key")
+  status      Status                   @default(ACTIVE)
+  createdAt   DateTime                 @default(now()) @map("created_at")
+  updatedAt   DateTime                 @updatedAt @map("updated_at")
   geometry    Unsupported("geometry")?
-  createdAt   DateTime                @default(now()) @map("created_at")
-  updatedAt   DateTime                @updatedAt @map("updated_at")
   addresses   Address[]
-  district    District                @relation(fields: [districtId], references: [id])
-  zoneBlocks  ZoneBlock[]
   assignments Assignment[]
+  zoneBlocks  ZoneBlock[]
+  district    District                 @relation(fields: [districtId], references: [id], map: "neighborhoods_district_id_fkey")
 
   @@index([code, districtId], map: "zone_code_and_district_index")
   @@map("zones")
 }
 
 model ZoneBlock {
-  id        String                  @id @default(cuid())
-  zoneId    String                  @map("zone_id")
-  name      String
-  code      String                  @unique
-  status    Status                  @default(ACTIVE)
-  geometry  Unsupported("geometry")
-  createdAt DateTime                @default(now()) @map("created_at")
-  updatedAt DateTime                @updatedAt @map("updated_at")
-  addresses Address[]
-  zone      Zone                    @relation(fields: [zoneId], references: [id])
+  id          String                  @id(map: "zones_pkey") @default(cuid())
+  zoneId      String                  @map("zone_id")
+  name        String
+  code        String                  @unique(map: "zones_code_key")
+  status      Status                  @default(ACTIVE)
+  geometry    Unsupported("geometry")
+  createdAt   DateTime                @default(now()) @map("created_at")
+  updatedAt   DateTime                @updatedAt @map("updated_at")
+  addresses   Address[]
   assignments Assignment[]
+  zone        Zone                    @relation(fields: [zoneId], references: [id], map: "zones_neighborhood_id_fkey")
 
   @@index([code, zoneId], map: "zone_block_code_and_zone_index")
   @@map("zone_blocks")
 }
 
 model Address {
-  id           String    @id @default(cuid())
-  addressCode  String    @unique @map("address_code")
-  districtId   String    @map("district_id")
-  zoneId       String    @map("zone_id")
-  zoneBlockId  String    @map("zone_block_id")
-  houseNumber  BigInt    @map("house_number")
-  streetName   String    @map("street_name")
-  description  String
-  status       Status    @default(ACTIVE)
-  location     String
-  createdAt    DateTime  @default(now()) @map("created_at")
-  updatedAt    DateTime  @updatedAt @map("updated_at")
-  district     District  @relation(fields: [districtId], references: [id])
-  zone         Zone      @relation(fields: [zoneId], references: [id])
-  zoneBlock    ZoneBlock @relation(fields: [zoneBlockId], references: [id])
+  id          String    @id @default(cuid())
+  addressCode String    @unique @map("address_code")
+  districtId  String    @map("district_id")
+  zoneId      String    @map("zone_id")
+  zoneBlockId String    @map("zone_block_id")
+  houseNumber BigInt    @map("house_number")
+  streetName  String    @map("street_name")
+  description String
+  status      Status    @default(ACTIVE)
+  location    String
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  district    District  @relation(fields: [districtId], references: [id])
+  zone        Zone      @relation(fields: [zoneId], references: [id], map: "addresses_neighborhood_id_fkey")
+  zoneBlock   ZoneBlock @relation(fields: [zoneBlockId], references: [id], map: "addresses_zone_id_fkey")
 
   @@index([addressCode, districtId, zoneId, zoneBlockId], map: "address_code_and_location_index")
   @@map("addresses")
@@ -151,6 +120,46 @@ model spatial_ref_sys {
   proj4text String? @db.VarChar(2048)
 }
 
+model Assignment {
+  id                  String           @id @default(cuid())
+  type                AssignmentType   @default(DEFINE_ZONE_BLOCKS)
+  status              AssignmentStatus @default(ASSIGNED)
+  zoneId              String           @map("zone_id")
+  assignedToId        String           @map("assigned_to_id")
+  assignedById        String           @map("assigned_by_id")
+  payload             Json             @default("{\"zoneBlocks\": []}")
+  notes               String?
+  dueAt               DateTime?        @map("due_at")
+  submittedAt         DateTime?        @map("submitted_at")
+  reviewedAt          DateTime?        @map("reviewed_at")
+  reviewedById        String?          @map("reviewed_by_id")
+  rejectionReason     String?          @map("rejection_reason")
+  createdAt           DateTime         @default(now()) @map("created_at")
+  updatedAt           DateTime         @updatedAt @map("updated_at")
+  zoneBlockId         String?          @map("zone_block_id")
+  parentAssignmentId  String?          @map("parent_assignment_id")
+  tier                AssignmentTier   @default(PARENT)
+  scope               Json?
+  mergeOrder          Int?             @map("merge_order")
+  officerReviewedAt   DateTime?        @map("officer_reviewed_at")
+  officerReviewedById String?          @map("officer_reviewed_by_id")
+  assignedBy          User             @relation("AssignmentCreator", fields: [assignedById], references: [id])
+  assignedTo          User             @relation("AssignmentAssignee", fields: [assignedToId], references: [id])
+  zone                Zone             @relation(fields: [zoneId], references: [id], map: "assignments_neighborhood_id_fkey")
+  officerReviewedBy   User?            @relation("AssignmentOfficerReviewer", fields: [officerReviewedById], references: [id])
+  parent              Assignment?      @relation("AssignmentChildren", fields: [parentAssignmentId], references: [id], onDelete: Restrict)
+  children            Assignment[]     @relation("AssignmentChildren")
+  reviewedBy          User?            @relation("AssignmentReviewer", fields: [reviewedById], references: [id])
+  zoneBlock           ZoneBlock?       @relation(fields: [zoneBlockId], references: [id], onDelete: Restrict, map: "assignments_zone_id_fkey")
+
+  @@index([assignedToId, status], map: "assignment_assignee_status_index")
+  @@index([zoneId], map: "assignment_zone_index")
+  @@index([zoneBlockId], map: "assignment_zone_block_index")
+  @@index([parentAssignmentId], map: "assignment_parent_index")
+  @@index([tier, status], map: "assignment_tier_status_index")
+  @@map("assignments")
+}
+
 enum UserRole {
   SYS_ADMIN
   DATA_OFFICER
@@ -168,29 +177,6 @@ enum ActionType {
   DELETE
 }
 
-enum SettingType {
-  STRING
-  NUMBER
-  BOOLEAN
-  JSON
-}
-
-model AppSetting {
-  id          String      @id @default(cuid())
-  key         String      @unique
-  label       String
-  value       String
-  description String?
-  category    String      @default("general")
-  type        SettingType @default(STRING)
-  isSystem    Boolean     @default(false) @map("is_system")
-  createdAt   DateTime    @default(now()) @map("created_at")
-  updatedAt   DateTime    @updatedAt @map("updated_at")
-
-  @@index([category], map: "app_setting_category_index")
-  @@map("app_settings")
-}
-
 enum AssignmentType {
   DEFINE_ZONE_BLOCKS
   REGISTER_ADDRESSES
@@ -199,53 +185,13 @@ enum AssignmentType {
 enum AssignmentStatus {
   ASSIGNED
   IN_PROGRESS
-  READY_FOR_REVIEW
   SUBMITTED
   APPROVED
   REJECTED
+  READY_FOR_REVIEW
 }
 
 enum AssignmentTier {
   PARENT
   CHILD
-}
-
-model Assignment {
-  id                  String           @id @default(cuid())
-  type                AssignmentType   @default(DEFINE_ZONE_BLOCKS)
-  tier                AssignmentTier   @default(PARENT)
-  status              AssignmentStatus @default(ASSIGNED)
-  parentAssignmentId  String?          @map("parent_assignment_id")
-  zoneId              String           @map("zone_id")
-  zoneBlockId         String?          @map("zone_block_id")
-  assignedToId        String           @map("assigned_to_id")
-  assignedById        String           @map("assigned_by_id")
-  payload             Json             @default("{\"zoneBlocks\":[]}")
-  scope               Json?
-  mergeOrder          Int?             @map("merge_order")
-  notes               String?
-  dueAt               DateTime?        @map("due_at")
-  submittedAt         DateTime?        @map("submitted_at")
-  reviewedAt          DateTime?        @map("reviewed_at")
-  reviewedById        String?          @map("reviewed_by_id")
-  officerReviewedAt   DateTime?        @map("officer_reviewed_at")
-  officerReviewedById String?          @map("officer_reviewed_by_id")
-  rejectionReason     String?          @map("rejection_reason")
-  createdAt           DateTime         @default(now()) @map("created_at")
-  updatedAt           DateTime         @updatedAt @map("updated_at")
-  zone                Zone             @relation(fields: [zoneId], references: [id])
-  zoneBlock           ZoneBlock?       @relation(fields: [zoneBlockId], references: [id])
-  parent              Assignment?      @relation("AssignmentChildren", fields: [parentAssignmentId], references: [id])
-  children            Assignment[]     @relation("AssignmentChildren")
-  assignedTo          User             @relation("AssignmentAssignee", fields: [assignedToId], references: [id])
-  assignedBy          User             @relation("AssignmentCreator", fields: [assignedById], references: [id])
-  reviewedBy          User?            @relation("AssignmentReviewer", fields: [reviewedById], references: [id])
-  officerReviewedBy   User?            @relation("AssignmentOfficerReviewer", fields: [officerReviewedById], references: [id])
-
-  @@index([assignedToId, status], map: "assignment_assignee_status_index")
-  @@index([zoneId], map: "assignment_zone_index")
-  @@index([zoneBlockId], map: "assignment_zone_block_index")
-  @@index([parentAssignmentId], map: "assignment_parent_index")
-  @@index([tier, status], map: "assignment_tier_status_index")
-  @@map("assignments")
 }
