@@ -10,27 +10,40 @@ import {
   OSM_TILE_URL,
 } from "@/lib/leafletSetup";
 
-function FitBounds({ geometry }) {
+function FitBounds({ geometry, zoneBlocks = [] }) {
   const map = useMap();
 
   useEffect(() => {
-    if (!geometry) return;
-
     const group = L.geoJSON({
       type: "Feature",
       geometry,
     });
 
+    zoneBlocks.filter((zoneBlock) => zoneBlock.geometry).forEach((zoneBlock) => {
+      L.geoJSON({
+        type: "Feature",
+        geometry: zoneBlock.geometry,
+      }).eachLayer((layer) => group.addLayer(layer));
+    });
+
     if (group.getLayers().length > 0) {
       map.fitBounds(group.getBounds(), { padding: [28, 28] });
     }
-  }, [geometry, map]);
+  }, [geometry, zoneBlocks, map]);
 
   return null;
 }
 
-export default function ZoneMapPreview({ geometry, height = "460px" }) {
-  if (!geometry) {
+export default function ZoneMapPreview({
+  geometry,
+  parentGeometry = null,
+  zoneBlocks = [],
+  height = "460px",
+}) {
+  const firstBlockGeometry = zoneBlocks.find((zoneBlock) => zoneBlock.geometry)?.geometry;
+  const baseGeometry = geometry || parentGeometry || firstBlockGeometry;
+
+  if (!baseGeometry) {
     return (
       <div
         className="flex items-center justify-center rounded-lg border border-line bg-bg text-[13px] text-ink-soft"
@@ -53,16 +66,44 @@ export default function ZoneMapPreview({ geometry, height = "460px" }) {
         scrollWheelZoom
       >
         <TileLayer attribution={OSM_ATTRIBUTION} url={OSM_TILE_URL} />
-        <GeoJSON
-          data={{ type: "Feature", geometry }}
-          style={{
-            color: "#0F2B4D",
-            weight: 2,
-            fillColor: "#1D4ED8",
-            fillOpacity: 0.22,
-          }}
-        />
-        <FitBounds geometry={geometry} />
+        {baseGeometry && (
+          <GeoJSON
+            data={{ type: "Feature", geometry: baseGeometry }}
+            style={{
+              color: parentGeometry ? "#64748b" : "#0F2B4D",
+              weight: 2,
+              fillColor: parentGeometry ? "#94a3b8" : "#1D4ED8",
+              fillOpacity: parentGeometry ? 0.06 : 0.22,
+              dashArray: parentGeometry ? "6 4" : undefined,
+            }}
+          />
+        )}
+        {parentGeometry && geometry && (
+          <GeoJSON
+            data={{ type: "Feature", geometry }}
+            style={{
+              color: "#1D4ED8",
+              weight: 3,
+              fillColor: "#3B82F6",
+              fillOpacity: 0.25,
+            }}
+          />
+        )}
+        {zoneBlocks.map((zoneBlock, index) =>
+          zoneBlock.geometry ? (
+            <GeoJSON
+              key={zoneBlock.id || zoneBlock.code || index}
+              data={{ type: "Feature", geometry: zoneBlock.geometry }}
+              style={{
+                color: "#1D4ED8",
+                weight: 2,
+                fillColor: "#60A5FA",
+                fillOpacity: 0.28,
+              }}
+            />
+          ) : null
+        )}
+        <FitBounds geometry={baseGeometry} zoneBlocks={zoneBlocks} />
       </MapContainer>
     </div>
   );

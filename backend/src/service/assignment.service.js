@@ -69,6 +69,18 @@ const DEFAULT_PAYLOAD = {
   REGISTER_ADDRESSES: { addresses: [] },
 };
 
+function formatAssignment(assignment) {
+  return assignment;
+}
+
+function parseExpectedCollectorCount(value) {
+  const count = Number(value);
+  if (!Number.isInteger(count) || count < 1 || count > 50) {
+    throw new Error("Data Collectors on Team must be a whole number between 1 and 50");
+  }
+  return count;
+}
+
 function isValidCoordinate(value) {
   return typeof value === "number" && Number.isFinite(value);
 }
@@ -281,10 +293,19 @@ function assertAssignmentAccess(assignment, user) {
 
 export const AssignmentService = {
   createAssignment: async (
-    { type = "DEFINE_ZONE_BLOCKS", zoneId, zoneBlockId, assignedToId, notes, dueAt },
+    {
+      type = "DEFINE_ZONE_BLOCKS",
+      zoneId,
+      zoneBlockId,
+      assignedToId,
+      expectedCollectorCount,
+      notes,
+      dueAt,
+    },
     actorId
   ) => {
     if (!assignedToId) throw new Error("Data officer is required");
+    const count = parseExpectedCollectorCount(expectedCollectorCount);
     await assertUserRole(assignedToId, "DATA_OFFICER");
 
     const assignmentType = type || "DEFINE_ZONE_BLOCKS";
@@ -310,7 +331,7 @@ export const AssignmentService = {
       initialPayload = DEFAULT_PAYLOAD.REGISTER_ADDRESSES;
     }
 
-    const assignment = await prisma.assignments.create({
+    const assignment = await prisma.assignment.create({
       data: {
         type: assignmentType,
         tier: "PARENT",
@@ -327,66 +348,6 @@ export const AssignmentService = {
     });
 
     return formatAssignment(assignment);
-  },
-
-  createChildAssignment: async (parentId, { assignedToId, notes, dueAt }, actorId) => {
-    if (!parentId) {
-      throw new Error("Parent assignment ID is required");
-    }
-    if (!assignedToId) {
-      throw new Error("Data collector is required");
-    }
-
-    await assertOfficer(assignedToId);
-
-    return prisma.$transaction(async (tx) => {
-      const parent = await tx.assignments.findUnique({
-        where: { id: parentId },
-        include: {
-          children: true,
-        },
-      });
-
-      if (!parent) {
-        throw new Error("Parent assignment not found");
-      }
-
-      if (parent.assignedToId !== actorId) {
-        throw new Error("You do not have permission to delegate tasks for this assignment");
-      }
-
-      const limit = parent.expectedCollectorCount ?? 1;
-      const currentChildren = parent.children || [];
-
-      if (currentChildren.length >= limit) {
-        throw new Error(
-          `This assignment already has the maximum number of collector tasks (${currentChildren.length}/${limit}).`
-        );
-      }
-
-      const duplicateCollector = currentChildren.some(
-        (child) => child.assignedToId === assignedToId
-      );
-      if (duplicateCollector) {
-        throw new Error("This collector is already assigned to a task under this assignment.");
-      }
-
-      const child = await tx.assignments.create({
-        data: {
-          parentId,
-          type: parent.type,
-          neighborhoodId: parent.neighborhoodId,
-          assignedToId,
-          assignedById: actorId,
-          notes: notes?.trim() || null,
-          dueAt: dueAt ? new Date(dueAt) : null,
-          payload: { zones: [] },
-        },
-        include: assignmentInclude,
-      });
-
-      return formatAssignment(child);
-    });
   },
 
   createChildAssignment: async (
@@ -517,7 +478,7 @@ export const AssignmentService = {
       validateDraftZoneBlocks(normalized.zoneBlocks, { requireGeometry: false });
     }
 
-    const updated = await prisma.assignments.update({
+    const updated = await prisma.assignment.update({
       where: { id },
       data: {
         payload: normalized,
@@ -733,7 +694,7 @@ export const AssignmentService = {
       );
     }
 
-    const updated = await prisma.assignments.update({
+    const updated = await prisma.assignment.update({
       where: { id },
       data: {
         status: "APPROVED",
@@ -757,7 +718,7 @@ export const AssignmentService = {
     }
     if (!rejectionReason?.trim()) throw new Error("Rejection reason is required");
 
-    const updated = await prisma.assignments.update({
+    const updated = await prisma.assignment.update({
       where: { id },
       data: {
         status: "REJECTED",
