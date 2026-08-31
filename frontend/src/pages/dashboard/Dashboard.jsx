@@ -63,12 +63,12 @@ export default function Dashboard() {
         value: formatCount(counts.districts),
       },
       {
-        title: "Total Neighborhoods",
-        value: formatCount(counts.neighborhoods),
-      },
-      {
         title: "Total Zones",
         value: formatCount(counts.zones),
+      },
+      {
+        title: "Total Zone Blocks",
+        value: formatCount(counts.zoneBlocks),
       },
       {
         title: "Total Addresses",

@@ -231,6 +231,7 @@ model Assignment {
   officerReviewedAt   DateTime?        @map("officer_reviewed_at")
   officerReviewedById String?          @map("officer_reviewed_by_id")
   rejectionReason     String?          @map("rejection_reason")
+  expectedCollectorCount Int?          @map("expected_collector_count")
   createdAt           DateTime         @default(now()) @map("created_at")
   updatedAt           DateTime         @updatedAt @map("updated_at")
   zone                Zone             @relation(fields: [zoneId], references: [id])

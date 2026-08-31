@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { Loader2, Plus, Trash2 } from "lucide-react";
 import {
@@ -9,6 +9,7 @@ import {
   submitParentToAdmin,
 } from "@/api/officerApi";
 import { getCollectors } from "@/api/officerApi";
+import { getZoneBlocks } from "@/api/zoneBlockApi";
 import AssignmentStatusBadge, {
   AssignmentTypeBadge,
   formatAssignmentLocation,
@@ -23,6 +24,7 @@ export default function OfficerParentDetail() {
   const navigate = useNavigate();
   const [assignment, setAssignment] = useState(null);
   const [collectors, setCollectors] = useState([]);
+  const [zoneBlocks, setZoneBlocks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
@@ -32,6 +34,7 @@ export default function OfficerParentDetail() {
   const [merging, setMerging] = useState(false);
   const [delegateForm, setDelegateForm] = useState({
     assignedToId: "",
+    zoneBlockId: "",
     notes: "",
     mergeOrder: "",
   });
@@ -47,9 +50,16 @@ export default function OfficerParentDetail() {
       setAssignment(assignmentRes.data.data);
       const collectorList = collectorsRes.data.data || [];
       setCollectors(collectorList);
+      const blockList = await getZoneBlocks(assignmentRes.data.data.zoneId);
+      const activeBlocks = (blockList.data.data || []).filter((block) => block.status === "ACTIVE");
+      const delegatedIds = new Set(
+        (assignmentRes.data.data.children || []).map((child) => child.zoneBlockId).filter(Boolean)
+      );
+      setZoneBlocks(activeBlocks);
       setDelegateForm((prev) => ({
         ...prev,
         assignedToId: collectorList[0]?.id || "",
+        zoneBlockId: activeBlocks.find((block) => !delegatedIds.has(block.id))?.id || "",
       }));
     } catch (err) {
       setError(err.response?.data?.message || "Failed to load assignment");
@@ -64,7 +74,18 @@ export default function OfficerParentDetail() {
 
   const children = assignment?.children || [];
   const approvedCount = children.filter((c) => c.status === "APPROVED").length;
-  const canMerge = approvedCount > 0 && !["SUBMITTED", "APPROVED"].includes(assignment?.status);
+  const delegatedBlockIds = useMemo(
+    () => new Set(children.map((child) => child.zoneBlockId).filter(Boolean)),
+    [children]
+  );
+  const availableZoneBlocks = zoneBlocks.filter(
+    (zoneBlock) => !delegatedBlockIds.has(zoneBlock.id)
+  );
+  const assignedCollectorCount = new Set(children.map((child) => child.assignedToId)).size;
+  const canMerge =
+    children.length > 0 &&
+    approvedCount === children.length &&
+    !["SUBMITTED", "APPROVED"].includes(assignment?.status);
   const canSubmit = ["READY_FOR_REVIEW", "REJECTED"].includes(assignment?.status);
 
   const handleDelegate = async (e) => {
@@ -73,11 +94,18 @@ export default function OfficerParentDetail() {
       setError(null);
       await createChildAssignment(id, {
         assignedToId: delegateForm.assignedToId,
+        ...(assignment.type === "REGISTER_ADDRESSES" && {
+          zoneBlockId: delegateForm.zoneBlockId,
+        }),
         notes: delegateForm.notes || undefined,
         mergeOrder: delegateForm.mergeOrder ? Number(delegateForm.mergeOrder) : undefined,
       });
       setShowDelegate(false);
-      setSuccess("Child task created for collector.");
+      setSuccess(
+        assignment.type === "REGISTER_ADDRESSES"
+          ? "Zone block assigned to collector."
+          : "Child task created for collector."
+      );
       await load();
     } catch (err) {
       setError(err.response?.data?.message || "Failed to create child task");
@@ -149,7 +177,7 @@ export default function OfficerParentDetail() {
       <div className="px-4 sm:px-6 lg:px-5 pt-5 pb-10 space-y-6">
         <Breadcrumb
           items={[
-            { label: "My Assignments", to: "/officer/dashboard" },
+            { label: "Zones", to: "/officer/dashboard" },
             { label: formatAssignmentLocation(assignment) },
           ]}
         />
@@ -170,12 +198,18 @@ export default function OfficerParentDetail() {
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div className="rounded-xl border border-line bg-white p-5 shadow-card-sm">
-            <p className="text-[12px] text-ink-soft">Child Tasks</p>
+            <p className="text-[12px] text-ink-soft">Blocks Delegated</p>
             <p className="mt-2 text-[28px] font-semibold text-ink">{children.length}</p>
           </div>
           <div className="rounded-xl border border-line bg-white p-5 shadow-card-sm">
-            <p className="text-[12px] text-ink-soft">Approved</p>
-            <p className="mt-2 text-[28px] font-semibold text-ink">{approvedCount}</p>
+            <p className="text-[12px] text-ink-soft">Collectors Assigned</p>
+            <p className="mt-2 text-[28px] font-semibold text-ink">
+              {assignedCollectorCount}
+              <span className="text-base font-normal text-ink-soft">
+                {" "}
+                / {assignment.expectedCollectorCount || "—"}
+              </span>
+            </p>
           </div>
           <div className="rounded-xl border border-line bg-white p-5 shadow-card-sm">
             <p className="text-[12px] text-ink-soft">Awaiting Review</p>
@@ -193,7 +227,9 @@ export default function OfficerParentDetail() {
             className="h-[39px] px-4 rounded-lg bg-blue-deep text-[12px] font-semibold text-white cursor-pointer disabled:opacity-50"
           >
             <Plus className="inline h-3.5 w-3.5 mr-1" />
-            Delegate to Collector
+            {assignment.type === "REGISTER_ADDRESSES"
+              ? "Assign Zone Block"
+              : "Delegate to Collector"}
           </button>
           <button
             type="button"
@@ -221,10 +257,45 @@ export default function OfficerParentDetail() {
 
         {showDelegate && (
           <form onSubmit={handleDelegate} className="rounded-xl border border-line bg-white p-5 shadow-card-sm space-y-4 max-w-xl">
-            <h3 className="text-[15px] font-semibold text-ink">Delegate Child Task</h3>
+            <h3 className="text-[15px] font-semibold text-ink">
+              {assignment.type === "REGISTER_ADDRESSES"
+                ? "Assign Zone Block to Collector"
+                : "Delegate Child Task"}
+            </h3>
+            {assignment.type === "REGISTER_ADDRESSES" && (
+              <div>
+                <label className="block text-[12px] font-semibold text-ink mb-1.5">
+                  Zone Block
+                </label>
+                <select
+                  name="zoneBlockId"
+                  value={delegateForm.zoneBlockId}
+                  onChange={(e) =>
+                    setDelegateForm((p) => ({ ...p, zoneBlockId: e.target.value }))
+                  }
+                  className="w-full h-[40px] rounded-lg border border-line px-3 text-[13px]"
+                  required
+                  disabled={!availableZoneBlocks.length}
+                >
+                  {availableZoneBlocks.length ? (
+                    availableZoneBlocks.map((zoneBlock) => (
+                      <option key={zoneBlock.id} value={zoneBlock.id}>
+                        {zoneBlock.name} ({zoneBlock.code})
+                      </option>
+                    ))
+                  ) : (
+                    <option value="">All active zone blocks are assigned</option>
+                  )}
+                </select>
+                <p className="mt-1 text-[11px] text-ink-soft">
+                  Each block can be assigned once in this zone.
+                </p>
+              </div>
+            )}
             <div>
               <label className="block text-[12px] font-semibold text-ink mb-1.5">Collector</label>
               <select
+                name="assignedToId"
                 value={delegateForm.assignedToId}
                 onChange={(e) => setDelegateForm((p) => ({ ...p, assignedToId: e.target.value }))}
                 className="w-full h-[40px] rounded-lg border border-line px-3 text-[13px]"
@@ -256,7 +327,13 @@ export default function OfficerParentDetail() {
             </div>
             <div className="flex gap-2">
               <button type="button" onClick={() => setShowDelegate(false)} className="h-[38px] px-4 rounded-lg border border-line text-[12px] font-semibold cursor-pointer">Cancel</button>
-              <button type="submit" className="h-[38px] px-4 rounded-lg bg-blue-deep text-white text-[12px] font-semibold cursor-pointer">Create Task</button>
+              <button
+                type="submit"
+                disabled={assignment.type === "REGISTER_ADDRESSES" && !availableZoneBlocks.length}
+                className="h-[38px] px-4 rounded-lg bg-blue-deep text-white text-[12px] font-semibold cursor-pointer disabled:opacity-50"
+              >
+                {assignment.type === "REGISTER_ADDRESSES" ? "Assign Block" : "Create Task"}
+              </button>
             </div>
           </form>
         )}
@@ -269,6 +346,7 @@ export default function OfficerParentDetail() {
             <table className="w-full border-collapse">
               <thead>
                 <tr className="border-b border-line bg-[#FBFCFE]">
+                  <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase text-ink-soft">Zone Block</th>
                   <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase text-ink-soft">Collector</th>
                   <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase text-ink-soft">Status</th>
                   <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase text-ink-soft">Draft Items</th>
@@ -279,6 +357,12 @@ export default function OfficerParentDetail() {
                 {children.length > 0 ? (
                   children.map((child) => (
                     <tr key={child.id} className="border-b border-line last:border-b-0">
+                      <td className="px-5 py-4 text-[12px] text-ink">
+                        <p className="font-semibold">{child.zoneBlock?.name || "—"}</p>
+                        <p className="font-mono text-[11px] text-ink-soft">
+                          {child.zoneBlock?.code || "—"}
+                        </p>
+                      </td>
                       <td className="px-5 py-4 text-[12px] font-medium text-ink">{child.assignedTo?.name}</td>
                       <td className="px-5 py-4"><AssignmentStatusBadge status={child.status} /></td>
                       <td className="px-5 py-4 text-[12px]">{getAssignmentDraftCount(child)}</td>
@@ -302,7 +386,7 @@ export default function OfficerParentDetail() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={4} className="px-5 py-10 text-center text-[12px] text-ink-soft">
+                    <td colSpan={5} className="px-5 py-10 text-center text-[12px] text-ink-soft">
                       No collector tasks yet. Delegate work to begin field collection.
                     </td>
                   </tr>

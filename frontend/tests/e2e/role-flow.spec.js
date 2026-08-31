@@ -1,6 +1,9 @@
+/* global process */
+
 import { test, expect } from "@playwright/test";
 
 const PASSWORD = "Password123!";
+const API_URL = process.env.VITE_API_URL || "http://localhost:5000/api/v1";
 const ACCOUNTS = {
   admin: {
     email: "admin@somalia.gov.so",
@@ -47,12 +50,53 @@ test("admin, officer, and collector complete one field-work flow", async ({ brow
 
     // Admin: create a parent address-registration assignment for one collector.
     await login(admin, ACCOUNTS.admin);
+    const districtsResponse = await admin.request.get(`${API_URL}/admin/districts`);
+    expect(districtsResponse.ok()).toBeTruthy();
+    const districtPayload = await districtsResponse.json();
+    const district = districtPayload.data?.[0];
+    expect(district?.id).toBeTruthy();
+
+    const zoneCode = `PW-${Date.now()}`;
+    const zoneGeometry = {
+      type: "Polygon",
+      coordinates: [[[44, 2], [44.1, 2], [44.1, 2.1], [44, 2.1], [44, 2]]],
+    };
+    const zoneResponse = await admin.request.post(`${API_URL}/admin/zones`, {
+      data: {
+        districtId: district.id,
+        name: "Playwright Test Zone",
+        code: zoneCode,
+        status: "ACTIVE",
+        geometry: zoneGeometry,
+      },
+    });
+    expect(zoneResponse.ok()).toBeTruthy();
+    const zonePayload = await zoneResponse.json();
+    const zone = zonePayload.data;
+    expect(zone?.id).toBeTruthy();
+
+    const blockResponse = await admin.request.post(`${API_URL}/admin/zone-blocks`, {
+      data: {
+        zoneId: zone.id,
+        name: "Playwright Test Block",
+        code: `${zoneCode}-B01`,
+        status: "ACTIVE",
+        geometry: {
+          type: "Polygon",
+          coordinates: [[[44.02, 2.02], [44.08, 2.02], [44.08, 2.08], [44.02, 2.08], [44.02, 2.02]]],
+        },
+      },
+    });
+    expect(blockResponse.ok()).toBeTruthy();
+    const blockPayload = await blockResponse.json();
+    const zoneBlock = blockPayload.data;
+    expect(zoneBlock?.id).toBeTruthy();
+
     await admin.goto("/admin/assignments/add");
     await expect(admin.getByRole("heading", { name: "New Assignment" })).toBeVisible();
 
     await admin.locator('select[name="type"]').selectOption("REGISTER_ADDRESSES");
-    await expect(admin.locator('select[name="zoneBlockId"]')).toBeVisible();
-    await selectOptionContaining(admin.locator('select[name="zoneBlockId"]'), "Z01");
+    await selectOptionContaining(admin.locator('select[name="zoneId"]'), zoneCode);
     await selectOptionContaining(
       admin.locator('select[name="assignedToId"]'),
       ACCOUNTS.officer.email
@@ -71,18 +115,22 @@ test("admin, officer, and collector complete one field-work flow", async ({ brow
     await expect(admin).toHaveURL(/\/admin\/assignments\/[^/]+$/);
     await expect(admin.getByText(assignmentNote)).toBeVisible();
 
-    // Officer: open the parent and delegate its one child task.
+    // Officer: open the parent, choose the block, and delegate it to a collector.
     await login(officer, ACCOUNTS.officer);
     await officer.goto(`/officer/assignments/${parentId}`);
     await expect(
       officer.getByRole("heading", { name: "Supervise Field Assignment" })
     ).toBeVisible();
-    await officer.getByRole("button", { name: "Delegate to Collector" }).click();
+    await officer.getByRole("button", { name: "Assign Zone Block" }).click();
 
-    const delegationForm = officer.locator("form").filter({ hasText: "Delegate Child Task" });
+    const delegationForm = officer.locator("form").filter({ hasText: "Assign Zone Block to Collector" });
     await expect(delegationForm).toBeVisible();
-    await delegationForm.locator("select").selectOption({ index: 0 });
-    await delegationForm.getByRole("button", { name: "Create Task" }).click();
+    await delegationForm.locator('select[name="zoneBlockId"]').selectOption(zoneBlock.id);
+    await selectOptionContaining(
+      delegationForm.locator('select[name="assignedToId"]'),
+      ACCOUNTS.collector.email
+    );
+    await delegationForm.getByRole("button", { name: "Assign Block" }).click();
     await expect(officer.getByText("Collector Tasks")).toBeVisible();
 
     const collectorRow = officer
