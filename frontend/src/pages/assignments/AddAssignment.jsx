@@ -14,6 +14,7 @@ export default function AddAssignment() {
     districtId: "",
     neighborhoodId: "",
     assignedToId: "",
+    expectedCollectorCount: "1",
     notes: "",
     dueAt: "",
   });
@@ -73,6 +74,17 @@ export default function AddAssignment() {
       return;
     }
 
+    const count = Number(formData.expectedCollectorCount);
+    if (
+      !formData.expectedCollectorCount ||
+      !Number.isInteger(count) ||
+      count < 1 ||
+      count > 50
+    ) {
+      setServerError("Data Collectors on Team must be a whole number between 1 and 50");
+      return;
+    }
+
     try {
       setLoading(true);
       setServerError(null);
@@ -80,6 +92,7 @@ export default function AddAssignment() {
       const res = await createAssignment({
         neighborhoodId: formData.neighborhoodId,
         assignedToId: formData.assignedToId,
+        expectedCollectorCount: count,
         notes: formData.notes || undefined,
         dueAt: formData.dueAt || undefined,
       });
@@ -170,6 +183,27 @@ export default function AddAssignment() {
                 </option>
               ))}
             </select>
+          </div>
+
+          <div>
+            <label className="block text-[12px] font-semibold text-ink mb-1.5">
+              Data Collectors on Team *
+            </label>
+            <input
+              type="number"
+              name="expectedCollectorCount"
+              min="1"
+              max="50"
+              step="1"
+              required
+              value={formData.expectedCollectorCount}
+              onChange={handleChange}
+              placeholder="Number of collectors (1-50)"
+              className="w-full h-[40px] rounded-lg border border-line bg-white px-3 text-[13px] text-ink outline-none focus:border-blue focus:ring-2 focus:ring-blue/10"
+            />
+            <p className="mt-1 text-[11px] text-ink-soft">
+              Specify how many collectors can work in parallel on this assignment (1-50).
+            </p>
           </div>
 
           <div>

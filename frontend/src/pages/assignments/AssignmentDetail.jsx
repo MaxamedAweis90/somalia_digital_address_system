@@ -313,6 +313,25 @@ export default function AssignmentDetail() {
                   <p className="text-ink-soft">Assigned Officer</p>
                   <p className="font-medium text-ink">{assignment.assignedTo?.name}</p>
                 </div>
+                <div>
+                  <p className="text-ink-soft">Expected team size</p>
+                  <p className="font-medium text-ink">
+                    Expected team size: {assignment.expectedCollectorCount ?? 1}
+                  </p>
+                </div>
+                {assignment.children && assignment.children.length > 0 && (
+                  <div>
+                    <p className="text-ink-soft">Delegated Tasks ({assignment.children.length}/{assignment.expectedCollectorCount ?? 1})</p>
+                    <div className="mt-1 space-y-1">
+                      {assignment.children.map((child) => (
+                        <div key={child.id} className="flex justify-between items-center rounded bg-bg px-2 py-1 text-[11px]">
+                          <span className="font-medium text-ink">{child.assignedTo?.name || "Collector"}</span>
+                          <AssignmentStatusBadge status={child.status} />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 {assignment.notes && (
                   <div>
                     <p className="text-ink-soft">Instructions</p>

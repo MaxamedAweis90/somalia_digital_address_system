@@ -23,9 +23,38 @@ const assignmentInclude = {
   assignedTo: { select: userSelect },
   assignedBy: { select: userSelect },
   reviewedBy: { select: userSelect },
+  parent: {
+    include: {
+      assignedTo: { select: userSelect },
+    },
+  },
+  children: {
+    include: {
+      assignedTo: { select: userSelect },
+      assignedBy: { select: userSelect },
+    },
+    orderBy: { createdAt: "asc" },
+  },
 };
 
 const EDITABLE_STATUSES = ["ASSIGNED", "IN_PROGRESS", "REJECTED"];
+
+function formatAssignment(item) {
+  if (!item) return item;
+  const children = item.children || [];
+  const delegatedCount = children.length;
+  const submittedCount = children.filter((c) => c.status === "SUBMITTED").length;
+  const approvedCount = children.filter((c) => c.status === "APPROVED").length;
+  const expectedCollectorCount = item.expectedCollectorCount ?? 1;
+
+  return {
+    ...item,
+    expectedCollectorCount,
+    delegatedCount,
+    submittedCount,
+    approvedCount,
+  };
+}
 
 function normalizePayload(payload) {
   if (!payload || typeof payload !== "object") {
@@ -77,9 +106,26 @@ function validateDraftZones(zones, { requireGeometry = false } = {}) {
   });
 }
 
+function validateExpectedCollectorCount(value) {
+  if (value === undefined || value === null || value === "") {
+    throw new Error("expectedCollectorCount is required when creating an assignment");
+  }
+
+  const num = Number(value);
+  if (!Number.isInteger(num) || num < 1 || num > 50) {
+    throw new Error("expectedCollectorCount must be an integer between 1 and 50");
+  }
+
+  return num;
+}
+
 async function assertOfficer(userId) {
+  if (!userId || typeof userId !== "string" || !userId.trim()) {
+    throw new Error("Assigned user must be a data officer");
+  }
+
   const officer = await prisma.user.findUnique({
-    where: { id: userId },
+    where: { id: userId.trim() },
     select: { id: true, role: true },
   });
 
@@ -132,45 +178,114 @@ function assertEditable(assignment) {
 }
 
 export const AssignmentService = {
-  createAssignment: async ({ neighborhoodId, assignedToId, notes, dueAt }, actorId) => {
+  createAssignment: async (
+    { neighborhoodId, assignedToId, notes, dueAt, type, expectedCollectorCount },
+    actorId
+  ) => {
     if (!neighborhoodId || !assignedToId) {
       throw new Error("Neighborhood and data officer are required");
     }
 
+    const count = validateExpectedCollectorCount(expectedCollectorCount);
     await assertNeighborhood(neighborhoodId);
     await assertOfficer(assignedToId);
 
-    return prisma.assignment.create({
+    const assignment = await prisma.assignments.create({
       data: {
-        type: "DEFINE_ZONES",
+        type: type || "DEFINE_ZONES",
         neighborhoodId,
         assignedToId,
         assignedById: actorId,
+        expectedCollectorCount: count,
         notes: notes?.trim() || null,
         dueAt: dueAt ? new Date(dueAt) : null,
         payload: { zones: [] },
       },
       include: assignmentInclude,
     });
+
+    return formatAssignment(assignment);
   },
 
-  getAssignments: async () => {
-    return prisma.assignment.findMany({
-      include: assignmentInclude,
-      orderBy: { createdAt: "desc" },
+  createChildAssignment: async (parentId, { assignedToId, notes, dueAt }, actorId) => {
+    if (!parentId) {
+      throw new Error("Parent assignment ID is required");
+    }
+    if (!assignedToId) {
+      throw new Error("Data collector is required");
+    }
+
+    await assertOfficer(assignedToId);
+
+    return prisma.$transaction(async (tx) => {
+      const parent = await tx.assignments.findUnique({
+        where: { id: parentId },
+        include: {
+          children: true,
+        },
+      });
+
+      if (!parent) {
+        throw new Error("Parent assignment not found");
+      }
+
+      if (parent.assignedToId !== actorId) {
+        throw new Error("You do not have permission to delegate tasks for this assignment");
+      }
+
+      const limit = parent.expectedCollectorCount ?? 1;
+      const currentChildren = parent.children || [];
+
+      if (currentChildren.length >= limit) {
+        throw new Error(
+          `This assignment already has the maximum number of collector tasks (${currentChildren.length}/${limit}).`
+        );
+      }
+
+      const duplicateCollector = currentChildren.some(
+        (child) => child.assignedToId === assignedToId
+      );
+      if (duplicateCollector) {
+        throw new Error("This collector is already assigned to a task under this assignment.");
+      }
+
+      const child = await tx.assignments.create({
+        data: {
+          parentId,
+          type: parent.type,
+          neighborhoodId: parent.neighborhoodId,
+          assignedToId,
+          assignedById: actorId,
+          notes: notes?.trim() || null,
+          dueAt: dueAt ? new Date(dueAt) : null,
+          payload: { zones: [] },
+        },
+        include: assignmentInclude,
+      });
+
+      return formatAssignment(child);
     });
   },
 
+  getAssignments: async () => {
+    const list = await prisma.assignments.findMany({
+      include: assignmentInclude,
+      orderBy: { createdAt: "desc" },
+    });
+    return list.map(formatAssignment);
+  },
+
   getMyAssignments: async (userId) => {
-    return prisma.assignment.findMany({
+    const list = await prisma.assignments.findMany({
       where: { assignedToId: userId },
       include: assignmentInclude,
       orderBy: { createdAt: "desc" },
     });
+    return list.map(formatAssignment);
   },
 
   getAssignmentById: async (id, user) => {
-    const assignment = await prisma.assignment.findUnique({
+    const assignment = await prisma.assignments.findUnique({
       where: { id },
       include: assignmentInclude,
     });
@@ -180,14 +295,23 @@ export const AssignmentService = {
     }
 
     if (user.role === "DATA_OFFICER") {
-      assertOfficerAccess(assignment, user.id);
+      if (assignment.assignedToId !== user.id && assignment.parentId) {
+        const parent = await prisma.assignments.findUnique({
+          where: { id: assignment.parentId },
+        });
+        if (!parent || parent.assignedToId !== user.id) {
+          assertOfficerAccess(assignment, user.id);
+        }
+      } else {
+        assertOfficerAccess(assignment, user.id);
+      }
     }
 
-    return assignment;
+    return formatAssignment(assignment);
   },
 
   saveDraft: async (id, payload, userId) => {
-    const assignment = await prisma.assignment.findUnique({
+    const assignment = await prisma.assignments.findUnique({
       where: { id },
     });
 
@@ -201,7 +325,7 @@ export const AssignmentService = {
     const normalized = normalizePayload(payload);
     validateDraftZones(normalized.zones, { requireGeometry: false });
 
-    return prisma.assignment.update({
+    const updated = await prisma.assignments.update({
       where: { id },
       data: {
         payload: normalized,
@@ -210,10 +334,12 @@ export const AssignmentService = {
       },
       include: assignmentInclude,
     });
+
+    return formatAssignment(updated);
   },
 
   submitAssignment: async (id, userId) => {
-    const assignment = await prisma.assignment.findUnique({
+    const assignment = await prisma.assignments.findUnique({
       where: { id },
     });
 
@@ -228,7 +354,7 @@ export const AssignmentService = {
     validateDraftZones(normalized.zones, { requireGeometry: true });
     await assertNoCodeConflicts(assignment.neighborhoodId, normalized.zones);
 
-    return prisma.assignment.update({
+    const updated = await prisma.assignments.update({
       where: { id },
       data: {
         payload: normalized,
@@ -238,10 +364,12 @@ export const AssignmentService = {
       },
       include: assignmentInclude,
     });
+
+    return formatAssignment(updated);
   },
 
   approveAssignment: async (id, reviewerId) => {
-    const assignment = await prisma.assignment.findUnique({
+    const assignment = await prisma.assignments.findUnique({
       where: { id },
     });
 
@@ -270,7 +398,7 @@ export const AssignmentService = {
       createdZones.push(created);
     }
 
-    const updated = await prisma.assignment.update({
+    const updated = await prisma.assignments.update({
       where: { id },
       data: {
         status: "APPROVED",
@@ -281,11 +409,11 @@ export const AssignmentService = {
       include: assignmentInclude,
     });
 
-    return { assignment: updated, createdZones };
+    return { assignment: formatAssignment(updated), createdZones };
   },
 
   rejectAssignment: async (id, reviewerId, rejectionReason) => {
-    const assignment = await prisma.assignment.findUnique({
+    const assignment = await prisma.assignments.findUnique({
       where: { id },
     });
 
@@ -301,7 +429,7 @@ export const AssignmentService = {
       throw new Error("Rejection reason is required");
     }
 
-    return prisma.assignment.update({
+    const updated = await prisma.assignments.update({
       where: { id },
       data: {
         status: "REJECTED",
@@ -311,5 +439,7 @@ export const AssignmentService = {
       },
       include: assignmentInclude,
     });
+
+    return formatAssignment(updated);
   },
 };

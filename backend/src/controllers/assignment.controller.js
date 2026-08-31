@@ -22,6 +22,34 @@ export const createAssignment = async (req, res) => {
   }
 };
 
+export const createChildAssignment = async (req, res) => {
+  try {
+    const parentId = req.params.parentId;
+    const child = await AssignmentService.createChildAssignment(
+      parentId,
+      req.body,
+      req.user.id
+    );
+
+    return res.status(201).json({
+      success: true,
+      message: "Child assignment created successfully",
+      data: child,
+    });
+  } catch (error) {
+    const status = error.message.includes("not found")
+      ? 404
+      : error.message.includes("permission") || error.message.includes("access")
+      ? 403
+      : 400;
+
+    return res.status(status).json({
+      success: false,
+      message: getErrorMessage(error),
+    });
+  }
+};
+
 export const getAssignments = async (req, res) => {
   try {
     const assignments = await AssignmentService.getAssignments();

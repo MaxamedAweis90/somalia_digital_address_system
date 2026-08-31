@@ -8,6 +8,25 @@ import AssignmentStatusBadge, {
 import Breadcrumb from "@/components/ui/Breadcrumb";
 import PageHeader from "@/components/ui/PageHeader";
 
+function formatProgress(assignment) {
+  const delegated = assignment.delegatedCount ?? assignment.children?.length ?? 0;
+  const expected = assignment.expectedCollectorCount ?? 1;
+  const submitted =
+    assignment.submittedCount ??
+    assignment.children?.filter((c) => c.status === "SUBMITTED").length ??
+    0;
+  const approved =
+    assignment.approvedCount ??
+    assignment.children?.filter((c) => c.status === "APPROVED").length ??
+    0;
+
+  const parts = [`${delegated}/${expected} tasks`];
+  if (approved > 0) parts.push(`${approved} approved`);
+  if (submitted > 0) parts.push(`${submitted} submitted`);
+
+  return parts.join(" · ");
+}
+
 export default function Assignments() {
   const navigate = useNavigate();
   const [assignments, setAssignments] = useState([]);
@@ -108,6 +127,9 @@ export default function Assignments() {
                     Officer
                   </th>
                   <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
+                    Collector Team & Progress
+                  </th>
+                  <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
                     Status
                   </th>
                   <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
@@ -121,7 +143,7 @@ export default function Assignments() {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={5} className="px-5 py-12 text-center">
+                    <td colSpan={6} className="px-5 py-12 text-center">
                       <Loader2 className="mx-auto h-5 w-5 animate-spin text-blue" />
                     </td>
                   </tr>
@@ -146,6 +168,11 @@ export default function Assignments() {
                         {assignment.assignedTo?.name || "—"}
                       </td>
                       <td className="px-5 py-4">
+                        <span className="inline-flex items-center rounded-md bg-blue/10 px-2.5 py-1 text-[11px] font-semibold text-blue-deep font-mono">
+                          {formatProgress(assignment)}
+                        </span>
+                      </td>
+                      <td className="px-5 py-4">
                         <AssignmentStatusBadge status={assignment.status} />
                       </td>
                       <td className="px-5 py-4 text-[12px] text-ink">
@@ -160,7 +187,7 @@ export default function Assignments() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={5} className="px-5 py-12 text-center">
+                    <td colSpan={6} className="px-5 py-12 text-center">
                       <p className="text-[13px] font-medium text-ink">No assignments yet</p>
                       <p className="mt-1 text-[12px] text-ink-soft">
                         Create an assignment to have an officer define zones for a neighborhood.

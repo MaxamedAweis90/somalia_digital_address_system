@@ -8,6 +8,9 @@ export const getAssignmentById = (id) => api.get(`/admin/assignments/${id}`);
 
 export const createAssignment = (data) => api.post("/admin/assignments", data);
 
+export const delegateChildAssignment = (parentId, data) =>
+  api.post(`/officer/assignments/${parentId}/children`, data);
+
 export const saveAssignmentDraft = (id, payload) =>
   api.put(`/admin/assignments/${id}/draft`, { payload });
 

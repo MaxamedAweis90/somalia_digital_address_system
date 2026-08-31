@@ -7,37 +7,22 @@ datasource db {
 }
 
 model User {
-<<<<<<< HEAD
-  id                                           String        @id @default(cuid())
-  name                                         String
-  email                                        String        @unique
-  emailVerified                                Boolean       @default(false)
-  image                                        String?
-  createdAt                                    DateTime      @default(now())
-  updatedAt                                    DateTime      @updatedAt
-  password                                     String
-  role                                         UserRole      @default(DATA_OFFICER)
-  assignments_assignments_assigned_by_idTouser assignments[] @relation("assignments_assigned_by_idTouser")
-  assignments_assignments_assigned_to_idTouser assignments[] @relation("assignments_assigned_to_idTouser")
-  assignments_assignments_reviewed_by_idTouser assignments[] @relation("assignments_reviewed_by_idTouser")
-  auditLogs                                    AuditLog[]
-  loginOtps                                    LoginOtp[]
+  id                      String        @id @default(cuid())
+  name                    String
+  email                   String        @unique
+  emailVerified           Boolean       @default(false)
+  image                   String?
+  createdAt               DateTime      @default(now())
+  updatedAt               DateTime      @updatedAt
+  password                String
+  role                    UserRole      @default(DATA_OFFICER)
+  supervisorId            String?       @map("supervisor_id")
+  assignments_assigned_by assignments[] @relation("assignments_assigned_by_idTouser")
+  assignments_assigned_to assignments[] @relation("assignments_assigned_to_idTouser")
+  assignments_reviewed_by assignments[] @relation("assignments_reviewed_by_idTouser")
+  auditLogs               AuditLog[]
+  loginOtps               LoginOtp[]
 
-=======
-  id            String     @id @default(cuid())
-  name          String
-  email         String     @unique
-  password      String
-  role          UserRole   @default(DATA_OFFICER)
-  emailVerified Boolean    @default(false)
-  image         String?
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
-  auditLogs     AuditLog[]
-  assignmentsAssigned Assignment[] @relation("AssignmentAssignee")
-  assignmentsCreated  Assignment[] @relation("AssignmentCreator")
-  assignmentsReviewed Assignment[] @relation("AssignmentReviewer")
->>>>>>> 8039eb5d0a98e128d96e8f6c00da0b84f9c46dbd
 
   @@map("user")
 }
@@ -86,7 +71,6 @@ model District {
 }
 
 model Neighborhood {
-<<<<<<< HEAD
   id          String        @id @default(cuid())
   districtId  String        @map("district_id")
   name        String
@@ -98,19 +82,6 @@ model Neighborhood {
   assignments assignments[]
   district    District      @relation(fields: [districtId], references: [id])
   zones       Zone[]
-=======
-  id         String    @id @default(cuid())
-  districtId String    @map("district_id")
-  name       String
-  code       String    @unique
-  status     Status    @default(ACTIVE)
-  createdAt  DateTime  @default(now()) @map("created_at")
-  updatedAt  DateTime  @updatedAt @map("updated_at")
-  addresses  Address[]
-  district   District  @relation(fields: [districtId], references: [id])
-  zones      Zone[]
-  assignments Assignment[]
->>>>>>> 8039eb5d0a98e128d96e8f6c00da0b84f9c46dbd
 
   @@index([code, districtId], map: "neighborhood_code_and_district_index")
   @@map("neighborhoods")
@@ -190,33 +161,39 @@ model app_settings {
 }
 
 model assignments {
-  id                                    String           @id
-  type                                  AssignmentType   @default(DEFINE_ZONES)
-  status                                AssignmentStatus @default(ASSIGNED)
-  neighborhood_id                       String
-  assigned_to_id                        String
-  assigned_by_id                        String
-  payload                               Json             @default("{\"zones\": []}")
-  notes                                 String?
-  due_at                                DateTime?
-  submitted_at                          DateTime?
-  reviewed_at                           DateTime?
-  reviewed_by_id                        String?
-  rejection_reason                      String?
-  created_at                            DateTime         @default(now())
-  updated_at                            DateTime
-  user_assignments_assigned_by_idTouser User             @relation("assignments_assigned_by_idTouser", fields: [assigned_by_id], references: [id])
-  user_assignments_assigned_to_idTouser User             @relation("assignments_assigned_to_idTouser", fields: [assigned_to_id], references: [id])
-  neighborhoods                         Neighborhood     @relation(fields: [neighborhood_id], references: [id])
-  user_assignments_reviewed_by_idTouser User?            @relation("assignments_reviewed_by_idTouser", fields: [reviewed_by_id], references: [id])
+  id                     String           @id @default(cuid())
+  type                   AssignmentType   @default(DEFINE_ZONES)
+  status                 AssignmentStatus @default(ASSIGNED)
+  neighborhoodId         String           @map("neighborhood_id")
+  assignedToId           String           @map("assigned_to_id")
+  assignedById           String           @map("assigned_by_id")
+  expectedCollectorCount Int?             @map("expected_collector_count")
+  parentId               String?          @map("parent_id")
+  payload                Json             @default("{\"zones\": []}")
+  notes                  String?
+  dueAt                  DateTime?        @map("due_at")
+  submittedAt            DateTime?        @map("submitted_at")
+  reviewedAt             DateTime?        @map("reviewed_at")
+  reviewedById           String?          @map("reviewed_by_id")
+  rejectionReason        String?          @map("rejection_reason")
+  createdAt              DateTime         @default(now()) @map("created_at")
+  updatedAt              DateTime         @updatedAt @map("updated_at")
+  assignedBy             User             @relation("assignments_assigned_by_idTouser", fields: [assignedById], references: [id])
+  assignedTo             User             @relation("assignments_assigned_to_idTouser", fields: [assignedToId], references: [id])
+  neighborhood           Neighborhood     @relation(fields: [neighborhoodId], references: [id])
+  reviewedBy             User?            @relation("assignments_reviewed_by_idTouser", fields: [reviewedById], references: [id])
+  parent                 assignments?     @relation("AssignmentHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children               assignments[]    @relation("AssignmentHierarchy")
 
-  @@index([assigned_to_id, status], map: "assignment_assignee_status_index")
-  @@index([neighborhood_id], map: "assignment_neighborhood_index")
+  @@index([assignedToId, status], map: "assignment_assignee_status_index")
+  @@index([neighborhoodId], map: "assignment_neighborhood_index")
+  @@index([parentId], map: "assignment_parent_index")
 }
 
 enum UserRole {
   SYS_ADMIN
   DATA_OFFICER
+  DATA_COLLECTOR
 }
 
 enum Status {
@@ -230,47 +207,19 @@ enum ActionType {
   DELETE
 }
 
-<<<<<<< HEAD
-=======
-enum SettingType {
-  STRING
-  NUMBER
-  BOOLEAN
-  JSON
-}
-
-model AppSetting {
-  id          String      @id @default(cuid())
-  key         String      @unique
-  label       String
-  value       String
-  description String?
-  category    String      @default("general")
-  type        SettingType @default(STRING)
-  isSystem    Boolean     @default(false) @map("is_system")
-  createdAt   DateTime    @default(now()) @map("created_at")
-  updatedAt   DateTime    @updatedAt @map("updated_at")
-
-  @@index([category], map: "app_setting_category_index")
-  @@map("app_settings")
-}
-
-enum AssignmentType {
-  DEFINE_ZONES
-}
-
->>>>>>> 8039eb5d0a98e128d96e8f6c00da0b84f9c46dbd
 enum AssignmentStatus {
   ASSIGNED
   IN_PROGRESS
+  READY_FOR_REVIEW
   SUBMITTED
   APPROVED
   REJECTED
 }
 
-<<<<<<< HEAD
 enum AssignmentType {
   DEFINE_ZONES
+  DEFINE_ZONE_BLOCKS
+  REGISTER_ADDRESSES
 }
 
 enum SettingType {
@@ -278,30 +227,4 @@ enum SettingType {
   NUMBER
   BOOLEAN
   JSON
-=======
-model Assignment {
-  id              String           @id @default(cuid())
-  type            AssignmentType   @default(DEFINE_ZONES)
-  status          AssignmentStatus @default(ASSIGNED)
-  neighborhoodId  String           @map("neighborhood_id")
-  assignedToId    String           @map("assigned_to_id")
-  assignedById    String           @map("assigned_by_id")
-  payload         Json             @default("{\"zones\":[]}")
-  notes           String?
-  dueAt           DateTime?        @map("due_at")
-  submittedAt     DateTime?        @map("submitted_at")
-  reviewedAt      DateTime?        @map("reviewed_at")
-  reviewedById    String?          @map("reviewed_by_id")
-  rejectionReason String?          @map("rejection_reason")
-  createdAt       DateTime         @default(now()) @map("created_at")
-  updatedAt       DateTime         @updatedAt @map("updated_at")
-  neighborhood    Neighborhood     @relation(fields: [neighborhoodId], references: [id])
-  assignedTo      User             @relation("AssignmentAssignee", fields: [assignedToId], references: [id])
-  assignedBy      User             @relation("AssignmentCreator", fields: [assignedById], references: [id])
-  reviewedBy      User?            @relation("AssignmentReviewer", fields: [reviewedById], references: [id])
-
-  @@index([assignedToId, status], map: "assignment_assignee_status_index")
-  @@index([neighborhoodId], map: "assignment_neighborhood_index")
-  @@map("assignments")
->>>>>>> 8039eb5d0a98e128d96e8f6c00da0b84f9c46dbd
 }
