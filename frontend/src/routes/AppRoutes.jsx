@@ -6,6 +6,7 @@ import SysAdminLayout from "@/layouts/SysAdminLayout";
 import DataOfficerLayout from "@/layouts/DataOfficerLayout";
 import OfficerDashboard from "@/pages/dashboard/OfficerDashboard";
 import OfficerZones from "@/pages/officer/OfficerZones";
+import OfficerWorkflow from "@/pages/officer/OfficerWorkflow";
 import DataCollectorLayout from "@/layouts/DataCollectorLayout";
 import Login from "@/pages/auth/Login";
 import Dashboard from "@/pages/dashboard/Dashboard";
@@ -160,6 +161,7 @@ export default function AppRoutes() {
       >
         <Route index element={<Navigate to="dashboard" replace />} />
         <Route path="dashboard" element={<OfficerDashboard />} />
+        <Route path="workflow" element={<OfficerWorkflow />} />
         <Route path="zones" element={<OfficerZones />} />
         <Route path="assignments/:id" element={<OfficerParentDetail />} />
         <Route path="children/:id" element={<AssignmentDetail />} />

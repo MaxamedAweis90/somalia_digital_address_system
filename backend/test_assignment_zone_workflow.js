@@ -181,8 +181,8 @@ async function run() {
       await AssignmentService.approveChildAssignment(draft.child.id, officer.id);
     }
 
-    await AssignmentService.mergeParentAssignment(parent.id, officer.id);
     const merged = await AssignmentService.getAssignmentById(parent.id, officer);
+    assert.equal(merged.status, "READY_FOR_REVIEW");
     assert.equal(merged.payload.addresses.length, 2);
     assert.deepEqual(
       new Set(merged.payload.addresses.map((address) => address.zoneBlockId)),

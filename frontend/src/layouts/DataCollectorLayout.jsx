@@ -3,22 +3,16 @@ import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import AppTopBar, { navLinkClass } from "@/components/layout/AppTopBar";
 import {
-  CheckCircle2,
   ClipboardList,
-  Clock3,
   LayoutDashboard,
   LogOut,
   PanelLeftClose,
   PanelLeftOpen,
-  Send,
 } from "lucide-react";
 
 const navItems = [
   { to: "/collector/dashboard", label: "Dashboard", icon: LayoutDashboard, end: true },
-  { to: "/collector/assignments", label: "Assigned Work", icon: ClipboardList, end: true },
-  { to: "/collector/assignments/in-progress", label: "In Progress", icon: Clock3, end: true },
-  { to: "/collector/assignments/submitted", label: "Submitted", icon: Send, end: true },
-  { to: "/collector/assignments/completed", label: "Completed", icon: CheckCircle2, end: true },
+  { to: "/collector/assignments", label: "My Work", icon: ClipboardList, end: true },
 ];
 
 export default function DataCollectorLayout() {

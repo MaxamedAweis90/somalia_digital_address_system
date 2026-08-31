@@ -3,7 +3,7 @@ import { MapPin, PenLine, Send, Shapes } from "lucide-react";
 const zoneBlockSteps = [
   {
     title: "Open an assigned zone",
-    detail: "From Zones, open a zone assigned to you by an administrator.",
+    detail: "From Workflow, open a zone assigned to you by an administrator.",
   },
   {
     title: "Review available zone blocks",
@@ -18,16 +18,16 @@ const zoneBlockSteps = [
     detail: "Follow each collector task from assigned, through review, to approved.",
   },
   {
-    title: "Merge and submit the zone",
+    title: "Submit the completed zone",
     detail:
-      "After all block tasks are approved, merge the work and submit the completed zone to admin.",
+      "After all block tasks are approved, the system prepares the zone automatically. Submit it to admin.",
   },
 ];
 
 const addressSteps = [
   {
     title: "Review submitted block work",
-    detail: "Open the Review Queue to see address registrations submitted by your collectors.",
+    detail: "Open Workflow to see address registrations submitted by your collectors.",
   },
   {
     title: "Check each address",
@@ -38,13 +38,9 @@ const addressSteps = [
     detail: "Approve accurate work or reject it with a reason so the collector can correct it.",
   },
   {
-    title: "Merge approved work",
-    detail: "When the block tasks are approved, merge their address registrations into the zone assignment.",
-  },
-  {
     title: "Submit the zone to admin",
     detail:
-      "Submit the merged zone for final approval. The system issues sequential DAC codes when admin publishes the addresses.",
+      "Submit the completed zone for final approval. The system issues sequential DAC codes when admin publishes the addresses.",
   },
 ];
 
@@ -128,8 +124,8 @@ export default function OfficerWorkflowGuide({ compact = false }) {
         <h2 className="text-[16px] font-semibold text-ink">Your role as a Data Officer</h2>
         <p className="mt-2 text-[13px] text-ink-soft leading-relaxed">
           An administrator assigns you a zone and sets the expected collector team size. You
-          allocate its zone blocks to your supervised collectors, review their submissions, merge
-          the approved work, and submit it for final approval. Official DAC codes are issued only
+          allocate its zone blocks to your supervised collectors, review their submissions, and
+          submit the completed zone for final approval. Official DAC codes are issued only
           when the administrator publishes the addresses.
         </p>
 

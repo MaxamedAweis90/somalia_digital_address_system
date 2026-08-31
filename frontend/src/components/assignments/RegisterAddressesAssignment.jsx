@@ -119,6 +119,8 @@ export default function RegisterAddressesAssignment({
   };
 
   useEffect(() => {
+    // The loader synchronizes this screen with the selected assignment API data.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadAssignment();
   }, [id]);
 
@@ -175,6 +177,7 @@ export default function RegisterAddressesAssignment({
       setShowSubmitDialog(false);
       setSuccess("Assignment submitted to your data officer.");
     } catch (err) {
+      setShowSubmitDialog(false);
       setError(err.response?.data?.message || "Failed to submit assignment");
     } finally {
       setSubmitting(false);
@@ -198,6 +201,7 @@ export default function RegisterAddressesAssignment({
           : "Assignment approved and addresses registered."
       );
     } catch (err) {
+      setShowApproveDialog(false);
       setError(err.response?.data?.message || "Failed to approve assignment");
     } finally {
       setReviewing(false);

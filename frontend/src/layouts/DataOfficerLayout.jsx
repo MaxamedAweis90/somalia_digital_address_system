@@ -9,15 +9,11 @@ import {
   PanelLeftOpen,
   Users,
   ClipboardCheck,
-  Map,
-  UserCheck,
 } from "lucide-react";
 
 const navItems = [
   { to: "/officer/dashboard", label: "Dashboard", icon: LayoutGrid },
-  { to: "/officer/zones", label: "Zones", icon: Map },
-  { to: "/officer/reviews", label: "Submitted Zones", icon: ClipboardCheck },
-  { to: "/officer/collector-reviews", label: "Collector Reviews", icon: UserCheck },
+  { to: "/officer/workflow", label: "Workflow", icon: ClipboardCheck },
   { to: "/officer/collectors", label: "My Team", icon: Users },
 ];
 

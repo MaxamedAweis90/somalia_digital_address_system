@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Loader2 } from "lucide-react";
+import { ArrowRight, CheckCircle2, Loader2 } from "lucide-react";
 import { getMyAssignments } from "@/api/assignmentApi";
 import { getCollectors } from "@/api/officerApi";
 import AssignmentStatusBadge from "@/components/assignments/AssignmentStatusBadge";
 import Breadcrumb from "@/components/ui/Breadcrumb";
 import PageHeader from "@/components/ui/PageHeader";
-import OfficerWorkflowGuide from "@/components/assignments/OfficerWorkflowGuide";
 
 export default function OfficerDashboard({ zonesOnly = false }) {
   const navigate = useNavigate();
@@ -39,30 +38,49 @@ export default function OfficerDashboard({ zonesOnly = false }) {
   }, []);
 
   const summary = useMemo(() => {
-    const blockTasks = assignments.reduce(
-      (total, assignment) => total + (assignment.children?.length || 0),
-      0
-    );
-    const addressDrafts = assignments.reduce(
+    const collectorReviews = assignments.reduce(
       (total, assignment) =>
         total +
-        (assignment.children || []).reduce(
-          (childTotal, child) => childTotal + (child.payload?.addresses?.length || 0),
-          0
-        ),
+        (assignment.children || []).filter((child) => child.status === "SUBMITTED").length,
       0
     );
 
     return {
-      total: assignments.length,
       active: assignments.filter((item) =>
         ["ASSIGNED", "IN_PROGRESS", "REJECTED"].includes(item.status)
       ).length,
-      submitted: assignments.filter((item) => item.status === "SUBMITTED").length,
+      collectorReviews,
+      readyForAdmin: assignments.filter((item) => item.status === "READY_FOR_REVIEW").length,
       completed: assignments.filter((item) => item.status === "APPROVED").length,
-      blockTasks,
-      addressDrafts,
     };
+  }, [assignments]);
+
+  const nextActions = useMemo(() => {
+    const collectorActions = assignments.flatMap((assignment) =>
+      (assignment.children || [])
+        .filter((child) => child.status === "SUBMITTED")
+        .map((child) => ({
+          id: `collector-${child.id}`,
+          title: child.zoneBlock?.name || "Zone block submission",
+          detail: `${child.assignedTo?.name || "Collector"} submitted work in ${assignment.zone?.name || "this zone"}.`,
+          label: "Review submission",
+          path: `/officer/children/${child.id}`,
+        }))
+    );
+    const zoneActions = assignments
+      .filter((assignment) => ["READY_FOR_REVIEW", "REJECTED"].includes(assignment.status))
+      .map((assignment) => ({
+        id: `zone-${assignment.id}`,
+        title: assignment.zone?.name || "Assigned zone",
+        detail:
+          assignment.status === "REJECTED"
+            ? "This zone was returned by admin and needs your attention."
+            : "All collector work is approved and ready for admin.",
+        label: assignment.status === "REJECTED" ? "Review zone" : "Submit to admin",
+        path: `/officer/assignments/${assignment.id}`,
+      }));
+
+    return [...collectorActions, ...zoneActions];
   }, [assignments]);
 
   return (
@@ -76,6 +94,18 @@ export default function OfficerDashboard({ zonesOnly = false }) {
             zonesOnly
               ? "Only zones assigned to you are shown here. Open one to allocate its blocks."
               : "Track your assigned zones, collector team, block tasks, and address registration progress."
+          }
+          actions={
+            !zonesOnly ? (
+              <button
+                type="button"
+                onClick={() => navigate("/officer/workflow")}
+                className="inline-flex h-[39px] items-center gap-2 rounded-lg bg-blue-deep px-5 text-[12px] font-semibold text-white shadow-cta transition-all hover:bg-[#0F2B4D] cursor-pointer"
+              >
+                Open Workflow
+                <ArrowRight className="h-3.5 w-3.5" />
+              </button>
+            ) : undefined
           }
         />
 
@@ -93,39 +123,69 @@ export default function OfficerDashboard({ zonesOnly = false }) {
         )}
 
         {!zonesOnly && (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="rounded-xl border border-line bg-white p-5 shadow-card-sm">
-            <p className="text-[12px] text-ink-soft">Assigned Zones</p>
-            <p className="mt-2 text-[28px] font-semibold text-ink">{summary.total}</p>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="rounded-xl border border-line bg-white p-5 shadow-card-sm">
+              <p className="text-[12px] text-ink-soft">Collector Reviews</p>
+              <p className="mt-2 text-[28px] font-semibold text-ink">{summary.collectorReviews}</p>
+              <p className="mt-1 text-[11px] text-ink-soft">Submissions needing review</p>
+            </div>
+            <div className="rounded-xl border border-line bg-white p-5 shadow-card-sm">
+              <p className="text-[12px] text-ink-soft">Ready for Admin</p>
+              <p className="mt-2 text-[28px] font-semibold text-ink">{summary.readyForAdmin}</p>
+              <p className="mt-1 text-[11px] text-ink-soft">Zones ready to submit</p>
+            </div>
+            <div className="rounded-xl border border-line bg-white p-5 shadow-card-sm">
+              <p className="text-[12px] text-ink-soft">Active Zones</p>
+              <p className="mt-2 text-[28px] font-semibold text-ink">{summary.active}</p>
+              <p className="mt-1 text-[11px] text-ink-soft">Collection in progress</p>
+            </div>
+            <div className="rounded-xl border border-line bg-white p-5 shadow-card-sm">
+              <p className="text-[12px] text-ink-soft">Completed Zones</p>
+              <p className="mt-2 text-[28px] font-semibold text-ink">{summary.completed}</p>
+              <p className="mt-1 text-[11px] text-ink-soft">{collectors.length} collectors on your team</p>
+            </div>
           </div>
-          <div className="rounded-xl border border-line bg-white p-5 shadow-card-sm">
-            <p className="text-[12px] text-ink-soft">Active Zones</p>
-            <p className="mt-2 text-[28px] font-semibold text-ink">{summary.active}</p>
-          </div>
-          <div className="rounded-xl border border-line bg-white p-5 shadow-card-sm">
-            <p className="text-[12px] text-ink-soft">Zones Awaiting Review</p>
-            <p className="mt-2 text-[28px] font-semibold text-ink">{summary.submitted}</p>
-          </div>
-          <div className="rounded-xl border border-line bg-white p-5 shadow-card-sm">
-            <p className="text-[12px] text-ink-soft">Completed Zones</p>
-            <p className="mt-2 text-[28px] font-semibold text-ink">{summary.completed}</p>
-          </div>
-          <div className="rounded-xl border border-line bg-white p-5 shadow-card-sm">
-            <p className="text-[12px] text-ink-soft">Collectors on Team</p>
-            <p className="mt-2 text-[28px] font-semibold text-ink">{collectors.length}</p>
-          </div>
-          <div className="rounded-xl border border-line bg-white p-5 shadow-card-sm">
-            <p className="text-[12px] text-ink-soft">Block Tasks</p>
-            <p className="mt-2 text-[28px] font-semibold text-ink">{summary.blockTasks}</p>
-          </div>
-          <div className="rounded-xl border border-line bg-white p-5 shadow-card-sm">
-            <p className="text-[12px] text-ink-soft">Addresses in Progress</p>
-            <p className="mt-2 text-[28px] font-semibold text-ink">{summary.addressDrafts}</p>
-          </div>
-        </div>
         )}
 
-        {!zonesOnly && <OfficerWorkflowGuide />}
+        {!zonesOnly && (
+          <div className="rounded-xl border border-blue-100 bg-blue-50/60 p-5 shadow-card-sm">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <p className="text-[15px] font-semibold text-ink">Your next actions</p>
+                <p className="mt-1 text-[12px] text-ink-soft">
+                  Review collector submissions first, then send completed zones to admin.
+                </p>
+              </div>
+              <span className="rounded-full bg-white px-3 py-1.5 text-[11px] font-semibold text-blue-deep">
+                {nextActions.length} action{nextActions.length === 1 ? "" : "s"} waiting
+              </span>
+            </div>
+
+            {nextActions.length ? (
+              <div className="mt-4 grid gap-3 lg:grid-cols-3">
+                {nextActions.slice(0, 3).map((item) => (
+                  <div key={item.id} className="rounded-lg border border-blue-100 bg-white px-4 py-3">
+                    <p className="truncate text-[12px] font-semibold text-ink">{item.title}</p>
+                    <p className="mt-1 text-[11px] leading-relaxed text-ink-soft">{item.detail}</p>
+                    <button
+                      type="button"
+                      onClick={() => navigate(item.path)}
+                      className="mt-3 inline-flex items-center gap-1 text-[11px] font-semibold text-blue-deep cursor-pointer"
+                    >
+                      {item.label}
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-4 flex items-center gap-2 rounded-lg border border-emerald-100 bg-white px-4 py-3 text-[12px] text-emerald-800">
+                <CheckCircle2 className="h-4 w-4" />
+                No reviews or submissions need your attention right now.
+              </p>
+            )}
+          </div>
+        )}
 
         <div className="rounded-xl border border-line bg-white shadow-card-sm overflow-hidden">
           <div className="border-b border-line px-5 py-4">
@@ -153,7 +213,7 @@ export default function OfficerDashboard({ zonesOnly = false }) {
                   <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
                     Status
                   </th>
-                  <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
+                  <th className="px-5 py-4 text-right text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
                     Action
                   </th>
                 </tr>
@@ -167,11 +227,7 @@ export default function OfficerDashboard({ zonesOnly = false }) {
                   </tr>
                 ) : assignments.length > 0 ? (
                   assignments.map((assignment) => (
-                    <tr
-                      key={assignment.id}
-                      onClick={() => navigate(`/officer/assignments/${assignment.id}`)}
-                      className="border-b border-line last:border-b-0 hover:bg-[#FBFCFE] transition-colors cursor-pointer"
-                    >
+                    <tr key={assignment.id} className="border-b border-line last:border-b-0 hover:bg-[#FBFCFE] transition-colors">
                       <td className="px-5 py-4">
                         <p className="text-[13px] font-semibold text-ink">
                           {assignment.zone?.name || "—"}
@@ -196,13 +252,10 @@ export default function OfficerDashboard({ zonesOnly = false }) {
                       <td className="px-5 py-4">
                         <AssignmentStatusBadge status={assignment.status} />
                       </td>
-                      <td className="px-5 py-4">
+                      <td className="px-5 py-4 text-right">
                         <button
                           type="button"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            navigate(`/officer/assignments/${assignment.id}`);
-                          }}
+                          onClick={() => navigate(`/officer/assignments/${assignment.id}`)}
                           className="h-[32px] rounded-md border border-line bg-white px-3 text-[11px] font-semibold text-ink hover:bg-bg cursor-pointer"
                         >
                           Open Zone

@@ -647,6 +647,17 @@ export const AssignmentService = {
     });
 
     await syncParentStatus(child.parentAssignmentId);
+    const parent = await prisma.assignment.findUnique({
+      where: { id: child.parentAssignmentId },
+      select: { status: true },
+    });
+
+    // Merging is an internal transition. Once the officer approves the final
+    // collector task, prepare the parent for submission automatically.
+    if (parent?.status === "READY_FOR_REVIEW") {
+      await AssignmentService.mergeParentAssignment(child.parentAssignmentId, officerId);
+    }
+
     return updated;
   },
 

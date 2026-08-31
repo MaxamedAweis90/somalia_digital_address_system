@@ -85,8 +85,7 @@ export default function OfficerCollectorReviewQueue() {
                   assignments.map((assignment) => (
                     <tr
                       key={assignment.id}
-                      onClick={() => navigate(`/officer/children/${assignment.id}`)}
-                      className="border-b border-line last:border-b-0 hover:bg-[#FBFCFE] cursor-pointer"
+                      className="border-b border-line last:border-b-0 hover:bg-[#FBFCFE]"
                     >
                       <td className="px-5 py-4">
                         <p className="text-[12px] font-semibold text-ink">
@@ -118,10 +117,7 @@ export default function OfficerCollectorReviewQueue() {
                       <td className="px-5 py-4 text-right">
                         <button
                           type="button"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            navigate(`/officer/children/${assignment.id}`);
-                          }}
+                          onClick={() => navigate(`/officer/children/${assignment.id}`)}
                           className="h-[32px] rounded-md border border-line bg-white px-3 text-[11px] font-semibold text-ink hover:bg-bg cursor-pointer"
                         >
                           Review
