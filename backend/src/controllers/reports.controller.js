@@ -9,7 +9,7 @@ function extractFilters(req) {
     status,
     dateFrom,
     dateTo,
-  } = req.query;
+  } = req.query
 
   return {
     districtId: districtId || undefined,

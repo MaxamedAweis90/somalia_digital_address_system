@@ -11,7 +11,7 @@ import {
   DonutChart,
   HorizontalBarChart,
   TrendLineChart,
-} from "@/components/reports/ReportCustomChart";
+} from "@/components/reports/ReportCustomChart"
 import {
   getExecutiveSummary,
   getCollectionProgressReport,

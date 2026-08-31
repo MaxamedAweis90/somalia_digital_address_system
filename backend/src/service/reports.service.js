@@ -6,7 +6,7 @@ function buildAssignmentWhere(filters = {}) {
   const where = {};
 
   if (filters.status) {
-    where.status = filters.status;
+    where.status = filters.status
   }
 
   if (filters.zoneId) {

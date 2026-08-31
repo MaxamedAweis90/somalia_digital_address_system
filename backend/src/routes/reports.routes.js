@@ -11,9 +11,9 @@ import {
   getDataQualityReport,
   getTrendAnalytics,
   exportReportData,
-} from "../controllers/reports.controller.js";
+} from "../controllers/reports.controller.js"
 
-const ReportsRouter = Router();
+const ReportsRouter = Router()
 
 // Protect and restrict to SYS_ADMIN
 ReportsRouter.use(protect);
