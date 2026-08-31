@@ -26,7 +26,7 @@ export default function EditDataCollectorPage() {
         const res = await getDataCollectorById(id);
         const dataObj = res.data?.data || res.data;
         setCollector(dataObj);
-      } catch (err) {
+      } catch {
         toast.error("Failed to load data collector details.");
         navigate("/admin/data-collectors");
       } finally {
@@ -44,7 +44,7 @@ export default function EditDataCollectorPage() {
           res.data?.data ||
           (Array.isArray(res.data) ? res.data : []);
         setOfficers(dataList);
-      } catch (err) {
+      } catch {
         toast.error("Failed to load data officers.");
       } finally {
         setLoadingOfficers(false);

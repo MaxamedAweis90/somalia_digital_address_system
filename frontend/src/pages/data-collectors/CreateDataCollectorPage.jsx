@@ -25,7 +25,7 @@ export default function CreateDataCollectorPage() {
           (Array.isArray(res.data) ? res.data : []);
 
         setOfficers(dataList);
-      } catch (err) {
+      } catch {
         toast.error("Failed to load list of data officers. Please refresh.");
       } finally {
         setLoadingOfficers(false);

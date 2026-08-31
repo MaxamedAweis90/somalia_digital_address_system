@@ -5,8 +5,6 @@ import {
   ChevronRight,
   RotateCcw,
   X,
-  Sparkles,
-  Info,
 } from "lucide-react";
 
 const MONTH_NAMES = [
