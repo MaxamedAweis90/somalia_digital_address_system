@@ -91,6 +91,50 @@ export const RegionService = {
             name: true,
             code: true,
             status: true,
+            _count: {
+              select: {
+                zones: true,
+                addresses: true,
+              },
+            },
+            zones: {
+              select: {
+                id: true,
+                name: true,
+                code: true,
+                status: true,
+                _count: {
+                  select: {
+                    zoneBlocks: true,
+                    addresses: true,
+                  },
+                },
+                zoneBlocks: {
+                  select: {
+                    id: true,
+                    name: true,
+                    code: true,
+                    status: true,
+                    _count: {
+                      select: { addresses: true },
+                    },
+                    addresses: {
+                      select: {
+                        id: true,
+                        addressCode: true,
+                        streetName: true,
+                        description: true,
+                        status: true,
+                        createdAt: true,
+                      },
+                      orderBy: { addressCode: "asc" },
+                    },
+                  },
+                  orderBy: { name: "asc" },
+                },
+              },
+              orderBy: { name: "asc" },
+            },
           },
           orderBy: { name: "asc" },
         },

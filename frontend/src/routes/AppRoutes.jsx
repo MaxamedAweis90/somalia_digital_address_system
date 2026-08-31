@@ -18,6 +18,7 @@ import PlaceholderPage from "@/pages/admin/PlaceholderPage";
 import Regions from "@/pages/regions/Regions";
 import AddRegion from "@/pages/regions/AddRegion";
 import EditRegion from "@/pages/regions/EditRegion";
+import ViewRegion from "@/pages/regions/ViewRegion";
 import Districts from "@/pages/districts/Districts";
 import AddDistrict from "@/pages/districts/AddDistrict";
 import EditDistrict from "@/pages/districts/EditDistrict";
@@ -76,6 +77,7 @@ export default function AppRoutes() {
         {/* Region routes (Full CRUD) */}
         <Route path="regions" element={<Regions />} />
         <Route path="regions/add" element={<AddRegion />} />
+        <Route path="regions/view/:id" element={<ViewRegion />} />
         <Route path="regions/edit/:id" element={<EditRegion />} />
 
         {/* District routes (Full CRUD) */}

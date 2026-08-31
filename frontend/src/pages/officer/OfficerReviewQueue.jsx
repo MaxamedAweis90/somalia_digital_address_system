@@ -24,7 +24,7 @@ export default function OfficerReviewQueue() {
   return (
     <div className="min-h-full bg-bg font-sans">
       <div className="px-4 sm:px-6 lg:px-5 pt-5 pb-10 space-y-6">
-        <Breadcrumb items={[{ label: "My Assignments", to: "/officer/dashboard" }, { label: "Review Queue" }]} />
+        <Breadcrumb items={[{ label: "Zones", to: "/officer/dashboard" }, { label: "Review Queue" }]} />
         <PageHeader title="Review Queue" description="Collector submissions waiting for your approval." />
 
         <div className="rounded-xl border border-line bg-white shadow-card-sm overflow-hidden">
