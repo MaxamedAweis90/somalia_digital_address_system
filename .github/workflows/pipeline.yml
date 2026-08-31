@@ -1,0 +1,53 @@
+name: Application pipeline
+
+on:
+  push:
+    branches:
+      - dev
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  database:
+    name: Database and backend checks
+    uses: ./.github/workflows/database-check.yml
+
+  frontend-test:
+    name: Frontend checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install frontend dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: ./frontend
+        env:
+          VITE_API_URL: ${{ vars.VITE_API_URL || '/api/v1' }}
+        run: npm run build
+
+  backend:
+    name: Build and publish backend
+    needs: [database, frontend-test]
+    uses: ./.github/workflows/backend-publish.yml
+    secrets: inherit
+
+  frontend:
+    name: Build and publish frontend
+    needs: [database, frontend-test]
+    uses: ./.github/workflows/frontend-publish.yml
+    with:
+      vite-api-url: ${{ vars.VITE_API_URL || '/api/v1' }}
+    secrets: inherit

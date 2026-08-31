@@ -153,7 +153,16 @@ The Vite dev server proxies `/api` requests to the backend at `http://localhost:
 
 ## Docker Hub publishing and server deployment
 
-The GitHub Actions workflow in `.github/workflows/docker-publish.yml` builds and publishes the two application images:
+The root GitHub Actions workflow in `.github/workflows/pipeline.yml` coordinates the application checks and publishing. It runs the database/backend checks and frontend production build first; only if both succeed does it call the separate backend and frontend publishing workflows:
+
+```text
+.github/workflows/pipeline.yml          # pipeline coordinator
+.github/workflows/database-check.yml   # temporary PostGIS + backend tests
+.github/workflows/backend-publish.yml  # backend image
+.github/workflows/frontend-publish.yml # frontend image
+```
+
+The two application images are:
 
 ```text
 <dockerhub-username>/sdas-backend
@@ -167,21 +176,33 @@ Add these GitHub Actions secrets in the repository settings:
 - `DOCKERHUB_USERNAME` — your Docker Hub username
 - `DOCKERHUB_TOKEN` — a Docker Hub access token, not your account password
 
-Application images are published automatically for pushes to `main` and `dev`, and for version tags such as `v1.0.0`. On the server, create a `.env` file beside `docker-compose.yml`:
+The frontend currently needs only one build-time configuration value:
+
+- `VITE_API_URL` — a GitHub Actions **variable**, not a secret. If it is not set, the image uses `/api/v1`, which works with the included Nginx proxy.
+
+Anything passed to a `VITE_*` variable is bundled into the browser and is publicly visible. Never pass database passwords, JWT secrets, SMTP credentials, or private API keys to the frontend. Keep those values in the server environment for the backend.
+
+Application images are published automatically for pushes to `main` and `dev`, and for version tags such as `v1.0.0`. Copy `.env.server.example` to `.env` on the server and replace every placeholder:
 
 ```env
 DOCKERHUB_USERNAME=your-dockerhub-username
 IMAGE_TAG=dev
+POSTGRES_USER=sdas_app
+POSTGRES_PASSWORD=replace-with-a-long-hex-password
+POSTGRES_DB=sdas
+JWT_SECRET=replace-with-a-long-random-secret
+NODE_ENV=production
+FRONTEND_URL=https://app.yourdomain.com
 ```
 
-Then pull and start the published images without rebuilding:
+The server Compose file creates the PostgreSQL user and database on the first startup, stores the data in the `sdas_pgdata` volume, and keeps PostgreSQL and the backend private to the Docker network. Pull and start the published images without rebuilding:
 
 ```bash
-docker compose pull
-docker compose up -d --no-build
+docker compose -f docker-compose.server.yml pull
+docker compose -f docker-compose.server.yml up -d
 ```
 
-Use `IMAGE_TAG=latest` for the default branch image or a version tag for a release. The PostgreSQL data remains in the `pgdata` volume when containers are updated.
+Use `IMAGE_TAG=latest` for the default branch image or a version tag for a release. The PostgreSQL data remains in the `sdas_pgdata` volume when containers are updated. Changing `POSTGRES_PASSWORD` later does not change an existing database password because the volume has already been initialized.
 
 ## User Roles
 
