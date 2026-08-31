@@ -74,7 +74,7 @@ export default function Login() {
           <div className="w-full max-w-[380px] mx-auto space-y-7">
             {/* Header */}
             <div className="space-y-4">
-              <Link to="/" className="inline-block hover:opacity-90 transition-opacity">
+              <Link to="/login" className="inline-block hover:opacity-90 transition-opacity">
                 <img
                   src={sdasLogo}
                   alt="SDAS - Somali Digital Address System"

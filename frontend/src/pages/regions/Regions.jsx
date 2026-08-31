@@ -348,6 +348,26 @@ export default function Regions() {
                           <td className="px-5 py-4">
                             <div className="flex items-center justify-end gap-2">
                               <button
+                                onClick={() => navigate(`view/${region.id}`)}
+                                className="
+                                  h-[32px]
+                                  rounded-md
+                                  border
+                                  border-line
+                                  bg-white
+                                  px-3
+                                  text-[11px]
+                                  font-semibold
+                                  text-ink
+                                  transition-all
+                                  hover:bg-bg
+                                  cursor-pointer
+                                "
+                              >
+                                View
+                              </button>
+
+                              <button
                                 onClick={() => navigate(`edit/${region.id}`)}
                                 className="
                                   h-[32px]

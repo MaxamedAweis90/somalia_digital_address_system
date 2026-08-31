@@ -58,6 +58,9 @@ const assignmentInclude = {
   children: {
     include: {
       assignedTo: { select: userSelect },
+      zoneBlock: {
+        select: { id: true, name: true, code: true, status: true, zoneId: true },
+      },
     },
     orderBy: [{ mergeOrder: "asc" }, { createdAt: "asc" }],
   },
@@ -68,6 +71,18 @@ const DEFAULT_PAYLOAD = {
   DEFINE_ZONE_BLOCKS: { zoneBlocks: [] },
   REGISTER_ADDRESSES: { addresses: [] },
 };
+
+function formatAssignment(assignment) {
+  return assignment;
+}
+
+function parseExpectedCollectorCount(value) {
+  const count = Number(value);
+  if (!Number.isInteger(count) || count < 1 || count > 50) {
+    throw new Error("Data Collectors on Team must be a whole number between 1 and 50");
+  }
+  return count;
+}
 
 function isValidCoordinate(value) {
   return typeof value === "number" && Number.isFinite(value);
@@ -107,6 +122,7 @@ function normalizeAddressPayload(payload) {
         address.longitude === null || address.longitude === undefined
           ? null
           : Number(address.longitude),
+      zoneBlockId: address.zoneBlockId || null,
     })),
   };
 }
@@ -156,12 +172,13 @@ function validateDraftAddresses(addresses, { requireCoordinates = false } = {}) 
 async function assertZone(zoneId) {
   const zone = await prisma.zone.findUnique({
     where: { id: zoneId },
-    select: { id: true },
+    select: { id: true, status: true },
   });
   if (!zone) throw new Error("Zone not found");
+  if (zone.status !== "ACTIVE") throw new Error("Zone must be active");
 }
 
-async function assertZoneBlockForAssignment(zoneBlockId) {
+async function assertZoneBlockForAssignment(zoneBlockId, expectedZoneId) {
   const rows = await prisma.$queryRaw`
     SELECT zb.id, zb.zone_id AS "zoneId", zb.status,
       (zb.geometry IS NOT NULL) AS "hasGeometry"
@@ -169,6 +186,9 @@ async function assertZoneBlockForAssignment(zoneBlockId) {
   `;
   const zoneBlock = rows[0];
   if (!zoneBlock) throw new Error("Zone block not found");
+  if (expectedZoneId && zoneBlock.zoneId !== expectedZoneId) {
+    throw new Error("Zone block does not belong to the assigned zone");
+  }
   if (zoneBlock.status !== "ACTIVE") {
     throw new Error("Zone block must be active to register addresses");
   }
@@ -178,6 +198,47 @@ async function assertZoneBlockForAssignment(zoneBlockId) {
     );
   }
   return zoneBlock;
+}
+
+async function assertMergedAddressPayload(parent, addresses) {
+  if (!addresses.length) {
+    throw new Error("At least one address is required before submitting");
+  }
+
+  const addressesByBlock = new Map();
+  for (const address of addresses) {
+    const zoneBlockId = address.zoneBlockId || parent.zoneBlockId;
+    if (!zoneBlockId) {
+      throw new Error("Every address must belong to a zone block");
+    }
+
+    if (!addressesByBlock.has(zoneBlockId)) addressesByBlock.set(zoneBlockId, []);
+    addressesByBlock.get(zoneBlockId).push(address);
+  }
+
+  for (const [zoneBlockId, blockAddresses] of addressesByBlock) {
+    await assertZoneBlockForAssignment(zoneBlockId, parent.zoneId);
+    await validateRegisterAddressesSubmission(zoneBlockId, blockAddresses);
+  }
+}
+
+function buildAddressBatches(parent, addresses) {
+  const batches = new Map();
+
+  for (const address of addresses) {
+    const zoneBlockId = address.zoneBlockId || parent.zoneBlockId;
+    if (!zoneBlockId) {
+      throw new Error("Every address must belong to a zone block");
+    }
+
+    if (!batches.has(zoneBlockId)) batches.set(zoneBlockId, []);
+    batches.get(zoneBlockId).push(address);
+  }
+
+  return [...batches.entries()].map(([zoneBlockId, batchAddresses]) => ({
+    zoneBlockId,
+    addresses: batchAddresses,
+  }));
 }
 
 async function assertNoCodeConflicts(zoneId, zoneBlocks) {
@@ -281,10 +342,19 @@ function assertAssignmentAccess(assignment, user) {
 
 export const AssignmentService = {
   createAssignment: async (
-    { type = "DEFINE_ZONE_BLOCKS", zoneId, zoneBlockId, assignedToId, notes, dueAt },
+    {
+      type = "DEFINE_ZONE_BLOCKS",
+      zoneId,
+      zoneBlockId,
+      assignedToId,
+      expectedCollectorCount,
+      notes,
+      dueAt,
+    },
     actorId
   ) => {
     if (!assignedToId) throw new Error("Data officer is required");
+    const count = parseExpectedCollectorCount(expectedCollectorCount);
     await assertUserRole(assignedToId, "DATA_OFFICER");
 
     const assignmentType = type || "DEFINE_ZONE_BLOCKS";
@@ -301,16 +371,20 @@ export const AssignmentService = {
       await assertZone(zoneId);
       initialPayload = DEFAULT_PAYLOAD.DEFINE_ZONE_BLOCKS;
     } else {
-      if (!zoneBlockId) {
-        throw new Error("Zone block is required for address registration assignments");
+      if (zoneBlockId) {
+        const zoneBlock = await assertZoneBlockForAssignment(zoneBlockId, zoneId);
+        resolvedZoneId = zoneBlock.zoneId;
+        resolvedZoneBlockId = zoneBlock.id;
+      } else {
+        if (!zoneId) {
+          throw new Error("Zone is required for address registration assignments");
+        }
+        await assertZone(zoneId);
       }
-      const zoneBlock = await assertZoneBlockForAssignment(zoneBlockId);
-      resolvedZoneId = zoneBlock.zoneId;
-      resolvedZoneBlockId = zoneBlock.id;
       initialPayload = DEFAULT_PAYLOAD.REGISTER_ADDRESSES;
     }
 
-    const assignment = await prisma.assignments.create({
+    const assignment = await prisma.assignment.create({
       data: {
         type: assignmentType,
         tier: "PARENT",
@@ -329,70 +403,10 @@ export const AssignmentService = {
     return formatAssignment(assignment);
   },
 
-  createChildAssignment: async (parentId, { assignedToId, notes, dueAt }, actorId) => {
-    if (!parentId) {
-      throw new Error("Parent assignment ID is required");
-    }
-    if (!assignedToId) {
-      throw new Error("Data collector is required");
-    }
-
-    await assertOfficer(assignedToId);
-
-    return prisma.$transaction(async (tx) => {
-      const parent = await tx.assignments.findUnique({
-        where: { id: parentId },
-        include: {
-          children: true,
-        },
-      });
-
-      if (!parent) {
-        throw new Error("Parent assignment not found");
-      }
-
-      if (parent.assignedToId !== actorId) {
-        throw new Error("You do not have permission to delegate tasks for this assignment");
-      }
-
-      const limit = parent.expectedCollectorCount ?? 1;
-      const currentChildren = parent.children || [];
-
-      if (currentChildren.length >= limit) {
-        throw new Error(
-          `This assignment already has the maximum number of collector tasks (${currentChildren.length}/${limit}).`
-        );
-      }
-
-      const duplicateCollector = currentChildren.some(
-        (child) => child.assignedToId === assignedToId
-      );
-      if (duplicateCollector) {
-        throw new Error("This collector is already assigned to a task under this assignment.");
-      }
-
-      const child = await tx.assignments.create({
-        data: {
-          parentId,
-          type: parent.type,
-          neighborhoodId: parent.neighborhoodId,
-          assignedToId,
-          assignedById: actorId,
-          notes: notes?.trim() || null,
-          dueAt: dueAt ? new Date(dueAt) : null,
-          payload: { zones: [] },
-        },
-        include: assignmentInclude,
-      });
-
-      return formatAssignment(child);
-    });
-  },
-
   createChildAssignment: async (
     parentId,
     officerId,
-    { assignedToId, notes, dueAt, scope, mergeOrder }
+    { assignedToId, zoneBlockId, notes, dueAt, scope, mergeOrder }
   ) => {
     const parent = await fetchAssignment(parentId);
     assertOfficerParentAccess(parent, officerId);
@@ -402,6 +416,44 @@ export const AssignmentService = {
 
     if (["SUBMITTED", "APPROVED"].includes(parent.status)) {
       throw new Error("This parent assignment can no longer accept new child tasks");
+    }
+
+    const childZoneBlockId =
+      parent.type === "REGISTER_ADDRESSES"
+        ? zoneBlockId || parent.zoneBlockId
+        : parent.zoneBlockId;
+
+    if (parent.type === "REGISTER_ADDRESSES") {
+      if (!childZoneBlockId) {
+        throw new Error("Zone block is required when delegating address registration");
+      }
+      await assertZoneBlockForAssignment(childZoneBlockId, parent.zoneId);
+
+      const existingBlockTask = await prisma.assignment.findFirst({
+        where: {
+          parentAssignmentId: parent.id,
+          zoneBlockId: childZoneBlockId,
+        },
+        select: { id: true, status: true },
+      });
+      if (existingBlockTask) {
+        throw new Error("This zone block has already been assigned in this zone");
+      }
+    }
+
+    const existingChildren = await prisma.assignment.findMany({
+      where: { parentAssignmentId: parent.id },
+      select: { assignedToId: true },
+    });
+    const collectorIds = new Set(existingChildren.map((child) => child.assignedToId));
+    if (
+      parent.expectedCollectorCount &&
+      !collectorIds.has(assignedToId) &&
+      collectorIds.size >= parent.expectedCollectorCount
+    ) {
+      throw new Error(
+        `This zone is limited to ${parent.expectedCollectorCount} data collector(s)`
+      );
     }
 
     const initialPayload =
@@ -415,7 +467,7 @@ export const AssignmentService = {
         tier: "CHILD",
         parentAssignmentId: parent.id,
         zoneId: parent.zoneId,
-        zoneBlockId: parent.zoneBlockId,
+        zoneBlockId: childZoneBlockId,
         assignedToId,
         assignedById: officerId,
         notes: notes?.trim() || null,
@@ -512,12 +564,16 @@ export const AssignmentService = {
 
     const normalized = normalizePayload(assignment.type, payload);
     if (assignment.type === "REGISTER_ADDRESSES") {
+      normalized.addresses = normalized.addresses.map((address) => ({
+        ...address,
+        zoneBlockId: null,
+      }));
       validateDraftAddresses(normalized.addresses, { requireCoordinates: false });
     } else {
       validateDraftZoneBlocks(normalized.zoneBlocks, { requireGeometry: false });
     }
 
-    const updated = await prisma.assignments.update({
+    const updated = await prisma.assignment.update({
       where: { id },
       data: {
         payload: normalized,
@@ -626,15 +682,27 @@ export const AssignmentService = {
       throw new Error("At least one approved child assignment is required to merge");
     }
 
+    const allChildren = await prisma.assignment.count({
+      where: { parentAssignmentId: parentId },
+    });
+    if (children.length !== allChildren) {
+      throw new Error("All delegated block tasks must be approved before merging");
+    }
+
     let mergedPayload;
     if (parent.type === "REGISTER_ADDRESSES") {
       mergedPayload = {
-        addresses: children.flatMap((child) =>
-          normalizePayload(child.type, child.payload).addresses
-        ),
+        addresses: children.flatMap((child) => {
+          if (!child.zoneBlockId) {
+            throw new Error("Every address task must have an assigned zone block");
+          }
+          return normalizePayload(child.type, child.payload).addresses.map((address) => ({
+            ...address,
+            zoneBlockId: child.zoneBlockId,
+          }));
+        }),
       };
-      if (!parent.zoneBlockId) throw new Error("Parent assignment zone block is missing");
-      await validateRegisterAddressesSubmission(parent.zoneBlockId, mergedPayload.addresses);
+      await assertMergedAddressPayload(parent, mergedPayload.addresses);
     } else {
       mergedPayload = {
         zoneBlocks: children.flatMap(
@@ -665,8 +733,7 @@ export const AssignmentService = {
 
     const normalized = normalizePayload(parent.type, parent.payload);
     if (parent.type === "REGISTER_ADDRESSES") {
-      if (!parent.zoneBlockId) throw new Error("Assignment zone block is missing");
-      await validateRegisterAddressesSubmission(parent.zoneBlockId, normalized.addresses);
+      await assertMergedAddressPayload(parent, normalized.addresses);
     } else {
       await validateDefineZoneBlocksSubmission(parent.zoneId, normalized.zoneBlocks);
     }
@@ -697,12 +764,9 @@ export const AssignmentService = {
     const normalized = normalizePayload(assignment.type, assignment.payload);
 
     if (assignment.type === "REGISTER_ADDRESSES") {
-      if (!assignment.zoneBlockId) throw new Error("Assignment zone block is missing");
-      await validateRegisterAddressesSubmission(assignment.zoneBlockId, normalized.addresses);
-
-      const createdAddresses = await AddressService.createAddressesFromDraftBatch(
-        assignment.zoneBlockId,
-        normalized.addresses
+      await assertMergedAddressPayload(assignment, normalized.addresses);
+      const createdAddresses = await AddressService.createAddressesFromDraftBatches(
+        buildAddressBatches(assignment, normalized.addresses)
       );
 
       const updated = await prisma.assignment.update({
@@ -733,7 +797,7 @@ export const AssignmentService = {
       );
     }
 
-    const updated = await prisma.assignments.update({
+    const updated = await prisma.assignment.update({
       where: { id },
       data: {
         status: "APPROVED",
@@ -757,7 +821,7 @@ export const AssignmentService = {
     }
     if (!rejectionReason?.trim()) throw new Error("Rejection reason is required");
 
-    const updated = await prisma.assignments.update({
+    const updated = await prisma.assignment.update({
       where: { id },
       data: {
         status: "REJECTED",

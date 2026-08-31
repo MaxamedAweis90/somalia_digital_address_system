@@ -9,7 +9,7 @@ Officer: DEFINE_ZONES assignment → admin approves
         ↓
 Officer: REGISTER_ADDRESSES assignment (per zone) → admin approves
         ↓
-Published DAC addresses usable in registry + public lookup
+Published DAC addresses usable in registry
 ```
 
 **DAC format:** `[DISTRICT]-[NEIGHBORHOOD]-[ZONE]-[HOUSE]` (e.g. `HOD-TLX-Z01-0001`)
@@ -178,7 +178,7 @@ Published DAC addresses usable in registry + public lookup
 - [ ] **7.7** Admin assigns Define Zones → officer draws Z01, Z02 inside boundary → submit → approve
 - [ ] **7.8** Admin assigns Register Addresses for Z01 → officer adds 3 pins → submit → approve
 - [ ] **7.9** Verify DACs: `HOD-TLX-Z01-0001`, `0002`, `0003`
-- [ ] **7.10** Public lookup returns correct address data
+- [ ] **7.10** Address lookup returns correct address data in system
 - [ ] **7.11** Reject flow: admin rejects → officer fixes → resubmits → approves
 - [ ] **7.12** Validation: pin outside zone → submit fails
 - [ ] **7.13** Validation: zone outside neighborhood → zone submit fails

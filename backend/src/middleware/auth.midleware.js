@@ -1,6 +1,7 @@
+import { prisma } from "../db.js";
 import { verifyToken } from "../utils/jwt.utils.js";
 
-export const protect = (req, res, next) => {
+export const protect = async (req, res, next) => {
   const token = req.cookies.token;
 
   if (!token) {
@@ -9,7 +10,21 @@ export const protect = (req, res, next) => {
 
   try {
     const decoded = verifyToken(token);
-    req.user = decoded;
+
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.id },
+      select: { id: true, email: true, name: true, role: true },
+    });
+
+    if (!user) {
+      res.clearCookie("token");
+      return res.status(401).json({
+        success: false,
+        message: "User session is no longer valid. Please sign in again.",
+      });
+    }
+
+    req.user = user;
     next();
   } catch {
     return res

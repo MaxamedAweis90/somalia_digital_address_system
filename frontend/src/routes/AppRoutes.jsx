@@ -18,11 +18,13 @@ import PlaceholderPage from "@/pages/admin/PlaceholderPage";
 import Regions from "@/pages/regions/Regions";
 import AddRegion from "@/pages/regions/AddRegion";
 import EditRegion from "@/pages/regions/EditRegion";
+import ViewRegion from "@/pages/regions/ViewRegion";
 import Districts from "@/pages/districts/Districts";
 import AddDistrict from "@/pages/districts/AddDistrict";
 import EditDistrict from "@/pages/districts/EditDistrict";
 import Zones from "@/pages/zones/Zones";
 import AddZone from "@/pages/zones/AddZone";
+import ViewZone from "@/pages/zones/ViewZone";
 import EditZone from "@/pages/zones/EditZone";
 import ZoneBlocks from "@/pages/zone-blocks/ZoneBlocks";
 import AddZoneBlock from "@/pages/zone-blocks/AddZoneBlock";
@@ -43,43 +45,14 @@ import Settings from "@/pages/settings/Settings";
 import Assignments from "@/pages/assignments/Assignments";
 import AddAssignment from "@/pages/assignments/AddAssignment";
 import AssignmentDetail from "@/pages/assignments/AssignmentDetail";
-import AnnouncementBar from "@/Frontdoor/AnnouncementBar";
-import Header from "@/Frontdoor/Header";
-import Hero from "@/Frontdoor/Hero";
-import Features from "@/Frontdoor/Features";
-import FinalCTA from "@/Frontdoor/FinalCTA";
-import Footer from "@/Frontdoor/Footer";
-import Coverage from "@/Frontdoor/Coverage";
-import AddressLookup from "@/Frontdoor/Addresslookup";
-import Developers from "@/Frontdoor/Developers";
-import About from "@/Frontdoor/About";
-import CoveragePage from "@/Frontdoor/pages/CoveragePage";
-import "@/Frontdoor/frontdoor.css";
 import AuditLogsPage from "@/pages/admin/AuditLogsPage";
-
-function Frontdoor() {
-  return (
-    <div className="min-h-screen">
-      <AnnouncementBar />
-      <Header />
-      <Hero />
-      <Features />
-      <Coverage />
-      <FinalCTA />
-      <Footer />
-    </div>
-  );
-}
+import Reports from "@/pages/admin/Reports";
 
 export default function AppRoutes() {
   return (
     <Routes>
       {/* Public routes */}
-      <Route path="/" element={<Frontdoor />} />
-      <Route path="/search" element={<AddressLookup />} />
-      <Route path="/developers" element={<Developers />} />
-      <Route path="/coverage" element={<CoveragePage />} />
-      <Route path="/about" element={<About />} />
+      <Route path="/" element={<Navigate to="/login" replace />} />
 
       <Route
         path="/login"
@@ -105,6 +78,7 @@ export default function AppRoutes() {
         {/* Region routes (Full CRUD) */}
         <Route path="regions" element={<Regions />} />
         <Route path="regions/add" element={<AddRegion />} />
+        <Route path="regions/view/:id" element={<ViewRegion />} />
         <Route path="regions/edit/:id" element={<EditRegion />} />
 
         {/* District routes (Full CRUD) */}
@@ -116,6 +90,7 @@ export default function AppRoutes() {
         {/* Zone routes */}
         <Route path="zones" element={<Zones />} />
         <Route path="zones/add" element={<AddZone />} />
+        <Route path="zones/view/:id" element={<ViewZone />} />
         <Route path="zones/edit/:id" element={<EditZone />} />
 
         {/* Zone block routes */}
@@ -167,6 +142,7 @@ export default function AppRoutes() {
         <Route path="assignments" element={<Assignments />} />
         <Route path="assignments/add" element={<AddAssignment />} />
         <Route path="assignments/:id" element={<AssignmentDetail />} />
+        <Route path="reports" element={<Reports />} />
         <Route path="audit-logs" element={<AuditLogsPage />} />
         <Route path="settings" element={<Settings />} />
       </Route>
@@ -204,7 +180,7 @@ export default function AppRoutes() {
       {/* Legacy redirect */}
       <Route path="/dashboard" element={<Navigate to="/login" replace />} />
 
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
   );
 }

@@ -5,7 +5,7 @@ import AppTopBar, { navLinkClass } from "@/components/layout/AppTopBar";
 import { LayoutGrid, LogOut, PanelLeftClose, PanelLeftOpen, Users, ClipboardCheck } from "lucide-react";
 
 const navItems = [
-  { to: "/officer/dashboard", label: "My Assignments", icon: LayoutGrid },
+  { to: "/officer/dashboard", label: "Zones", icon: LayoutGrid },
   { to: "/officer/reviews", label: "Review Queue", icon: ClipboardCheck },
   { to: "/officer/collectors", label: "My Team", icon: Users },
 ];
