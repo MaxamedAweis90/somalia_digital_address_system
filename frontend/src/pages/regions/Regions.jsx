@@ -466,7 +466,7 @@ export default function Regions() {
           {/* CARD FOOTER */}
           <div className="px-5 py-4 border-t border-line">
             <p className="text-[11px] text-ink-soft mb-4">
-              {/* Showing {regions.length > 0 ? (pagination.page - 1) * pagination.limit + 1 : 0}-{Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} regions */}
+              {/* Showing {regions.length >  0 ? (pagination.page - 1) * pagination.limit + 1 : 0}-{Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} regions */}
             </p>
 
             {pagination.totalPages > 1 && (
