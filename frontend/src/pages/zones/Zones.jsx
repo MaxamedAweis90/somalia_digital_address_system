@@ -365,6 +365,26 @@ export default function Zones() {
                         {isAdmin && (
                           <td className="px-5 py-4">
                             <div className="flex items-center justify-end gap-2">
+                              <button
+                                type="button"
+                                onClick={() => navigate(`view/${item.id}`)}
+                                className="
+                                  h-[32px]
+                                  rounded-md
+                                  border
+                                  border-line
+                                  bg-white
+                                  px-3
+                                  text-[11px]
+                                  font-semibold
+                                  text-ink
+                                  transition-all
+                                  hover:bg-bg
+                                  cursor-pointer
+                                "
+                              >
+                                View
+                              </button>
                               {/* EDIT */}
                               <button
                                 onClick={() =>

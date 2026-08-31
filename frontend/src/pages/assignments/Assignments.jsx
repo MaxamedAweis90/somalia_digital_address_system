@@ -10,14 +10,15 @@ import AssignmentStatusBadge, {
 import Breadcrumb from "@/components/ui/Breadcrumb";
 import PageHeader from "@/components/ui/PageHeader";
 
-function getChildProgress(assignment) {
+function formatProgress(assignment) {
   const children = assignment.children || [];
-  if (!children.length) return "—";
   const approved = children.filter((child) => child.status === "APPROVED").length;
   const submitted = children.filter((child) =>
     ["SUBMITTED", "APPROVED"].includes(child.status)
   ).length;
-  return `${approved}/${children.length} approved · ${submitted}/${children.length} submitted`;
+  const expected = assignment.expectedCollectorCount || children.length;
+
+  return `${children.length}/${expected} delegated · ${approved} approved · ${submitted} submitted`;
 }
 
 export default function Assignments() {
@@ -129,9 +130,6 @@ export default function Assignments() {
                     Status
                   </th>
                   <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
-                    Team Progress
-                  </th>
-                  <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
                     Draft Items
                   </th>
                   <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
@@ -176,9 +174,6 @@ export default function Assignments() {
                       </td>
                       <td className="px-5 py-4">
                         <AssignmentStatusBadge status={assignment.status} />
-                      </td>
-                      <td className="px-5 py-4 text-[12px] text-ink-soft">
-                        {getChildProgress(assignment)}
                       </td>
                       <td className="px-5 py-4 text-[12px] text-ink">
                         {getAssignmentDraftCount(assignment)}
