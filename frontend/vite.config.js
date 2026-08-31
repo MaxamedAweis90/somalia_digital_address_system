@@ -16,6 +16,9 @@ export default defineConfig({
         target: 'http://localhost:5000',
         changeOrigin: true,
       },
+
+      host: 'localhost',
+      port: 5173
     },
     watch: {
       ignored: ['**/node_modules/**', '**/.git/**'],

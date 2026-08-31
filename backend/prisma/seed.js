@@ -30,6 +30,20 @@ async function main() {
     },
   });
 
+  const officerUser = await prisma.user.upsert({
+    where: { email: 'officer@sdas.gov.so' },
+    update: {
+      name: 'Field Officer',
+      role: UserRole.FIELD_OFFICER, // Ama UserRole.USER (sida ay schema-kaaga ku taallay)
+    },
+    create: {
+      email: 'officer@sdas.gov.so',
+      name: 'Field Officer',
+      password: hashedPassword,
+      role: UserRole.FIELD_OFFICER,
+    },
+  });
+
   console.log(`✅ User-ka si guul leh ayaa loo seed-gareeyay: ${adminUser.email}`);
   console.log('🔑 Password-ka ku meel gaarka ah:', defaultPassword);
 }
