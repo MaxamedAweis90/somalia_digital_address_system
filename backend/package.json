@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "server": "node --watch server.js",
-    "db:seed": "node prisma/seed.js"
+    "db:seed": "node prisma/seed.js",
+    "test:zone-workflow": "node test_assignment_zone_workflow.js"
   },
   "keywords": [],
   "author": "",

@@ -35,7 +35,7 @@ export default function OfficerCollectors() {
   return (
     <div className="min-h-full bg-bg font-sans">
       <div className="px-4 sm:px-6 lg:px-5 pt-5 pb-10 space-y-6">
-        <Breadcrumb items={[{ label: "My Assignments", to: "/officer/dashboard" }, { label: "My Team" }]} />
+        <Breadcrumb items={[{ label: "Zones", to: "/officer/dashboard" }, { label: "My Team" }]} />
         <PageHeader
           title="My Data Collectors"
           description="Manage field collectors on your team."

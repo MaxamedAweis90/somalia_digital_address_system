@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { createAssignment } from "@/api/assignmentApi";
 import { getDistricts } from "@/api/districtApi";
 import { getZones } from "@/api/zoneApi";
-import { getZoneBlocks } from "@/api/zoneBlockApi";
 import { getDataOfficers } from "@/api/dataOfficerApi";
 import Breadcrumb from "@/components/ui/Breadcrumb";
 import PageHeader from "@/components/ui/PageHeader";
@@ -15,7 +14,6 @@ export default function AddAssignment() {
     type: "DEFINE_ZONE_BLOCKS",
     districtId: "",
     zoneId: "",
-    zoneBlockId: "",
     assignedToId: "",
     expectedCollectorCount: "1",
     notes: "",
@@ -23,12 +21,9 @@ export default function AddAssignment() {
   });
   const [districts, setDistricts] = useState([]);
   const [zones, setZones] = useState([]);
-  const [zoneBlocks, setZoneBlocks] = useState([]);
   const [officers, setOfficers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [serverError, setServerError] = useState(null);
-
-  const isRegisterAddresses = formData.type === "REGISTER_ADDRESSES";
 
   useEffect(() => {
     Promise.all([getDistricts(), getDataOfficers()])
@@ -66,24 +61,6 @@ export default function AddAssignment() {
       .catch(() => setZones([]));
   }, [formData.districtId]);
 
-  useEffect(() => {
-    if (!isRegisterAddresses || !formData.zoneId) {
-      setZoneBlocks([]);
-      return;
-    }
-
-    getZoneBlocks(formData.zoneId)
-      .then((res) => {
-        const data = (res.data.data || []).filter((block) => block.status === "ACTIVE");
-        setZoneBlocks(data);
-        setFormData((prev) => ({
-          ...prev,
-          zoneBlockId: data[0]?.id || "",
-        }));
-      })
-      .catch(() => setZoneBlocks([]));
-  }, [formData.zoneId, isRegisterAddresses]);
-
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -98,12 +75,7 @@ export default function AddAssignment() {
       return;
     }
 
-    if (isRegisterAddresses) {
-      if (!formData.zoneBlockId) {
-        setServerError("Zone block is required for address registration assignments");
-        return;
-      }
-    } else if (!formData.zoneId) {
+    if (!formData.zoneId) {
       setServerError("Zone is required");
       return;
     }
@@ -131,11 +103,7 @@ export default function AddAssignment() {
         dueAt: formData.dueAt || undefined,
       };
 
-      if (isRegisterAddresses) {
-        payload.zoneBlockId = formData.zoneBlockId;
-      } else {
-        payload.zoneId = formData.zoneId;
-      }
+      payload.zoneId = formData.zoneId;
 
       const res = await createAssignment(payload);
 
@@ -160,7 +128,7 @@ export default function AddAssignment() {
 
         <PageHeader
           title="New Assignment"
-          description="Assign field work to a data officer for zone block definition or address registration."
+          description="Assign a zone to a data officer for zone block definition or address registration."
         />
 
         {serverError && (
@@ -223,30 +191,6 @@ export default function AddAssignment() {
               ))}
             </select>
           </div>
-
-          {isRegisterAddresses && (
-            <div>
-              <label className="block text-[12px] font-semibold text-ink mb-1.5">
-                Zone Block
-              </label>
-              <select
-                name="zoneBlockId"
-                value={formData.zoneBlockId}
-                onChange={handleChange}
-                className="w-full h-[40px] rounded-lg border border-line bg-white px-3 text-[13px] text-ink outline-none focus:border-blue focus:ring-2 focus:ring-blue/10"
-              >
-                {zoneBlocks.length > 0 ? (
-                  zoneBlocks.map((zoneBlock) => (
-                    <option key={zoneBlock.id} value={zoneBlock.id}>
-                      {zoneBlock.name} ({zoneBlock.code})
-                    </option>
-                  ))
-                ) : (
-                  <option value="">No published zone blocks available</option>
-                )}
-              </select>
-            </div>
-          )}
 
           <div>
             <label className="block text-[12px] font-semibold text-ink mb-1.5">

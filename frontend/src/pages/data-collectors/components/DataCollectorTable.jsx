@@ -1,6 +1,4 @@
-import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { MoreVertical, Eye, Edit, KeyRound, Trash2 } from "lucide-react";
 
 export default function DataCollectorTable({
   collectors = [],
@@ -8,18 +6,6 @@ export default function DataCollectorTable({
   onDelete,
 }) {
   const navigate = useNavigate();
-  const [openMenuId, setOpenMenuId] = useState(null);
-  const menuRef = useRef(null);
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (menuRef.current && !menuRef.current.contains(event.target)) {
-        setOpenMenuId(null);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
 
   return (
     <div className="overflow-x-auto">
@@ -106,72 +92,36 @@ export default function DataCollectorTable({
                   </span>
                 </td>
 
-                <td className="px-5 py-4 text-right relative">
-                  <div className="inline-block text-left" ref={openMenuId === collector.id ? menuRef : null}>
+                <td className="px-5 py-4">
+                  <div className="flex items-center justify-end gap-2 flex-wrap">
                     <button
                       type="button"
-                      onClick={() =>
-                        setOpenMenuId(openMenuId === collector.id ? null : collector.id)
-                      }
-                      className="p-1.5 rounded-lg text-ink-soft hover:bg-slate-100 hover:text-ink transition-colors cursor-pointer"
-                      title="Actions menu"
+                      onClick={() => navigate(`/admin/data-collectors/${collector.id}`)}
+                      className="h-[32px] rounded-md border border-line bg-white px-3 text-[11px] font-semibold text-ink transition-all hover:bg-bg cursor-pointer"
                     >
-                      <MoreVertical className="h-4 w-4" />
+                      View
                     </button>
-
-                    {openMenuId === collector.id && (
-                      <div className="absolute right-5 mt-1 w-44 rounded-lg bg-white border border-line shadow-lg py-1 z-30 text-left">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setOpenMenuId(null);
-                            navigate(`/admin/data-collectors/${collector.id}`);
-                          }}
-                          className="w-full px-3 py-2 text-[12px] font-medium text-ink hover:bg-slate-50 flex items-center gap-2 cursor-pointer"
-                        >
-                          <Eye className="h-3.5 w-3.5 text-slate-500" />
-                          View Details
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setOpenMenuId(null);
-                            navigate(`/admin/data-collectors/${collector.id}/edit`);
-                          }}
-                          className="w-full px-3 py-2 text-[12px] font-medium text-ink hover:bg-slate-50 flex items-center gap-2 cursor-pointer"
-                        >
-                          <Edit className="h-3.5 w-3.5 text-slate-500" />
-                          Edit
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setOpenMenuId(null);
-                            onRegeneratePassword(collector);
-                          }}
-                          className="w-full px-3 py-2 text-[12px] font-medium text-amber-700 hover:bg-amber-50 flex items-center gap-2 cursor-pointer"
-                        >
-                          <KeyRound className="h-3.5 w-3.5 text-amber-600" />
-                          Regenerate Password
-                        </button>
-
-                        <div className="my-1 border-t border-line" />
-
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setOpenMenuId(null);
-                            onDelete(collector);
-                          }}
-                          className="w-full px-3 py-2 text-[12px] font-medium text-red-600 hover:bg-red-50 flex items-center gap-2 cursor-pointer"
-                        >
-                          <Trash2 className="h-3.5 w-3.5 text-red-500" />
-                          Delete
-                        </button>
-                      </div>
-                    )}
+                    <button
+                      type="button"
+                      onClick={() => onRegeneratePassword(collector)}
+                      className="h-[32px] rounded-md border border-amber-200 bg-amber-50 px-3 text-[11px] font-semibold text-amber-800 transition-all hover:bg-amber-100 cursor-pointer"
+                    >
+                      Regenerate Password
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/admin/data-collectors/${collector.id}/edit`)}
+                      className="h-[32px] rounded-md bg-blue-deep px-3 text-[11px] font-semibold text-white transition-all hover:bg-[#0F2B4D] cursor-pointer"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onDelete(collector)}
+                      className="h-[32px] rounded-md border border-red-200 bg-white px-3 text-[11px] font-semibold text-red-600 transition-all hover:bg-red-50 cursor-pointer"
+                    >
+                      Delete
+                    </button>
                   </div>
                 </td>
               </tr>

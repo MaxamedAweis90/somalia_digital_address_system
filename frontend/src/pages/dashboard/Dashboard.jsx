@@ -64,14 +64,13 @@ export default function Dashboard() {
         to: `${basePath}/districts`,
       },
       {
-        title: "Total Neighborhoods",
-        value: formatCount(counts.neighborhoods),
-        to: `${basePath}/neighborhoods`,
-      },
-      {
         title: "Total Zones",
         value: formatCount(counts.zones),
         to: `${basePath}/zones`,
+      },
+      {
+        title: "Total Zone Blocks",
+        value: formatCount(counts.zoneBlocks),
       },
       {
         title: "Total Addresses",

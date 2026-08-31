@@ -70,7 +70,7 @@ export default function ZoneBlocks() {
         districtName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         zoneName.toLowerCase().includes(searchTerm.toLowerCase());
 
-      const status = (zone.status || "ACTIVE").toUpperCase();
+      const status = (zoneBlock.status || "ACTIVE").toUpperCase();
       const matchesStatus =
         statusFilter === "All" ||
         (statusFilter === "Active" && status === "ACTIVE") ||

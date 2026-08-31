@@ -18,11 +18,13 @@ import PlaceholderPage from "@/pages/admin/PlaceholderPage";
 import Regions from "@/pages/regions/Regions";
 import AddRegion from "@/pages/regions/AddRegion";
 import EditRegion from "@/pages/regions/EditRegion";
+import ViewRegion from "@/pages/regions/ViewRegion";
 import Districts from "@/pages/districts/Districts";
 import AddDistrict from "@/pages/districts/AddDistrict";
 import EditDistrict from "@/pages/districts/EditDistrict";
 import Zones from "@/pages/zones/Zones";
 import AddZone from "@/pages/zones/AddZone";
+import ViewZone from "@/pages/zones/ViewZone";
 import EditZone from "@/pages/zones/EditZone";
 import ZoneBlocks from "@/pages/zone-blocks/ZoneBlocks";
 import AddZoneBlock from "@/pages/zone-blocks/AddZoneBlock";
@@ -75,6 +77,7 @@ export default function AppRoutes() {
         {/* Region routes (Full CRUD) */}
         <Route path="regions" element={<Regions />} />
         <Route path="regions/add" element={<AddRegion />} />
+        <Route path="regions/view/:id" element={<ViewRegion />} />
         <Route path="regions/edit/:id" element={<EditRegion />} />
 
         {/* District & Neighborhood routes (Full CRUD) */}
@@ -87,6 +90,7 @@ export default function AppRoutes() {
         {/* Zone routes */}
         <Route path="zones" element={<Zones />} />
         <Route path="zones/add" element={<AddZone />} />
+        <Route path="zones/view/:id" element={<ViewZone />} />
         <Route path="zones/edit/:id" element={<EditZone />} />
 
         {/* Zone block routes */}

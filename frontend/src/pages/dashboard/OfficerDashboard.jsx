@@ -2,11 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { getMyAssignments } from "@/api/assignmentApi";
-import AssignmentStatusBadge, {
-  AssignmentTypeBadge,
-  formatAssignmentLocation,
-  getAssignmentDraftCount,
-} from "@/components/assignments/AssignmentStatusBadge";
+import AssignmentStatusBadge from "@/components/assignments/AssignmentStatusBadge";
 import Breadcrumb from "@/components/ui/Breadcrumb";
 import PageHeader from "@/components/ui/PageHeader";
 import OfficerWorkflowGuide from "@/components/assignments/OfficerWorkflowGuide";
@@ -47,11 +43,11 @@ export default function OfficerDashboard() {
   return (
     <div className="min-h-full bg-bg font-sans">
       <div className="px-4 sm:px-6 lg:px-5 pt-5 pb-10 space-y-6">
-        <Breadcrumb items={[{ label: "My Assignments" }]} />
+        <Breadcrumb items={[{ label: "Zones" }]} />
 
         <PageHeader
-          title="My Assignments"
-          description="Supervise field assignments, delegate work to collectors, and submit merged results to admin."
+          title="Assigned Zones"
+          description="Open a zone, assign its zone blocks to collectors, review their address work, and submit the completed zone to admin."
         />
 
         {error && (
@@ -69,15 +65,15 @@ export default function OfficerDashboard() {
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div className="rounded-xl border border-line bg-white p-5 shadow-card-sm">
-            <p className="text-[12px] text-ink-soft">Active Tasks</p>
+            <p className="text-[12px] text-ink-soft">Active Zones</p>
             <p className="mt-2 text-[28px] font-semibold text-ink">{summary.active}</p>
           </div>
           <div className="rounded-xl border border-line bg-white p-5 shadow-card-sm">
-            <p className="text-[12px] text-ink-soft">Awaiting Review</p>
+            <p className="text-[12px] text-ink-soft">Zones Awaiting Review</p>
             <p className="mt-2 text-[28px] font-semibold text-ink">{summary.submitted}</p>
           </div>
           <div className="rounded-xl border border-line bg-white p-5 shadow-card-sm">
-            <p className="text-[12px] text-ink-soft">Completed</p>
+            <p className="text-[12px] text-ink-soft">Completed Zones</p>
             <p className="mt-2 text-[28px] font-semibold text-ink">{summary.completed}</p>
           </div>
         </div>
@@ -86,9 +82,9 @@ export default function OfficerDashboard() {
 
         <div className="rounded-xl border border-line bg-white shadow-card-sm overflow-hidden">
           <div className="border-b border-line px-5 py-4">
-            <h2 className="text-[16px] font-semibold text-ink">Assigned Work</h2>
+            <h2 className="text-[16px] font-semibold text-ink">Zones Assigned to You</h2>
             <p className="mt-1 text-[12px] text-ink-soft">
-              Open a parent assignment to delegate work to collectors and submit merged results.
+              Open a zone to choose zone blocks and assign them to your data collectors.
             </p>
           </div>
 
@@ -97,19 +93,19 @@ export default function OfficerDashboard() {
               <thead>
                 <tr className="border-b border-line bg-[#FBFCFE]">
                   <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
-                    Type
+                    Zone
                   </th>
                   <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
-                    Location
+                    District
+                  </th>
+                  <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
+                    Zone Blocks
                   </th>
                   <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
                     Status
                   </th>
                   <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
-                    Draft Items
-                  </th>
-                  <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
-                    Due
+                    Action
                   </th>
                 </tr>
               </thead>
@@ -128,28 +124,40 @@ export default function OfficerDashboard() {
                       className="border-b border-line last:border-b-0 hover:bg-[#FBFCFE] transition-colors cursor-pointer"
                     >
                       <td className="px-5 py-4">
-                        <AssignmentTypeBadge type={assignment.type} />
+                        <p className="text-[13px] font-semibold text-ink">
+                          {assignment.zone?.name || "—"}
+                        </p>
+                        <p className="mt-0.5 font-mono text-[11px] text-ink-soft">
+                          {assignment.zone?.code || "—"}
+                        </p>
                       </td>
                       <td className="px-5 py-4">
-                        <p className="text-[12px] font-semibold text-ink">
-                          {formatAssignmentLocation(assignment)}
+                        <span className="text-[12px] text-ink">
+                          {assignment.zone?.district?.name || "—"}
+                        </span>
+                      </td>
+                      <td className="px-5 py-4 text-[12px] text-ink">
+                        <p className="font-semibold text-ink">
+                          {assignment.children?.length || 0} block tasks
                         </p>
-                        {assignment.notes && (
-                          <p className="mt-1 text-[11px] text-ink-soft line-clamp-1">
-                            {assignment.notes}
-                          </p>
-                        )}
+                        <p className="mt-0.5 text-[11px] text-ink-soft">
+                          Team size: {assignment.expectedCollectorCount || "—"}
+                        </p>
                       </td>
                       <td className="px-5 py-4">
                         <AssignmentStatusBadge status={assignment.status} />
                       </td>
-                      <td className="px-5 py-4 text-[12px] text-ink">
-                        {getAssignmentDraftCount(assignment)}
-                      </td>
-                      <td className="px-5 py-4 text-[12px] text-ink-soft">
-                        {assignment.dueAt
-                          ? new Date(assignment.dueAt).toLocaleDateString()
-                          : "—"}
+                      <td className="px-5 py-4">
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            navigate(`/officer/assignments/${assignment.id}`);
+                          }}
+                          className="h-[32px] rounded-md border border-line bg-white px-3 text-[11px] font-semibold text-ink hover:bg-bg cursor-pointer"
+                        >
+                          Open Zone
+                        </button>
                       </td>
                     </tr>
                   ))
