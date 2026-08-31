@@ -151,6 +151,38 @@ The app runs at **http://localhost:5173**. `/login` is the sole public entry poi
 
 The Vite dev server proxies `/api` requests to the backend at `http://localhost:5000`, so cookies work correctly in development.
 
+## Docker Hub publishing and server deployment
+
+The GitHub Actions workflow in `.github/workflows/docker-publish.yml` builds and publishes the two application images:
+
+```text
+<dockerhub-username>/sdas-backend
+<dockerhub-username>/sdas-frontend
+```
+
+The PostgreSQL service uses the official `postgres:16-alpine` image directly and does not need a project Dockerfile.
+
+Add these GitHub Actions secrets in the repository settings:
+
+- `DOCKERHUB_USERNAME` — your Docker Hub username
+- `DOCKERHUB_TOKEN` — a Docker Hub access token, not your account password
+
+Application images are published automatically for pushes to `main` and `dev`, and for version tags such as `v1.0.0`. On the server, create a `.env` file beside `docker-compose.yml`:
+
+```env
+DOCKERHUB_USERNAME=your-dockerhub-username
+IMAGE_TAG=dev
+```
+
+Then pull and start the published images without rebuilding:
+
+```bash
+docker compose pull
+docker compose up -d --no-build
+```
+
+Use `IMAGE_TAG=latest` for the default branch image or a version tag for a release. The PostgreSQL data remains in the `pgdata` volume when containers are updated.
+
 ## User Roles
 
 | Role | Access |

@@ -14,6 +14,7 @@ FROM nginx:alpine
 
 # Copy built assets from the builder stage to Nginx html folder
 COPY --from=builder /app/dist /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # Expose HTTP port
 EXPOSE 80

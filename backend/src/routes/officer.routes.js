@@ -4,6 +4,7 @@ import {
   approveChildAssignment,
   createChildAssignment,
   deleteChildAssignment,
+  getCollectorReviewQueue,
   getOfficerAssignmentById,
   getOfficerAssignments,
   getParentChildren,
@@ -13,7 +14,6 @@ import {
   submitParentToAdmin,
 } from "../controllers/officer-assignment.controller.js";
 import {
-  createCollector,
   getCollectorById,
   getCollectors,
   regenerateCollectorPassword,
@@ -27,6 +27,7 @@ OfficerRouter.use(authorize("DATA_OFFICER"));
 
 OfficerRouter.get("/assignments", getOfficerAssignments);
 OfficerRouter.get("/assignments/reviews", getReviewQueue);
+OfficerRouter.get("/assignments/collector-reviews", getCollectorReviewQueue);
 OfficerRouter.get("/assignments/:parentId/children", getParentChildren);
 OfficerRouter.post("/assignments/:parentId/children", createChildAssignment);
 OfficerRouter.post("/assignments/:parentId/merge", mergeParentAssignment);
@@ -37,7 +38,6 @@ OfficerRouter.post("/assignments/children/:childId/approve", approveChildAssignm
 OfficerRouter.post("/assignments/children/:childId/reject", rejectChildAssignment);
 
 OfficerRouter.get("/collectors", getCollectors);
-OfficerRouter.post("/collectors", createCollector);
 OfficerRouter.get("/collectors/:id", getCollectorById);
 OfficerRouter.put("/collectors/:id", updateCollector);
 OfficerRouter.post("/collectors/:id/regenerate-password", regenerateCollectorPassword);

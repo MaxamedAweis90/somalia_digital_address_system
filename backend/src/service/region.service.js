@@ -28,8 +28,7 @@ const isValidSomaliRegion = (name, code) => {
 
   return SOMALI_OFFICIAL_REGIONS.some(
     (reg) =>
-      reg.name.toLowerCase() === normalizedName ||
-      reg.code === normalizedCode
+      reg.name.toLowerCase() === normalizedName || reg.code === normalizedCode,
   );
 };
 
@@ -50,7 +49,7 @@ export const RegionService = {
 
     if (!isValidSomaliRegion(name, code)) {
       throw new Error(
-        `"${name}" is not a recognized official administrative region of Somalia. Only the 18 official regions are permitted.`
+        `"${name}" is not a recognized official administrative region of Somalia. Only the 18 official regions are permitted.`,
       );
     }
 
@@ -66,14 +65,68 @@ export const RegionService = {
     });
   },
 
-  getRegions: async () => {
-    return prisma.region.findMany({
+  /**
+   * Get regions with optional pagination and search
+   * @param {Object} params
+   * @param {number} [params.page=1] - Page number
+   * @param {number} [params.limit=10] - Items per page
+   * @param {string} [params.search] - Search by name or code
+   * @returns {Promise<{data: Array, pagination: Object}>}
+   */
+  getRegions: async ({ page = 1, limit = 10, search } = {}) => {
+    // Robust parsing
+    let parsedPage = parseInt(page, 10);
+    let parsedLimit = parseInt(limit, 10);
+
+    if (isNaN(parsedPage) || parsedPage < 1) {
+      parsedPage = 1;
+    }
+    if (isNaN(parsedLimit) || parsedLimit < 1) {
+      parsedLimit = 10;
+    }
+
+    if (parsedLimit > 100) {
+      parsedLimit = 100;
+    }
+
+    const skip = (parsedPage - 1) * parsedLimit;
+    const take = parsedLimit;
+
+    // Build filter
+    const where = {};
+
+    if (search && typeof search === "string" && search.trim()) {
+      const searchPattern = search.trim();
+      where.OR = [
+        { name: { contains: searchPattern, mode: "insensitive" } },
+        { code: { contains: searchPattern, mode: "insensitive" } },
+      ];
+    }
+
+    // Get total
+    const total = await prisma.region.count({ where });
+
+    // Get paginated data
+    const regions = await prisma.region.findMany({
+      where,
       select: {
         ...regionSelect,
         _count: { select: { districts: true } },
       },
       orderBy: { name: "asc" },
+      skip,
+      take,
     });
+
+    return {
+      data: regions,
+      pagination: {
+        total,
+        page: parsedPage,
+        limit: parsedLimit,
+        totalPages: Math.ceil(total / parsedLimit),
+      },
+    };
   },
 
   getRegionById: async (id) => {
@@ -153,7 +206,9 @@ export const RegionService = {
       throw new Error("Region ID is required");
     }
 
-    const existing = await prisma.region.findUnique({ where: { id: id.trim() } });
+    const existing = await prisma.region.findUnique({
+      where: { id: id.trim() },
+    });
 
     if (!existing) {
       throw new Error("Region not found");
@@ -164,7 +219,7 @@ export const RegionService = {
       const checkCode = code || existing.code;
       if (!isValidSomaliRegion(checkName, checkCode)) {
         throw new Error(
-          `"${checkName}" is not a recognized official administrative region of Somalia.`
+          `"${checkName}" is not a recognized official administrative region of Somalia.`,
         );
       }
     }
@@ -198,7 +253,7 @@ export const RegionService = {
 
     if (region._count.districts > 0) {
       throw new Error(
-        "Cannot delete region with existing districts. Remove districts first."
+        "Cannot delete region with existing districts. Remove districts first.",
       );
     }
 

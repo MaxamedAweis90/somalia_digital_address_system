@@ -1,17 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { Loader2, Plus, Trash2 } from "lucide-react";
 import {
   createChildAssignment,
   deleteChildAssignment,
   getOfficerAssignmentById,
-  mergeParentAssignment,
   submitParentToAdmin,
 } from "@/api/officerApi";
 import { getCollectors } from "@/api/officerApi";
 import { getZoneBlocks } from "@/api/zoneBlockApi";
 import AssignmentStatusBadge, {
-  AssignmentTypeBadge,
   formatAssignmentLocation,
   getAssignmentDraftCount,
 } from "@/components/assignments/AssignmentStatusBadge";
@@ -31,7 +29,6 @@ export default function OfficerParentDetail() {
   const [showDelegate, setShowDelegate] = useState(false);
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [merging, setMerging] = useState(false);
   const [delegateForm, setDelegateForm] = useState({
     assignedToId: "",
     zoneBlockId: "",
@@ -69,11 +66,12 @@ export default function OfficerParentDetail() {
   };
 
   useEffect(() => {
+    // The loader synchronizes this screen with the selected assignment API data.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     load();
   }, [id]);
 
-  const children = useMemo(() => assignment?.children || [], [assignment?.children]);
-  const approvedCount = children.filter((c) => c.status === "APPROVED").length;
+  const children = assignment?.children || [];
   const delegatedBlockIds = useMemo(
     () => new Set(children.map((child) => child.zoneBlockId).filter(Boolean)),
     [children]
@@ -82,10 +80,6 @@ export default function OfficerParentDetail() {
     (zoneBlock) => !delegatedBlockIds.has(zoneBlock.id)
   );
   const assignedCollectorCount = new Set(children.map((child) => child.assignedToId)).size;
-  const canMerge =
-    children.length > 0 &&
-    approvedCount === children.length &&
-    !["SUBMITTED", "APPROVED"].includes(assignment?.status);
   const canSubmit = ["READY_FOR_REVIEW", "REJECTED"].includes(assignment?.status);
 
   const handleDelegate = async (e) => {
@@ -118,20 +112,6 @@ export default function OfficerParentDetail() {
       await load();
     } catch (err) {
       setError(err.response?.data?.message || "Failed to delete child task");
-    }
-  };
-
-  const handleMerge = async () => {
-    try {
-      setMerging(true);
-      setError(null);
-      await mergeParentAssignment(id);
-      setSuccess("Approved child work merged into parent assignment.");
-      await load();
-    } catch (err) {
-      setError(err.response?.data?.message || "Failed to merge child work");
-    } finally {
-      setMerging(false);
     }
   };
 
@@ -177,20 +157,14 @@ export default function OfficerParentDetail() {
       <div className="px-4 sm:px-6 lg:px-5 pt-5 pb-10 space-y-6">
         <Breadcrumb
           items={[
-            { label: "Zones", to: "/officer/dashboard" },
+            { label: "Zones", to: "/officer/zones" },
             { label: formatAssignmentLocation(assignment) },
           ]}
         />
 
         <PageHeader
           title="Supervise Field Assignment"
-          description="Delegate work to collectors on your team, review submissions, merge approved work, then submit to admin."
-          actions={
-            <div className="flex flex-wrap gap-2">
-              <AssignmentTypeBadge type={assignment.type} />
-              <AssignmentStatusBadge status={assignment.status} />
-            </div>
-          }
+          description="Assign work to collectors, review their submissions, then submit the completed zone to admin."
         />
 
         {error && <div className="rounded-lg bg-red-50 border border-red-200 p-4 text-sm text-red-700">{error}</div>}
@@ -220,39 +194,29 @@ export default function OfficerParentDetail() {
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => setShowDelegate(true)}
-            disabled={["SUBMITTED", "APPROVED"].includes(assignment.status)}
-            className="h-[39px] px-4 rounded-lg bg-blue-deep text-[12px] font-semibold text-white cursor-pointer disabled:opacity-50"
-          >
-            <Plus className="inline h-3.5 w-3.5 mr-1" />
-            {assignment.type === "REGISTER_ADDRESSES"
-              ? "Assign Zone Block"
-              : "Delegate to Collector"}
-          </button>
-          <button
-            type="button"
-            onClick={handleMerge}
-            disabled={!canMerge || merging}
-            className="h-[39px] px-4 rounded-lg border border-line bg-white text-[12px] font-semibold cursor-pointer disabled:opacity-50"
-          >
-            {merging ? "Merging..." : "Merge Approved Work"}
-          </button>
-          <button
-            type="button"
-            onClick={() => setShowSubmitDialog(true)}
-            disabled={!canSubmit || submitting}
-            className="h-[39px] px-5 rounded-lg bg-blue-deep text-[12px] font-semibold text-white cursor-pointer disabled:opacity-50"
-          >
-            Submit to Admin
-          </button>
-          <Link
-            to="/officer/reviews"
-            className="h-[39px] px-4 inline-flex items-center rounded-lg border border-line bg-white text-[12px] font-semibold text-ink-soft"
-          >
-            Review Queue
-          </Link>
+          {!["SUBMITTED", "APPROVED"].includes(assignment.status) &&
+            (assignment.type !== "REGISTER_ADDRESSES" || availableZoneBlocks.length > 0) && (
+              <button
+                type="button"
+                onClick={() => setShowDelegate(true)}
+                className="h-[39px] px-4 rounded-lg bg-blue-deep text-[12px] font-semibold text-white cursor-pointer"
+              >
+                <Plus className="inline h-3.5 w-3.5 mr-1" />
+                {assignment.type === "REGISTER_ADDRESSES"
+                  ? "Assign Zone Block"
+                  : "Delegate to Collector"}
+              </button>
+            )}
+          {canSubmit && (
+            <button
+              type="button"
+              onClick={() => setShowSubmitDialog(true)}
+              disabled={submitting}
+              className="h-[39px] px-5 rounded-lg bg-blue-deep text-[12px] font-semibold text-white cursor-pointer disabled:opacity-50"
+            >
+              Submit to Admin
+            </button>
+          )}
         </div>
 
         {showDelegate && (

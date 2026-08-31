@@ -365,14 +365,51 @@ export const AddressService = {
     });
   },
 
-  getAddresses: async ({ districtId, zoneId, zoneBlockId, search } = {}) => {
+  /**
+   * Get addresses with optional pagination, filtering, and search
+   * @param {Object} params
+   * @param {number} [params.page=1] - Page number
+   * @param {number} [params.limit=10] - Items per page
+   * @param {string} [params.districtId] - Filter by district
+   * @param {string} [params.zoneId] - Filter by zone
+   * @param {string} [params.zoneBlockId] - Filter by zone block
+   * @param {string} [params.search] - Search by code, street, description, etc.
+   * @returns {Promise<{data: Array, pagination: Object}>}
+   */
+  getAddresses: async ({
+    page = 1,
+    limit = 10,
+    districtId,
+    zoneId,
+    zoneBlockId,
+    search,
+  } = {}) => {
+    // Robust parsing
+    let parsedPage = parseInt(page, 10);
+    let parsedLimit = parseInt(limit, 10);
+
+    if (isNaN(parsedPage) || parsedPage < 1) {
+      parsedPage = 1;
+    }
+    if (isNaN(parsedLimit) || parsedLimit < 1) {
+      parsedLimit = 10;
+    }
+
+    if (parsedLimit > 100) {
+      parsedLimit = 100;
+    }
+
+    const skip = (parsedPage - 1) * parsedLimit;
+    const take = parsedLimit;
+
+    // Build filter
     const where = {};
 
     if (districtId) where.districtId = districtId;
     if (zoneId) where.zoneId = zoneId;
     if (zoneBlockId) where.zoneBlockId = zoneBlockId;
 
-    if (search?.trim()) {
+    if (search && typeof search === "string" && search.trim()) {
       const term = search.trim();
       where.OR = [
         { addressCode: { contains: term, mode: "insensitive" } },
@@ -384,13 +421,27 @@ export const AddressService = {
       ];
     }
 
+    // Get total count
+    const total = await prisma.address.count({ where });
+
+    // Get paginated data
     const addresses = await prisma.address.findMany({
       where,
       select: addressSelect,
       orderBy: { createdAt: "desc" },
+      skip,
+      take,
     });
 
-    return addresses.map(serializeAddress);
+    return {
+      data: addresses,
+      pagination: {
+        total,
+        page: parsedPage,
+        limit: parsedLimit,
+        totalPages: Math.ceil(total / parsedLimit),
+      },
+    };
   },
 
   getAddressById: async (id) => {

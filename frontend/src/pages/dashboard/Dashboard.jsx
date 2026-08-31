@@ -47,6 +47,8 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
+    // The loader synchronizes this dashboard with the summary API.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchSummary();
   }, []);
 
@@ -170,6 +172,9 @@ export default function Dashboard() {
                     <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
                       Status
                     </th>
+                    <th className="px-5 py-4 text-right text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
 
@@ -178,12 +183,7 @@ export default function Dashboard() {
                     recentAddresses.map((address) => (
                       <tr
                         key={address.id}
-                        onClick={() =>
-                          navigate(
-                            `${ basePath } /addresses/view / ${ address.id } `
-                          )
-                        }
-                        className="border-b border-line last:border-b-0 hover:bg-[#FBFCFE] transition-colors cursor-pointer"
+                        className="border-b border-line last:border-b-0 hover:bg-[#FBFCFE] transition-colors"
                       >
                         <td className="px-5 py-4">
                           <span className="inline-flex items-center rounded-md bg-bg px-2.5 py-1 text-[11px] font-semibold text-blue-deep font-mono">
@@ -206,12 +206,21 @@ export default function Dashboard() {
                         <td className="px-5 py-4">
                           <StatusBadge status={address.status} />
                         </td>
+                        <td className="px-5 py-4 text-right">
+                          <button
+                            type="button"
+                            onClick={() => navigate(`${basePath}/addresses/view/${address.id}`)}
+                            className="h-[32px] rounded-md border border-line bg-white px-3 text-[11px] font-semibold text-ink hover:bg-bg cursor-pointer"
+                          >
+                            View
+                          </button>
+                        </td>
                       </tr>
                     ))
                   ) : (
                     <tr>
                       <td
-                        colSpan={5}
+                        colSpan={6}
                         className="px-5 py-12 text-center"
                       >
                         <p className="text-[13px] font-medium text-ink">

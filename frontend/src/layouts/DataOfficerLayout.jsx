@@ -2,11 +2,18 @@ import { useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import AppTopBar, { navLinkClass } from "@/components/layout/AppTopBar";
-import { LayoutGrid, LogOut, PanelLeftClose, PanelLeftOpen, Users, ClipboardCheck } from "lucide-react";
+import {
+  LayoutGrid,
+  LogOut,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Users,
+  ClipboardCheck,
+} from "lucide-react";
 
 const navItems = [
-  { to: "/officer/dashboard", label: "Zones", icon: LayoutGrid },
-  { to: "/officer/reviews", label: "Review Queue", icon: ClipboardCheck },
+  { to: "/officer/dashboard", label: "Dashboard", icon: LayoutGrid },
+  { to: "/officer/workflow", label: "Workflow", icon: ClipboardCheck },
   { to: "/officer/collectors", label: "My Team", icon: Users },
 ];
 

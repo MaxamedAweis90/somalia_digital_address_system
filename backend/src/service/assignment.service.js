@@ -533,6 +533,18 @@ export const AssignmentService = {
   getOfficerReviewQueue: async (officerId) => {
     return prisma.assignment.findMany({
       where: {
+        tier: "PARENT",
+        assignedToId: officerId,
+        status: "SUBMITTED",
+      },
+      include: assignmentInclude,
+      orderBy: { submittedAt: "asc" },
+    });
+  },
+
+  getOfficerCollectorReviewQueue: async (officerId) => {
+    return prisma.assignment.findMany({
+      where: {
         tier: "CHILD",
         status: "SUBMITTED",
         parent: { assignedToId: officerId },
@@ -635,6 +647,17 @@ export const AssignmentService = {
     });
 
     await syncParentStatus(child.parentAssignmentId);
+    const parent = await prisma.assignment.findUnique({
+      where: { id: child.parentAssignmentId },
+      select: { status: true },
+    });
+
+    // Merging is an internal transition. Once the officer approves the final
+    // collector task, prepare the parent for submission automatically.
+    if (parent?.status === "READY_FOR_REVIEW") {
+      await AssignmentService.mergeParentAssignment(child.parentAssignmentId, officerId);
+    }
+
     return updated;
   },
 
