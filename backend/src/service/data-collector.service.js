@@ -146,4 +146,191 @@ export const DataCollectorService = {
       orderBy: { name: "asc" },
     });
   },
+
+  createCollectorAdmin: async ({ name, email, password, supervisorId }) => {
+    if (!supervisorId) {
+      throw new Error("Supervising data officer is required");
+    }
+
+    await assertUserRole(supervisorId, "DATA_OFFICER");
+
+    const validName = validateName(name);
+    const validEmail = validateEmail(email);
+    const validPassword = validatePassword(password);
+
+    const existingUser = await prisma.user.findUnique({
+      where: { email: validEmail },
+    });
+
+    if (existingUser) {
+      throw new Error("An account with this email address already exists");
+    }
+
+    return prisma.user.create({
+      data: {
+        name: validName,
+        email: validEmail,
+        password: await hashPassword(validPassword),
+        role: DATA_COLLECTOR_ROLE,
+        supervisorId,
+      },
+      select: {
+        ...collectorSelect,
+        supervisor: {
+          select: { id: true, name: true, email: true },
+        },
+      },
+    });
+  },
+
+  getCollectorByIdAdmin: async (id) => {
+    if (!id || typeof id !== "string" || !id.trim()) {
+      throw new Error("Collector ID is required");
+    }
+
+    const collector = await prisma.user.findUnique({
+      where: { id: id.trim() },
+      select: {
+        ...collectorSelect,
+        supervisor: {
+          select: { id: true, name: true, email: true },
+        },
+      },
+    });
+
+    if (!collector || collector.role !== DATA_COLLECTOR_ROLE) {
+      throw new Error("Data collector not found");
+    }
+
+    return collector;
+  },
+
+  updateCollectorAdmin: async (id, { name, email, password, supervisorId }) => {
+    if (!id || typeof id !== "string" || !id.trim()) {
+      throw new Error("Collector ID is required");
+    }
+
+    const cleanId = id.trim();
+    const existingCollector = await prisma.user.findUnique({
+      where: { id: cleanId },
+    });
+
+    if (!existingCollector || existingCollector.role !== DATA_COLLECTOR_ROLE) {
+      throw new Error("Data collector not found");
+    }
+
+    const data = {};
+
+    if (supervisorId !== undefined) {
+      if (!supervisorId) {
+        throw new Error("Supervising data officer is required");
+      }
+      await assertUserRole(supervisorId, "DATA_OFFICER");
+      data.supervisorId = supervisorId;
+    }
+
+    if (name !== undefined) {
+      data.name = validateName(name);
+    }
+
+    if (email !== undefined) {
+      const validEmail = validateEmail(email);
+      const existingUser = await prisma.user.findUnique({
+        where: { email: validEmail },
+      });
+
+      if (existingUser && existingUser.id !== cleanId) {
+        throw new Error("An account with this email address already exists");
+      }
+
+      data.email = validEmail;
+    }
+
+    if (password !== undefined && password !== null && password !== "") {
+      data.password = await hashPassword(validatePassword(password));
+    }
+
+    if (!Object.keys(data).length) {
+      throw new Error("Provide at least one field to update: name, email, password, or supervisorId");
+    }
+
+    return prisma.user.update({
+      where: { id: cleanId },
+      data,
+      select: {
+        ...collectorSelect,
+        supervisor: {
+          select: { id: true, name: true, email: true },
+        },
+      },
+    });
+  },
+
+  deleteCollectorAdmin: async (id) => {
+    if (!id || typeof id !== "string" || !id.trim()) {
+      throw new Error("Collector ID is required");
+    }
+
+    const cleanId = id.trim();
+    const collector = await prisma.user.findUnique({
+      where: { id: cleanId },
+    });
+
+    if (!collector || collector.role !== DATA_COLLECTOR_ROLE) {
+      throw new Error("Data collector not found");
+    }
+
+    let activeAssignmentsCount = 0;
+    try {
+      activeAssignmentsCount = await prisma.assignment.count({
+        where: {
+          assignedToId: cleanId,
+          status: { notIn: ["APPROVED", "REJECTED"] },
+        },
+      });
+    } catch {
+      activeAssignmentsCount = 0;
+    }
+
+    if (activeAssignmentsCount > 0) {
+      throw new Error("Cannot delete data collector with active assignments");
+    }
+
+    await prisma.user.delete({ where: { id: cleanId } });
+
+    return { id: cleanId };
+  },
+
+  regeneratePasswordAdmin: async (id) => {
+    if (!id || typeof id !== "string" || !id.trim()) {
+      throw new Error("Collector ID is required");
+    }
+
+    const cleanId = id.trim();
+    const collector = await prisma.user.findUnique({
+      where: { id: cleanId },
+      select: {
+        ...collectorSelect,
+        supervisor: {
+          select: { id: true, name: true, email: true },
+        },
+      },
+    });
+
+    if (!collector || collector.role !== DATA_COLLECTOR_ROLE) {
+      throw new Error("Data collector not found");
+    }
+
+    const temporaryPassword = generateSecurePassword(12);
+
+    await prisma.user.update({
+      where: { id: cleanId },
+      data: {
+        password: await hashPassword(temporaryPassword),
+      },
+    });
+
+    return { collector, temporaryPassword };
+  },
 };
+
