@@ -10,8 +10,6 @@ import Breadcrumb from "@/components/ui/Breadcrumb";
 import PageHeader from "@/components/ui/PageHeader";
 
 import { getDashboardSummary } from "@/api/dashboardApi";
-import { useAuth } from "@/context/AuthContext";
-import { ROLES } from "@/constants/roles";
 
 function formatCount(value) {
   return Number(value || 0).toLocaleString();
@@ -19,8 +17,6 @@ function formatCount(value) {
 
 export default function Dashboard() {
   const navigate = useNavigate();
-
-  const { user } = useAuth();
 
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);

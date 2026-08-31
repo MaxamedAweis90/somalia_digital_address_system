@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { getReviewQueue } from "@/api/officerApi";
-import AssignmentStatusBadge, {
+import {
   AssignmentTypeBadge,
   formatAssignmentLocation,
   getAssignmentDraftCount,

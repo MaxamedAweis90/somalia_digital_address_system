@@ -1,17 +1,11 @@
-import React, { useState } from "react";
-
-import Sidebar from "./Sidebar";
 import TopBar from "./TopBar";
 
 function AppLayout({
-  active = "dashboard",
-  onNavigate = () => {},
   searchPlaceholder,
   onSearch,
   user,
   children,
 }) {
-  const [collapsed, setCollapsed] = useState(false);
 
   return (
     <div className="flex h-screen w-full bg-slate-50 font-sans text-slate-900">

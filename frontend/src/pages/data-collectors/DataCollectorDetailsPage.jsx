@@ -33,7 +33,7 @@ export default function DataCollectorDetailsPage() {
         const res = await getDataCollectorById(id);
         const dataObj = res.data?.data || res.data;
         setCollector(dataObj);
-      } catch (err) {
+      } catch {
         toast.error("Failed to load collector details.");
         navigate("/admin/data-collectors");
       } finally {

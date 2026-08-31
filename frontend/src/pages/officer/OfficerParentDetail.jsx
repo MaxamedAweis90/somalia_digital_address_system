@@ -72,7 +72,7 @@ export default function OfficerParentDetail() {
     load();
   }, [id]);
 
-  const children = assignment?.children || [];
+  const children = useMemo(() => assignment?.children || [], [assignment?.children]);
   const approvedCount = children.filter((c) => c.status === "APPROVED").length;
   const delegatedBlockIds = useMemo(
     () => new Set(children.map((child) => child.zoneBlockId).filter(Boolean)),
