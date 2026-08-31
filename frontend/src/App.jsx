@@ -1,23 +1,19 @@
-import React from 'react'
-import AnnouncementBar from './Frontdoor/AnnouncementBar'
-import Header from './Frontdoor/Header'
-import Hero from './Frontdoor/Hero'
-import Features from './Frontdoor/Features'
-import Coverage from './Frontdoor/Coverage'
-import FinalCTA from './Frontdoor/FinalCTA'
-import Footer from './Frontdoor/Footer'
-import './Frontdoor/frontdoor.css'
+import AppRoutes from "@/routes/AppRoutes";
+import { ToastContainer, toast } from 'react-toastify';
 
 export default function App() {
+  const notify = () => toast("Wow so easy!");
+
+  notify();
+
   return (
-    <div className="min-h-screen">
-      <AnnouncementBar />
-      <Header />
-      <Hero />
-      <Features />
-      <Coverage />
-      <FinalCTA />
-      <Footer />
+    <div>
+      <AppRoutes />
+      <ToastContainer />
+
+
     </div>
+
+
   )
 }

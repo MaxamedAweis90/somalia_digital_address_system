@@ -1,0 +1,28 @@
+* [33mc4bff75[m[33m ([m[1;32mdev[m[33m)[m feat: ready api zone and address
+[31m|[m * [33mda26b02[m[33m ([m[1;31morigin/feature/implemented_the_zone_leaflet[m[33m)[m Added the zone leaflet and user able to add shapes
+[31m|[m [32m|[m * [33m71b2ff5[m[33m ([m[1;31morigin/feat/regions-crud-and-somali-validation[m[33m)[m feat(regions): implement Regions CRUD with official 18 Somali regions validation and layout fix
+[31m|[m [32m|[m[32m/[m  
+[31m|[m *   [33m66263fb[m[33m ([m[1;31morigin/dev[m[33m)[m Merge pull request #45 from MaxamedAweis90/feature/add_officer_management
+[31m|[m [34m|[m[35m\[m  
+[31m|[m [34m|[m *   [33m9908dbb[m[33m ([m[1;31morigin/feature/add_officer_management[m[33m)[m Merge branch 'dev' into feature/add_officer_management
+[31m|[m [34m|[m [36m|[m[34m\[m  
+[31m|[m [34m|[m [36m|[m[34m/[m  
+[31m|[m [34m|[m[34m/[m[36m|[m   
+[31m|[m * [36m|[m   [33m4e546fd[m Merge pull request #44 from MaxamedAweis90/feat/regions-crud-and-validation
+[31m|[m [1;32m|[m[1;33m\[m [36m\[m  
+[31m|[m [1;32m|[m * [36m|[m [33maf21875[m[33m ([m[1;31morigin/feat/regions-crud-and-validation[m[33m)[m feat: implement Region CRUD with 18 official Somali regions validation and seeding
+[31m|[m [1;32m|[m * [36m|[m [33m5699f4a[m feat: implement Region CRUD with 18 official Somali regions validation and seeding
+[31m|[m * [1;33m|[m [36m|[m [33m1b204c9[m Merge pull request #41 from MaxamedAweis90/fix/udpate-layout-inconsistant-theme
+[31m|[m[31m/[m[1;33m|[m [1;33m|[m [36m|[m 
+[31m|[m [1;33m|[m[1;33m/[m [36m/[m  
+[31m|[m * [36m/[m [33m697c728[m[33m ([m[1;31morigin/fix/udpate-layout-inconsistant-theme[m[33m)[m fix/ update the the system roles to use same theme colors
+[31m|[m[31m/[m [36m/[m  
+[31m|[m * [33me0aef48[m Added the data officer API and its management of UI
+[31m|[m[31m/[m  
+*   [33m1aedb46[m Merge pull request #40 from MaxamedAweis90/fix/rbac-data-officer-permissions
+[1;36m|[m[31m\[m  
+[1;36m|[m * [33m39bea44[m[33m ([m[1;31morigin/fix/rbac-data-officer-permissions[m[33m)[m fix(rbac): configure granular method-level authorization for Data Officers and Super Admins
+* [31m|[m [33m5b3237e[m Merge pull request #38 from MaxamedAweis90/feat/integrate-districts-neighborhoods-api
+[32m|[m[31m\[m[31m|[m 
+[32m|[m * [33ma1ff657[m[33m ([m[1;31morigin/feat/integrate-districts-neighborhoods-api[m[33m)[m feat(frontend): integrate districts, regions, and neighborhoods APIs with full CRUD support
+[32m|[m[32m/[m  

@@ -1,0 +1,205 @@
+import { Navigate, Route, Routes } from "react-router-dom";
+import { ROLES } from "@/constants/roles";
+import RoleRoute from "./RoleRoute";
+import GuestRoute from "./GuestRoute";
+import SysAdminLayout from "@/layouts/SysAdminLayout";
+import DataOfficerLayout from "@/layouts/DataOfficerLayout";
+import OfficerDashboard from "@/pages/dashboard/OfficerDashboard";
+import OfficerZones from "@/pages/officer/OfficerZones";
+import OfficerWorkflow from "@/pages/officer/OfficerWorkflow";
+import DataCollectorLayout from "@/layouts/DataCollectorLayout";
+import Login from "@/pages/auth/Login";
+import Dashboard from "@/pages/dashboard/Dashboard";
+import OfficerParentDetail from "@/pages/officer/OfficerParentDetail";
+import CollectorDashboard from "@/pages/dashboard/CollectorDashboard";
+import CollectorAssignments from "@/pages/collector/CollectorAssignments";
+import OfficerReviewQueue from "@/pages/officer/OfficerReviewQueue";
+import OfficerCollectorReviewQueue from "@/pages/officer/OfficerCollectorReviewQueue";
+import OfficerCollectors from "@/pages/officer/OfficerCollectors";
+import PlaceholderPage from "@/pages/admin/PlaceholderPage";
+
+// Region, District, Zone & Zone Block pages
+import Regions from "@/pages/regions/Regions";
+import AddRegion from "@/pages/regions/AddRegion";
+import EditRegion from "@/pages/regions/EditRegion";
+import ViewRegion from "@/pages/regions/ViewRegion";
+import Districts from "@/pages/districts/Districts";
+import AddDistrict from "@/pages/districts/AddDistrict";
+import EditDistrict from "@/pages/districts/EditDistrict";
+import Zones from "@/pages/zones/Zones";
+import AddZone from "@/pages/zones/AddZone";
+import ViewZone from "@/pages/zones/ViewZone";
+import EditZone from "@/pages/zones/EditZone";
+import ZoneBlocks from "@/pages/zone-blocks/ZoneBlocks";
+import AddZoneBlock from "@/pages/zone-blocks/AddZoneBlock";
+import ViewZoneBlock from "@/pages/zone-blocks/ViewZoneBlock";
+import EditZoneBlock from "@/pages/zone-blocks/EditZoneBlock";
+import Addresses from "@/pages/addresses/Addresses";
+import AddAddress from "@/pages/addresses/AddAddress";
+import EditAddress from "@/pages/addresses/EditAddress";
+import ViewAddress from "@/pages/addresses/ViewAddress";
+import DataOfficers from "@/pages/data-officers/DataOfficers";
+import AddDataOfficer from "@/pages/data-officers/AddDataOfficer";
+import EditDataOfficer from "@/pages/data-officers/EditDataOfficer";
+import DataCollectorsPage from "@/pages/data-collectors/DataCollectorsPage";
+import CreateDataCollectorPage from "@/pages/data-collectors/CreateDataCollectorPage";
+import EditDataCollectorPage from "@/pages/data-collectors/EditDataCollectorPage";
+import DataCollectorDetailsPage from "@/pages/data-collectors/DataCollectorDetailsPage";
+import Settings from "@/pages/settings/Settings";
+import Assignments from "@/pages/assignments/Assignments";
+import AddAssignment from "@/pages/assignments/AddAssignment";
+import AssignmentDetail from "@/pages/assignments/AssignmentDetail";
+import AuditLogsPage from "@/pages/admin/AuditLogsPage";
+
+export default function AppRoutes() {
+  return (
+    <Routes>
+      {/* Public routes */}
+      <Route path="/" element={<Navigate to="/login" replace />} />
+
+      <Route
+        path="/login"
+        element={
+          <GuestRoute>
+            <Login />
+          </GuestRoute>
+        }
+      />
+
+      {/* System Admin routes */}
+      <Route
+        path="/admin"
+        element={
+          <RoleRoute allowedRoles={[ROLES.SYS_ADMIN]}>
+            <SysAdminLayout />
+          </RoleRoute>
+        }
+      >
+        <Route index element={<Navigate to="dashboard" replace />} />
+        <Route path="dashboard" element={<Dashboard />} />
+
+        {/* Region routes (Full CRUD) */}
+        <Route path="regions" element={<Regions />} />
+        <Route path="regions/add" element={<AddRegion />} />
+        <Route path="regions/view/:id" element={<ViewRegion />} />
+        <Route path="regions/edit/:id" element={<EditRegion />} />
+
+        {/* District & Neighborhood routes (Full CRUD) */}
+        <Route path="districts" element={<Districts />} />
+        <Route path="neighborhoods" element={<Navigate to="/admin/districts" replace />} />
+        <Route path="districts/add" element={<AddDistrict />} />
+        <Route path="districts/edit/:id" element={<EditDistrict />} />
+        <Route path="districts/:id" element={<EditDistrict />} />
+
+        {/* Zone routes */}
+        <Route path="zones" element={<Zones />} />
+        <Route path="zones/add" element={<AddZone />} />
+        <Route path="zones/view/:id" element={<ViewZone />} />
+        <Route path="zones/edit/:id" element={<EditZone />} />
+
+        {/* Zone block routes */}
+        <Route path="zone-blocks" element={<ZoneBlocks />} />
+        <Route path="zone-blocks/add" element={<AddZoneBlock />} />
+        <Route path="zone-blocks/view/:id" element={<ViewZoneBlock />} />
+        <Route path="zone-blocks/edit/:id" element={<EditZoneBlock />} />
+
+        {/* Address routes */}
+        <Route path="addresses" element={<Addresses />} />
+        <Route path="addresses/add" element={<AddAddress />} />
+        <Route path="addresses/view/:id" element={<ViewAddress />} />
+        <Route path="addresses/edit/:id" element={<EditAddress />} />
+
+        {/* Other routes */}
+        <Route
+          path="search"
+          element={
+            <PlaceholderPage
+              title="Address Lookup & Search"
+              description="Query and inspect registered digital addresses and geographic coordinates."
+            />
+          }
+        />
+        <Route path="data-officers" element={<DataOfficers />} />
+        <Route path="data-officers/add" element={<AddDataOfficer />} />
+        <Route path="data-officers/edit/:id" element={<EditDataOfficer />} />
+        <Route path="data-collectors" element={<DataCollectorsPage />} />
+        <Route
+          path="data-collectors/create"
+          element={<CreateDataCollectorPage />}
+        />
+        <Route
+          path="data-collectors/add"
+          element={<CreateDataCollectorPage />}
+        />
+        <Route
+          path="data-collectors/:id"
+          element={<DataCollectorDetailsPage />}
+        />
+        <Route
+          path="data-collectors/:id/edit"
+          element={<EditDataCollectorPage />}
+        />
+        <Route
+          path="data-collectors/edit/:id"
+          element={<EditDataCollectorPage />}
+        />
+        <Route path="assignments" element={<Assignments />} />
+        <Route path="assignments/add" element={<AddAssignment />} />
+        <Route path="assignments/:id" element={<AssignmentDetail />} />
+        <Route path="audit-logs" element={<AuditLogsPage />} />
+        <Route path="settings" element={<Settings />} />
+      </Route>
+
+      {/* Data Officer routes */}
+      <Route
+        path="/officer"
+        element={
+          <RoleRoute allowedRoles={[ROLES.DATA_OFFICER]}>
+            <DataOfficerLayout />
+          </RoleRoute>
+        }
+      >
+        <Route index element={<Navigate to="dashboard" replace />} />
+        <Route path="dashboard" element={<OfficerDashboard />} />
+        <Route path="workflow" element={<OfficerWorkflow />} />
+        <Route path="zones" element={<OfficerZones />} />
+        <Route path="assignments/:id" element={<OfficerParentDetail />} />
+        <Route path="children/:id" element={<AssignmentDetail />} />
+        <Route path="reviews" element={<OfficerReviewQueue />} />
+        <Route path="collector-reviews" element={<OfficerCollectorReviewQueue />} />
+        <Route path="collectors" element={<OfficerCollectors />} />
+      </Route>
+
+      <Route
+        path="/collector"
+        element={
+          <RoleRoute allowedRoles={[ROLES.DATA_COLLECTOR]}>
+            <DataCollectorLayout />
+          </RoleRoute>
+        }
+      >
+        <Route index element={<Navigate to="dashboard" replace />} />
+        <Route path="dashboard" element={<CollectorDashboard />} />
+        <Route path="assignments" element={<CollectorAssignments />} />
+        <Route
+          path="assignments/in-progress"
+          element={<CollectorAssignments view="inProgress" />}
+        />
+        <Route
+          path="assignments/submitted"
+          element={<CollectorAssignments view="submitted" />}
+        />
+        <Route
+          path="assignments/completed"
+          element={<CollectorAssignments view="completed" />}
+        />
+        <Route path="assignments/:id" element={<AssignmentDetail />} />
+      </Route>
+
+      {/* Legacy redirect */}
+      <Route path="/dashboard" element={<Navigate to="/login" replace />} />
+
+      <Route path="*" element={<Navigate to="/login" replace />} />
+    </Routes>
+  );
+}

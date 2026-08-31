@@ -1,66 +1,197 @@
-datasource db {
-  provider = "postgresql"
-  
-}
-
 generator client {
   provider = "prisma-client-js"
 }
 
-model User {
-  id            String    @id @default(cuid())
-  name          String
-  email         String    @unique
-  emailVerified Boolean   @default(false)
-  image         String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  sessions      Session[]
-  accounts      Account[]
+datasource db {
+  provider = "postgresql"
+}
 
+model User {
+  id                         String       @id @default(cuid())
+  name                       String
+  email                      String       @unique
+  emailVerified              Boolean      @default(false)
+  image                      String?
+  createdAt                  DateTime     @default(now())
+  updatedAt                  DateTime     @updatedAt
+  password                   String
+  role                       UserRole     @default(DATA_OFFICER)
+  supervisorId               String?      @map("supervisor_id")
+  assignmentsCreated         Assignment[] @relation("AssignmentCreator")
+  assignmentsAssigned        Assignment[] @relation("AssignmentAssignee")
+  assignmentsOfficerReviewed Assignment[] @relation("AssignmentOfficerReviewer")
+  assignmentsReviewed        Assignment[] @relation("AssignmentReviewer")
+  auditLogs                  AuditLog[]
+  supervisor                 User?        @relation("UserSupervision", fields: [supervisorId], references: [id])
+  supervisees                User[]       @relation("UserSupervision")
+
+  @@index([supervisorId], map: "user_supervisor_index")
   @@map("user")
 }
 
-model Session {
-  id        String   @id @default(cuid())
-  userId    String
-  token     String   @unique
-  expiresAt DateTime
-  ipAddress String?
-  userAgent String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+model District {
+  id        String    @id @default(cuid())
+  name      String
+  code      String    @unique
+  status    Status    @default(ACTIVE)
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  addresses Address[]
+  zones     Zone[]
 
-  @@map("session")
+  @@index([code], map: "district_code_index")
+  @@map("districts")
 }
 
-model Account {
-  id                    String    @id @default(cuid())
-  userId                String
-  accountId             String
-  providerId            String
-  accessToken           String?
-  refreshToken          String?
-  idToken               String?
-  accessTokenExpiresAt  DateTime?
-  refreshTokenExpiresAt DateTime?
-  scope                 String?
-  password              String?
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
-  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+model Zone {
+  id          String                   @id(map: "neighborhoods_pkey") @default(cuid())
+  districtId  String                   @map("district_id")
+  name        String
+  code        String                   @unique(map: "neighborhoods_code_key")
+  status      Status                   @default(ACTIVE)
+  createdAt   DateTime                 @default(now()) @map("created_at")
+  updatedAt   DateTime                 @updatedAt @map("updated_at")
+  geometry    Unsupported("geometry")?
+  addresses   Address[]
+  assignments Assignment[]
+  zoneBlocks  ZoneBlock[]
+  district    District                 @relation(fields: [districtId], references: [id], map: "neighborhoods_district_id_fkey")
 
-  @@map("account")
+  @@index([code, districtId], map: "zone_code_and_district_index")
+  @@map("zones")
 }
 
-model Verification {
-  id         String   @id @default(cuid())
-  identifier String
-  value      String
-  expiresAt  DateTime
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+model ZoneBlock {
+  id          String                  @id(map: "zones_pkey") @default(cuid())
+  zoneId      String                  @map("zone_id")
+  name        String
+  code        String                  @unique(map: "zones_code_key")
+  status      Status                  @default(ACTIVE)
+  geometry    Unsupported("geometry")
+  createdAt   DateTime                @default(now()) @map("created_at")
+  updatedAt   DateTime                @updatedAt @map("updated_at")
+  addresses   Address[]
+  assignments Assignment[]
+  zone        Zone                    @relation(fields: [zoneId], references: [id], map: "zones_neighborhood_id_fkey")
 
-  @@map("verification")
+  @@index([code, zoneId], map: "zone_block_code_and_zone_index")
+  @@map("zone_blocks")
+}
+
+model Address {
+  id          String    @id @default(cuid())
+  addressCode String    @unique @map("address_code")
+  districtId  String    @map("district_id")
+  zoneId      String    @map("zone_id")
+  zoneBlockId String    @map("zone_block_id")
+  houseNumber BigInt    @map("house_number")
+  streetName  String    @map("street_name")
+  description String
+  status      Status    @default(ACTIVE)
+  location    String
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  district    District  @relation(fields: [districtId], references: [id])
+  zone        Zone      @relation(fields: [zoneId], references: [id], map: "addresses_neighborhood_id_fkey")
+  zoneBlock   ZoneBlock @relation(fields: [zoneBlockId], references: [id], map: "addresses_zone_id_fkey")
+
+  @@index([addressCode, districtId, zoneId, zoneBlockId], map: "address_code_and_location_index")
+  @@map("addresses")
+}
+
+model AuditLog {
+  id         String     @id @default(cuid())
+  userId     String     @map("user_id")
+  action     String
+  actionType ActionType @map("action_type")
+  entityId   String     @map("entity_id")
+  timestamp  DateTime   @default(now())
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("audit_logs")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model spatial_ref_sys {
+  srid      Int     @id
+  auth_name String? @db.VarChar(256)
+  auth_srid Int?
+  srtext    String? @db.VarChar(2048)
+  proj4text String? @db.VarChar(2048)
+}
+
+model Assignment {
+  id                  String           @id @default(cuid())
+  type                AssignmentType   @default(DEFINE_ZONE_BLOCKS)
+  status              AssignmentStatus @default(ASSIGNED)
+  zoneId              String           @map("zone_id")
+  assignedToId        String           @map("assigned_to_id")
+  assignedById        String           @map("assigned_by_id")
+  payload             Json             @default("{\"zoneBlocks\": []}")
+  notes               String?
+  dueAt               DateTime?        @map("due_at")
+  submittedAt         DateTime?        @map("submitted_at")
+  reviewedAt          DateTime?        @map("reviewed_at")
+  reviewedById        String?          @map("reviewed_by_id")
+  rejectionReason     String?          @map("rejection_reason")
+  createdAt           DateTime         @default(now()) @map("created_at")
+  updatedAt           DateTime         @updatedAt @map("updated_at")
+  zoneBlockId         String?          @map("zone_block_id")
+  parentAssignmentId  String?          @map("parent_assignment_id")
+  tier                AssignmentTier   @default(PARENT)
+  scope               Json?
+  mergeOrder          Int?             @map("merge_order")
+  officerReviewedAt   DateTime?        @map("officer_reviewed_at")
+  officerReviewedById String?          @map("officer_reviewed_by_id")
+  assignedBy          User             @relation("AssignmentCreator", fields: [assignedById], references: [id])
+  assignedTo          User             @relation("AssignmentAssignee", fields: [assignedToId], references: [id])
+  zone                Zone             @relation(fields: [zoneId], references: [id], map: "assignments_neighborhood_id_fkey")
+  officerReviewedBy   User?            @relation("AssignmentOfficerReviewer", fields: [officerReviewedById], references: [id])
+  parent              Assignment?      @relation("AssignmentChildren", fields: [parentAssignmentId], references: [id], onDelete: Restrict)
+  children            Assignment[]     @relation("AssignmentChildren")
+  reviewedBy          User?            @relation("AssignmentReviewer", fields: [reviewedById], references: [id])
+  zoneBlock           ZoneBlock?       @relation(fields: [zoneBlockId], references: [id], onDelete: Restrict, map: "assignments_zone_id_fkey")
+
+  @@index([assignedToId, status], map: "assignment_assignee_status_index")
+  @@index([zoneId], map: "assignment_zone_index")
+  @@index([zoneBlockId], map: "assignment_zone_block_index")
+  @@index([parentAssignmentId], map: "assignment_parent_index")
+  @@index([tier, status], map: "assignment_tier_status_index")
+  @@map("assignments")
+}
+
+enum UserRole {
+  SYS_ADMIN
+  DATA_OFFICER
+  DATA_COLLECTOR
+}
+
+enum Status {
+  ACTIVE
+  INACTIVE
+}
+
+enum ActionType {
+  CREATE
+  UPDATE
+  DELETE
+}
+
+enum AssignmentType {
+  DEFINE_ZONE_BLOCKS
+  REGISTER_ADDRESSES
+}
+
+enum AssignmentStatus {
+  ASSIGNED
+  IN_PROGRESS
+  SUBMITTED
+  APPROVED
+  REJECTED
+  READY_FOR_REVIEW
+}
+
+enum AssignmentTier {
+  PARENT
+  CHILD
 }

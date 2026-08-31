@@ -1,0 +1,250 @@
+
+import { useEffect, useMemo, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+
+import StatCard from "@/components/dashboard/StatCard";
+import RecentActivity from "@/components/dashboard/RecentActivity";
+import StatusBadge from "@/components/dashboard/StatusBadge";
+import DashboardSkeleton from "@/components/dashboard/DashboardSkeleton";
+import Breadcrumb from "@/components/ui/Breadcrumb";
+import PageHeader from "@/components/ui/PageHeader";
+
+import { getDashboardSummary } from "@/api/dashboardApi";
+
+function formatCount(value) {
+  return Number(value || 0).toLocaleString();
+}
+
+export default function Dashboard() {
+  const navigate = useNavigate();
+
+  const [summary, setSummary] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  /*
+   * Change this if your routing structure uses
+   * a different admin prefix.
+   */
+  const basePath = "/admin";
+
+  const fetchSummary = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const res = await getDashboardSummary();
+
+      setSummary(res.data.data);
+    } catch (err) {
+      setError(
+        err.response?.data?.message ||
+          "Failed to load dashboard data"
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    // The loader synchronizes this dashboard with the summary API.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchSummary();
+  }, []);
+
+  const stats = useMemo(() => {
+    const counts = summary?.counts || {};
+
+    return [
+      {
+        title: "Total Districts",
+        value: formatCount(counts.districts),
+        to: `${basePath}/districts`,
+      },
+      {
+        title: "Total Zones",
+        value: formatCount(counts.zones),
+        to: `${basePath}/zones`,
+      },
+      {
+        title: "Total Zone Blocks",
+        value: formatCount(counts.zoneBlocks),
+      },
+      {
+        title: "Total Addresses",
+        value: formatCount(counts.addresses),
+        to: `${basePath}/addresses`,
+      },
+    ];
+  }, [summary, basePath]);
+
+  const recentAddresses = summary?.recentAddresses || [];
+  const recentActivity = summary?.recentActivity || [];
+
+  if (loading && !summary) {
+    return (
+      <div className="min-h-full bg-bg font-sans">
+        <div className="px-4 sm:px-6 lg:px-5 pt-5 pb-10">
+          <DashboardSkeleton />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-full bg-bg font-sans">
+      <div className="px-4 sm:px-6 lg:px-5 pt-5 pb-10 space-y-6">
+        <Breadcrumb items={[{ label: "Dashboard" }]} />
+
+        <PageHeader
+          title="Registry Overview"
+          description="Real-time infrastructure metrics and addressing status."
+        />
+
+        {error && (
+          <div className="rounded-lg bg-red-50 border border-red-200 p-4 text-sm text-red-700 flex items-center justify-between">
+            <span>{error}</span>
+
+            <button
+              onClick={fetchSummary}
+              className="text-xs font-semibold underline hover:text-red-900 cursor-pointer"
+            >
+              Retry
+            </button>
+          </div>
+        )}
+
+        {/* Statistics */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {stats.map((stat) => (
+            <StatCard
+              key={stat.title}
+              title={stat.title}
+              value={stat.value}
+              to={stat.to}
+            />
+          ))}
+        </div>
+
+        {/* Recent Addresses + Activity */}
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          {/* Recent Addresses */}
+          <div className="w-full bg-white border border-line rounded-xl shadow-card-sm overflow-hidden lg:col-span-2">
+            <div className="px-5 py-4 border-b border-line flex items-center justify-between">
+              <div>
+                <h2 className="text-[16px] font-semibold text-ink">
+                  Recent Addresses
+                </h2>
+
+                <p className="mt-1 text-[12px] text-ink-soft">
+                  Latest registered digital addresses.
+                </p>
+              </div>
+
+              <Link
+                to={`${basePath}/addresses`}
+                className="text-[12px] font-semibold text-blue-deep hover:underline cursor-pointer"
+              >
+                View All →
+              </Link>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="border-b border-line bg-[#FBFCFE]">
+                    <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
+                      DAC
+                    </th>
+
+                    <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
+                      District
+                    </th>
+
+                    <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
+                      Zone
+                    </th>
+
+                    <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
+                      Zone Block
+                    </th>
+
+                    <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
+                      Status
+                    </th>
+                    <th className="px-5 py-4 text-right text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {recentAddresses.length > 0 ? (
+                    recentAddresses.map((address) => (
+                      <tr
+                        key={address.id}
+                        className="border-b border-line last:border-b-0 hover:bg-[#FBFCFE] transition-colors"
+                      >
+                        <td className="px-5 py-4">
+                          <span className="inline-flex items-center rounded-md bg-bg px-2.5 py-1 text-[11px] font-semibold text-blue-deep font-mono">
+                            {address.addressCode}
+                          </span>
+                        </td>
+
+                        <td className="px-5 py-4 text-[12px] text-ink">
+                          {address.districtName || "—"}
+                        </td>
+
+                        <td className="px-5 py-4 text-[12px] text-ink">
+                          {address.zoneName || "—"}
+                        </td>
+
+                        <td className="px-5 py-4 text-[12px] text-ink">
+                          {address.zoneBlockName || "—"}
+                        </td>
+
+                        <td className="px-5 py-4">
+                          <StatusBadge status={address.status} />
+                        </td>
+                        <td className="px-5 py-4 text-right">
+                          <button
+                            type="button"
+                            onClick={() => navigate(`${basePath}/addresses/view/${address.id}`)}
+                            className="h-[32px] rounded-md border border-line bg-white px-3 text-[11px] font-semibold text-ink hover:bg-bg cursor-pointer"
+                          >
+                            View
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td
+                        colSpan={6}
+                        className="px-5 py-12 text-center"
+                      >
+                        <p className="text-[13px] font-medium text-ink">
+                          No addresses yet
+                        </p>
+
+                        <p className="mt-1 text-[12px] text-ink-soft">
+                          Register your first address to see it here.
+                        </p>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Recent Activity */}
+          <RecentActivity
+            activities={recentActivity}
+            loading={loading && !summary}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}

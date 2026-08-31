@@ -1,4 +1,11 @@
 {
+  "scripts": {
+    "dev": "npm --prefix frontend run dev",
+    "build": "npm --prefix frontend run build",
+    "lint": "npm --prefix frontend run lint",
+    "test:e2e": "npm --prefix frontend run test:e2e",
+    "test:e2e:headed": "npm --prefix frontend run test:e2e:headed"
+  },
   "dependencies": {
     "axios": "^1.20.0",
     "react-router-dom": "^7.18.3"
