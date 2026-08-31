@@ -39,6 +39,7 @@ import Settings from "@/pages/settings/Settings";
 import Assignments from "@/pages/assignments/Assignments";
 import AddAssignment from "@/pages/assignments/AddAssignment";
 import AssignmentDetail from "@/pages/assignments/AssignmentDetail";
+import OfficerParentDetail from "@/pages/officer/OfficerParentDetail";
 
 import AnnouncementBar from "@/Frontdoor/AnnouncementBar";
 import Header from "@/Frontdoor/Header";

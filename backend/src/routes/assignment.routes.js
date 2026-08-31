@@ -3,6 +3,7 @@ import { authorize } from "../middleware/auth.midleware.js";
 import {
   approveAssignment,
   createAssignment,
+  createChildAssignment,
   getAssignmentById,
   getAssignments,
   rejectAssignment,
@@ -13,6 +14,12 @@ const AssignmentRouter = Router();
 AssignmentRouter.get("/", authorize("SYS_ADMIN"), getAssignments);
 
 AssignmentRouter.post("/", authorize("SYS_ADMIN"), createAssignment);
+
+AssignmentRouter.post(
+  "/:parentId/children",
+  authorize("DATA_OFFICER"),
+  createChildAssignment
+);
 
 AssignmentRouter.get(
   "/:id",

@@ -310,7 +310,7 @@ export const AssignmentService = {
       initialPayload = DEFAULT_PAYLOAD.REGISTER_ADDRESSES;
     }
 
-    return prisma.assignment.create({
+    const assignment = await prisma.assignments.create({
       data: {
         type: assignmentType,
         tier: "PARENT",
@@ -318,11 +318,74 @@ export const AssignmentService = {
         zoneBlockId: resolvedZoneBlockId,
         assignedToId,
         assignedById: actorId,
+        expectedCollectorCount: count,
         notes: notes?.trim() || null,
         dueAt: dueAt ? new Date(dueAt) : null,
         payload: initialPayload,
       },
       include: assignmentInclude,
+    });
+
+    return formatAssignment(assignment);
+  },
+
+  createChildAssignment: async (parentId, { assignedToId, notes, dueAt }, actorId) => {
+    if (!parentId) {
+      throw new Error("Parent assignment ID is required");
+    }
+    if (!assignedToId) {
+      throw new Error("Data collector is required");
+    }
+
+    await assertOfficer(assignedToId);
+
+    return prisma.$transaction(async (tx) => {
+      const parent = await tx.assignments.findUnique({
+        where: { id: parentId },
+        include: {
+          children: true,
+        },
+      });
+
+      if (!parent) {
+        throw new Error("Parent assignment not found");
+      }
+
+      if (parent.assignedToId !== actorId) {
+        throw new Error("You do not have permission to delegate tasks for this assignment");
+      }
+
+      const limit = parent.expectedCollectorCount ?? 1;
+      const currentChildren = parent.children || [];
+
+      if (currentChildren.length >= limit) {
+        throw new Error(
+          `This assignment already has the maximum number of collector tasks (${currentChildren.length}/${limit}).`
+        );
+      }
+
+      const duplicateCollector = currentChildren.some(
+        (child) => child.assignedToId === assignedToId
+      );
+      if (duplicateCollector) {
+        throw new Error("This collector is already assigned to a task under this assignment.");
+      }
+
+      const child = await tx.assignments.create({
+        data: {
+          parentId,
+          type: parent.type,
+          neighborhoodId: parent.neighborhoodId,
+          assignedToId,
+          assignedById: actorId,
+          notes: notes?.trim() || null,
+          dueAt: dueAt ? new Date(dueAt) : null,
+          payload: { zones: [] },
+        },
+        include: assignmentInclude,
+      });
+
+      return formatAssignment(child);
     });
   },
 
@@ -395,6 +458,7 @@ export const AssignmentService = {
       include: assignmentInclude,
       orderBy: { createdAt: "desc" },
     });
+    return list.map(formatAssignment);
   },
 
   getOfficerParentAssignments: async (officerId) => {
@@ -403,6 +467,7 @@ export const AssignmentService = {
       include: assignmentInclude,
       orderBy: { createdAt: "desc" },
     });
+    return list.map(formatAssignment);
   },
 
   getCollectorAssignments: async (collectorId) => {
@@ -452,7 +517,7 @@ export const AssignmentService = {
       validateDraftZoneBlocks(normalized.zoneBlocks, { requireGeometry: false });
     }
 
-    return prisma.assignment.update({
+    const updated = await prisma.assignments.update({
       where: { id },
       data: {
         payload: normalized,
@@ -461,6 +526,8 @@ export const AssignmentService = {
       },
       include: assignmentInclude,
     });
+
+    return formatAssignment(updated);
   },
 
   submitChildAssignment: async (id, collectorId) => {
@@ -614,6 +681,8 @@ export const AssignmentService = {
       },
       include: assignmentInclude,
     });
+
+    return formatAssignment(updated);
   },
 
   approveAssignment: async (id, reviewerId) => {
@@ -664,7 +733,7 @@ export const AssignmentService = {
       );
     }
 
-    const updated = await prisma.assignment.update({
+    const updated = await prisma.assignments.update({
       where: { id },
       data: {
         status: "APPROVED",
@@ -688,7 +757,7 @@ export const AssignmentService = {
     }
     if (!rejectionReason?.trim()) throw new Error("Rejection reason is required");
 
-    return prisma.assignment.update({
+    const updated = await prisma.assignments.update({
       where: { id },
       data: {
         status: "REJECTED",
@@ -698,5 +767,7 @@ export const AssignmentService = {
       },
       include: assignmentInclude,
     });
+
+    return formatAssignment(updated);
   },
 };
