@@ -1,6 +1,10 @@
 import api from "./axios";
 
-export const getRegions = () => api.get("/admin/regions");
+/**
+ * Fetch regions with optional pagination and filtering
+ * @param {Object} params - Query parameters {page, limit, search}
+ */
+export const getRegions = (params) => api.get("/admin/regions", { params });
 
 export const getRegionById = (id) => api.get(`/admin/regions/${id}`);
 

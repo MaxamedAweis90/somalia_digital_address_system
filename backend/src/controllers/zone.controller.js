@@ -29,11 +29,21 @@ export const createZone = async (req, res) => {
 
 export const getZones = async (req, res) => {
   try {
-    const zones = await ZoneService.getZones(req.query.districtId);
+    const { page, limit, search, districtId } = req.query;
+
+    const parsedPage = page ? parseInt(page, 10) : 1;
+    const parsedLimit = limit ? parseInt(limit, 10) : 10;
+
+    const result = await ZoneService.getZones({
+      page: isNaN(parsedPage) || parsedPage < 1 ? 1 : parsedPage,
+      limit: isNaN(parsedLimit) || parsedLimit < 1 ? 10 : parsedLimit,
+      search,
+      districtId,
+    });
 
     return res.status(200).json({
       success: true,
-      data: zones,
+      data: result,
     });
   } catch (error) {
     return res.status(500).json({

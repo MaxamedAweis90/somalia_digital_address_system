@@ -67,12 +67,65 @@ export const DataOfficerService = {
     });
   },
 
-  getDataOfficers: async () => {
-    return prisma.user.findMany({
-      where: { role: DATA_OFFICER_ROLE },
+  /**
+   * Get data officers with optional pagination and search
+   * @param {Object} params
+   * @param {number} [params.page=1] - Page number
+   * @param {number} [params.limit=10] - Items per page
+   * @param {string} [params.search] - Search by name or email
+   * @returns {Promise<{data: Array, pagination: Object}>}
+   */
+  getDataOfficers: async ({ page = 1, limit = 10, search } = {}) => {
+    // Robust parsing
+    let parsedPage = parseInt(page, 10);
+    let parsedLimit = parseInt(limit, 10);
+
+    if (isNaN(parsedPage) || parsedPage < 1) {
+      parsedPage = 1;
+    }
+    if (isNaN(parsedLimit) || parsedLimit < 1) {
+      parsedLimit = 10;
+    }
+
+    if (parsedLimit > 100) {
+      parsedLimit = 100;
+    }
+
+    const skip = (parsedPage - 1) * parsedLimit;
+    const take = parsedLimit;
+
+    // Build filter
+    const where = { role: DATA_OFFICER_ROLE };
+
+    if (search && typeof search === "string" && search.trim()) {
+      const searchPattern = search.trim();
+      where.OR = [
+        { name: { contains: searchPattern, mode: "insensitive" } },
+        { email: { contains: searchPattern, mode: "insensitive" } },
+      ];
+    }
+
+    // Get total
+    const total = await prisma.user.count({ where });
+
+    // Get paginated data
+    const officers = await prisma.user.findMany({
+      where,
       select: dataOfficerSelect,
       orderBy: { name: "asc" },
+      skip,
+      take,
     });
+
+    return {
+      data: officers,
+      pagination: {
+        total,
+        page: parsedPage,
+        limit: parsedLimit,
+        totalPages: Math.ceil(total / parsedLimit),
+      },
+    };
   },
 
   getDataOfficerById: async (id) => {
@@ -107,7 +160,9 @@ export const DataOfficerService = {
     }
 
     if (Object.keys(data).length === 0) {
-      throw new Error("Provide at least one field to update: name, email, or password");
+      throw new Error(
+        "Provide at least one field to update: name, email, or password",
+      );
     }
 
     return prisma.user.update({

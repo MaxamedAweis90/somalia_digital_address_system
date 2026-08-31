@@ -5,6 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import { ROLES } from "@/constants/roles";
 import { Loader2 } from "lucide-react";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import Pagination from "@/components/common/Pagination";
 
 export default function Regions() {
   const navigate = useNavigate();
@@ -12,19 +13,53 @@ export default function Regions() {
   const isAdmin = user?.role === ROLES.SYS_ADMIN;
 
   const [regions, setRegions] = useState([]);
+  const [pagination, setPagination] = useState({
+    total: 0,
+    page: 1,
+    limit: 10,
+    totalPages: 1,
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
+  const [page, setPage] = useState(1);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
+
+  const limit = 10;
+
+  // Handle search debouncing
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+      setPage(1); // Reset to first page on search change
+    }, 450);
+
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
 
   const fetchRegions = async () => {
     try {
       setLoading(true);
       setError(null);
-      const res = await getRegions();
-      setRegions(res.data.data || []);
+      const res = await getRegions({
+        page,
+        limit,
+        search: debouncedSearch || undefined,
+      });
+
+      const responseData = res.data?.data;
+
+      if (responseData?.data && responseData?.pagination) {
+        setRegions(responseData.data);
+        setPagination(responseData.pagination);
+      } else if (Array.isArray(responseData)) {
+        setRegions(responseData);
+      } else {
+        setRegions([]);
+      }
     } catch (err) {
       console.error("Failed to load regions:", err);
       setError(err.response?.data?.message || "Failed to load regions from server");
@@ -35,7 +70,7 @@ export default function Regions() {
 
   useEffect(() => {
     fetchRegions();
-  }, []);
+  }, [page, debouncedSearch]);
 
   const handleDelete = (region) => {
     setDeleteTarget(region);
@@ -48,8 +83,9 @@ export default function Regions() {
       setDeleting(true);
       setError(null);
       await deleteRegion(deleteTarget.id);
-      setRegions((current) => current.filter((r) => r.id !== deleteTarget.id));
       setDeleteTarget(null);
+      // Refetch to update pagination
+      fetchRegions();
     } catch (err) {
       setError(err.response?.data?.message || "Failed to delete region");
     } finally {
@@ -163,7 +199,7 @@ export default function Regions() {
                   Registered Regions
                 </h2>
                 <p className="mt-1 text-[12px] text-ink-soft">
-                  Total {regions.length} regions in the registry
+                  Total {pagination.total} regions in the registry
                 </p>
               </div>
 
@@ -312,10 +348,9 @@ export default function Regions() {
                               py-1
                               text-[10px]
                               font-semibold
-                              ${
-                                isActive
-                                  ? "bg-green-50 text-green-600 border border-green-100"
-                                  : "bg-gray-100 text-gray-500 border border-gray-200"
+                              ${isActive
+                                ? "bg-green-50 text-green-600 border border-green-100"
+                                : "bg-gray-100 text-gray-500 border border-gray-200"
                               }
                             `}
                           >
@@ -325,10 +360,9 @@ export default function Regions() {
                                 h-1.5
                                 w-1.5
                                 rounded-full
-                                ${
-                                  isActive
-                                    ? "bg-green-500"
-                                    : "bg-gray-400"
+                                ${isActive
+                                  ? "bg-green-500"
+                                  : "bg-gray-400"
                                 }
                               `}
                             />
@@ -430,10 +464,21 @@ export default function Regions() {
           </div>
 
           {/* CARD FOOTER */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-t border-line px-5 py-4">
-            <p className="text-[11px] text-ink-soft">
-              Showing {filteredRegions.length} of {regions.length} regions
+          <div className="px-5 py-4 border-t border-line">
+            <p className="text-[11px] text-ink-soft mb-4">
+              {/* Showing {regions.length > 0 ? (pagination.page - 1) * pagination.limit + 1 : 0}-{Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} regions */}
             </p>
+
+            {pagination.totalPages > 1 && (
+              <Pagination
+                page={pagination.page}
+                totalPages={pagination.totalPages}
+                total={pagination.total}
+                pageSize={pagination.limit}
+                onPageChange={setPage}
+                disabled={loading}
+              />
+            )}
           </div>
         </div>
       </div>

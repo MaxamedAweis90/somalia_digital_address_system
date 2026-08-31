@@ -101,12 +101,63 @@ export const ZoneService = {
     return fetchZoneById(id);
   },
 
-  getZones: async (districtId) => {
-    const whereClause = districtId
-      ? Prisma.sql`WHERE z.district_id = ${districtId}`
-      : Prisma.empty;
+  /**
+   * Get zones with optional pagination and search
+   * @param {Object} params
+   * @param {string} [params.districtId] - Filter by district
+   * @param {number} [params.page=1] - Page number
+   * @param {number} [params.limit=10] - Items per page
+   * @param {string} [params.search] - Search by name or code
+   * @returns {Promise<{data: Array, pagination: Object}>}
+   */
+  getZones: async ({ districtId, page = 1, limit = 10, search } = {}) => {
+    // Robust parsing
+    let parsedPage = parseInt(page, 10);
+    let parsedLimit = parseInt(limit, 10);
 
-    return prisma.$queryRaw`
+    if (isNaN(parsedPage) || parsedPage < 1) {
+      parsedPage = 1;
+    }
+    if (isNaN(parsedLimit) || parsedLimit < 1) {
+      parsedLimit = 10;
+    }
+
+    if (parsedLimit > 100) {
+      parsedLimit = 100;
+    }
+
+    const skip = (parsedPage - 1) * parsedLimit;
+    const take = parsedLimit;
+
+    // Build where clause
+    let whereClause = Prisma.empty;
+    const conditions = [];
+
+    if (districtId) {
+      conditions.push(Prisma.sql`z.district_id = ${districtId}`);
+    }
+
+    if (search && typeof search === "string" && search.trim()) {
+      const searchPattern = `%${search.trim()}%`;
+      conditions.push(
+        Prisma.sql`(z.name ILIKE ${searchPattern} OR z.code ILIKE ${searchPattern})`,
+      );
+    }
+
+    if (conditions.length > 0) {
+      whereClause = Prisma.sql`WHERE ${Prisma.join(conditions, " AND ")}`;
+    }
+
+    // Get total count
+    const countResult = await prisma.$queryRaw`
+      SELECT COUNT(*) as count
+      ${zoneFromSql}
+      ${whereClause}
+    `;
+    const total = Number(countResult[0]?.count || 0);
+
+    // Get paginated data
+    const zones = await prisma.$queryRaw`
       SELECT
         z.id,
         z.district_id AS "districtId",
@@ -132,7 +183,19 @@ export const ZoneService = {
       ${zoneFromSql}
       ${whereClause}
       ORDER BY z.name ASC
+      OFFSET ${skip}
+      LIMIT ${take}
     `;
+
+    return {
+      data: zones,
+      pagination: {
+        total,
+        page: parsedPage,
+        limit: parsedLimit,
+        totalPages: Math.ceil(total / parsedLimit),
+      },
+    };
   },
 
   getZoneById: async (id) => {
@@ -191,7 +254,7 @@ export const ZoneService = {
         updates.push(Prisma.sql`geometry = NULL`);
       } else {
         updates.push(
-          Prisma.sql`geometry = ST_SetSRID(ST_GeomFromGeoJSON(${JSON.stringify(geometry)}), 4326)`
+          Prisma.sql`geometry = ST_SetSRID(ST_GeomFromGeoJSON(${JSON.stringify(geometry)}), 4326)`,
         );
       }
     }
@@ -225,7 +288,7 @@ export const ZoneService = {
 
     if (zone._count.zoneBlocks > 0 || zone._count.addresses > 0) {
       throw new Error(
-        "Cannot delete zone with existing zone blocks or addresses. Remove them first."
+        "Cannot delete zone with existing zone blocks or addresses. Remove them first.",
       );
     }
 

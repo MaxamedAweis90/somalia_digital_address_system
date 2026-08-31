@@ -1,9 +1,6 @@
 import { DataCollectorService } from "../service/data-collector.service.js";
 import { AuditLogService } from "../service/auditLog.service.js";
-import {
-  getErrorMessage,
-  getHttpStatus,
-} from "../utils/prisma-error.utils.js";
+import { getErrorMessage, getHttpStatus } from "../utils/prisma-error.utils.js";
 
 function sendError(res, error) {
   return res.status(getHttpStatus(error)).json({
@@ -35,11 +32,20 @@ export const createDataCollector = async (req, res) => {
 
 export const getDataCollectors = async (req, res) => {
   try {
-    const collectors = await DataCollectorService.getAllCollectors();
+    const { page, limit, search } = req.query;
+
+    const parsedPage = page ? parseInt(page, 10) : 1;
+    const parsedLimit = limit ? parseInt(limit, 10) : 10;
+
+    const result = await DataCollectorService.getAllCollectors({
+      page: isNaN(parsedPage) || parsedPage < 1 ? 1 : parsedPage,
+      limit: isNaN(parsedLimit) || parsedLimit < 1 ? 10 : parsedLimit,
+      search,
+    });
 
     return res.status(200).json({
       success: true,
-      data: collectors,
+      data: result,
     });
   } catch (error) {
     return sendError(res, error);
@@ -49,7 +55,7 @@ export const getDataCollectors = async (req, res) => {
 export const getDataCollectorById = async (req, res) => {
   try {
     const collector = await DataCollectorService.getCollectorByIdAdmin(
-      req.params.id
+      req.params.id,
     );
 
     return res.status(200).json({
@@ -65,7 +71,7 @@ export const updateDataCollector = async (req, res) => {
   try {
     const collector = await DataCollectorService.updateCollectorAdmin(
       req.params.id,
-      req.body
+      req.body,
     );
 
     await AuditLogService.logSafe({
@@ -88,7 +94,7 @@ export const updateDataCollector = async (req, res) => {
 export const deleteDataCollector = async (req, res) => {
   try {
     const result = await DataCollectorService.deleteCollectorAdmin(
-      req.params.id
+      req.params.id,
     );
 
     await AuditLogService.logSafe({
@@ -111,7 +117,7 @@ export const deleteDataCollector = async (req, res) => {
 export const regenerateDataCollectorPassword = async (req, res) => {
   try {
     const result = await DataCollectorService.regeneratePasswordAdmin(
-      req.params.id
+      req.params.id,
     );
 
     await AuditLogService.logSafe({

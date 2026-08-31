@@ -1,7 +1,10 @@
 import api from "./axios";
 
-export const getZones = (districtId) =>
-  api.get("/admin/zones", { params: districtId ? { districtId } : {} });
+/**
+ * Fetch zones with optional pagination and filtering
+ * @param {Object} params - Query parameters {page, limit, search, districtId}
+ */
+export const getZones = (params) => api.get("/admin/zones", { params });
 
 export const getZoneById = (id) => api.get(`/admin/zones/${id}`);
 

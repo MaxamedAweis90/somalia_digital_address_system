@@ -7,28 +7,63 @@ import {
 } from "@/api/dataOfficerApi";
 import RegeneratePasswordModal from "@/components/data-officers/RegeneratePasswordModal";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import Pagination from "@/components/common/Pagination";
 
 export default function DataOfficers() {
   const navigate = useNavigate();
 
   const [officers, setOfficers] = useState([]);
+  const [pagination, setPagination] = useState({
+    total: 0,
+    page: 1,
+    limit: 10,
+    totalPages: 1,
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [page, setPage] = useState(1);
   const [deletingId, setDeletingId] = useState(null);
   const [regenerateTarget, setRegenerateTarget] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
+
+  const limit = 10;
+
+  // Handle search debouncing
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+      setPage(1); // Reset to first page on search change
+    }, 450);
+
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
 
   const fetchOfficers = async () => {
     try {
       setLoading(true);
       setError(null);
-      const res = await getDataOfficers();
-      setOfficers(res.data.data || []);
+      const res = await getDataOfficers({
+        page,
+        limit,
+        search: debouncedSearch || undefined,
+      });
+
+      const responseData = res.data?.data;
+
+      if (responseData?.data && responseData?.pagination) {
+        setOfficers(responseData.data);
+        setPagination(responseData.pagination);
+      } else if (Array.isArray(responseData)) {
+        setOfficers(responseData);
+      } else {
+        setOfficers([]);
+      }
     } catch (err) {
       setError(
         err.response?.data?.message ||
-          "Failed to load data officers. Please try again."
+        "Failed to load data officers. Please try again."
       );
     } finally {
       setLoading(false);
@@ -37,18 +72,7 @@ export default function DataOfficers() {
 
   useEffect(() => {
     fetchOfficers();
-  }, []);
-
-  const filteredOfficers = useMemo(() => {
-    const query = searchTerm.trim().toLowerCase();
-    if (!query) return officers;
-
-    return officers.filter((officer) => {
-      const name = officer.name?.toLowerCase() || "";
-      const email = officer.email?.toLowerCase() || "";
-      return name.includes(query) || email.includes(query);
-    });
-  }, [officers, searchTerm]);
+  }, [page, debouncedSearch]);
 
   const handleDelete = (officer) => {
     setDeleteTarget(officer);
@@ -61,12 +85,13 @@ export default function DataOfficers() {
       setDeletingId(deleteTarget.id);
       setError(null);
       await deleteDataOfficer(deleteTarget.id);
-      setOfficers((current) => current.filter((officer) => officer.id !== deleteTarget.id));
       setDeleteTarget(null);
+      // Refetch to update pagination
+      fetchOfficers();
     } catch (err) {
       setError(
         err.response?.data?.message ||
-          "Failed to delete data officer. Please try again."
+        "Failed to delete data officer. Please try again."
       );
     } finally {
       setDeletingId(null);
@@ -146,7 +171,7 @@ export default function DataOfficers() {
                   All Data Officers
                 </h2>
                 <p className="mt-1 text-[12px] text-ink-soft">
-                  Total {officers.length} registered data officers
+                  Total {pagination.total} registered data officers
                 </p>
               </div>
 
@@ -199,8 +224,8 @@ export default function DataOfficers() {
                       </div>
                     </td>
                   </tr>
-                ) : filteredOfficers.length > 0 ? (
-                  filteredOfficers.map((officer) => (
+                ) : officers.length > 0 ? (
+                  officers.map((officer) => (
                     <tr
                       key={officer.id}
                       className="border-b border-line last:border-b-0 hover:bg-[#FBFCFE] transition-colors"
@@ -275,10 +300,21 @@ export default function DataOfficers() {
             </table>
           </div>
 
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-t border-line px-5 py-4">
-            <p className="text-[11px] text-ink-soft">
-              Showing {filteredOfficers.length} of {officers.length} data officers
+          <div className="px-5 py-4 border-t border-line">
+            <p className="text-[11px] text-ink-soft mb-4">
+              Showing {officers.length > 0 ? (pagination.page - 1) * pagination.limit + 1 : 0}-{Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} data officers
             </p>
+
+            {pagination.totalPages > 1 && (
+              <Pagination
+                page={pagination.page}
+                totalPages={pagination.totalPages}
+                total={pagination.total}
+                pageSize={pagination.limit}
+                onPageChange={setPage}
+                disabled={loading}
+              />
+            )}
           </div>
         </div>
       </div>

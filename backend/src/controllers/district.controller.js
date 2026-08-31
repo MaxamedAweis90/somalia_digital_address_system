@@ -29,11 +29,21 @@ export const createDistrict = async (req, res) => {
 
 export const getDistricts = async (req, res) => {
   try {
-    const districts = await DistrictService.getDistricts(req.query.regionId);
+    const { page, limit, search, regionId } = req.query;
+
+    const parsedPage = page ? parseInt(page, 10) : 1;
+    const parsedLimit = limit ? parseInt(limit, 10) : 10;
+
+    const result = await DistrictService.getDistricts({
+      regionId,
+      page: isNaN(parsedPage) || parsedPage < 1 ? 1 : parsedPage,
+      limit: isNaN(parsedLimit) || parsedLimit < 1 ? 10 : parsedLimit,
+      search,
+    });
 
     return res.status(200).json({
       success: true,
-      data: districts,
+      data: result,
     });
   } catch (error) {
     return res.status(500).json({
@@ -64,7 +74,7 @@ export const updateDistrict = async (req, res) => {
   try {
     const district = await DistrictService.updateDistrict(
       req.params.id,
-      req.body
+      req.body,
     );
 
     await AuditLogService.logSafe({

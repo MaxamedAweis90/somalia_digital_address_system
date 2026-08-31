@@ -3,26 +3,59 @@ import { useNavigate } from "react-router-dom";
 import { getAddresses, deleteAddress } from "@/api/addressApi";
 import { Loader2 } from "lucide-react";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import Pagination from "@/components/common/Pagination";
 
 export default function Addresses() {
   const navigate = useNavigate();
 
   const [addresses, setAddresses] = useState([]);
+  const [pagination, setPagination] = useState({
+    total: 0,
+    page: 1,
+    limit: 10,
+    totalPages: 1,
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
+  const [page, setPage] = useState(1);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
+
+  const limit = 10;
+
+  // Handle search debouncing
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+      setPage(1); // Reset to first page on search change
+    }, 450);
+
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
 
   const fetchAddresses = async () => {
     try {
       setLoading(true);
       setError(null);
-      const res = await getAddresses(
-        searchTerm.trim() ? { search: searchTerm.trim() } : undefined
-      );
-      setAddresses(res.data.data || []);
+      const res = await getAddresses({
+        page,
+        limit,
+        search: debouncedSearch || undefined,
+      });
+
+      const responseData = res.data?.data;
+
+      if (responseData?.data && responseData?.pagination) {
+        setAddresses(responseData.data);
+        setPagination(responseData.pagination);
+      } else if (Array.isArray(responseData)) {
+        setAddresses(responseData);
+      } else {
+        setAddresses([]);
+      }
     } catch (err) {
       console.error("Failed to load addresses:", err);
       setError(err.response?.data?.message || "Failed to load addresses");
@@ -33,11 +66,11 @@ export default function Addresses() {
 
   useEffect(() => {
     fetchAddresses();
-  }, []);
+  }, [page, debouncedSearch]);
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
-    fetchAddresses();
+    // Debouncing handled by useEffect on debouncedSearch
   };
 
   const handleDelete = (item) => {
@@ -51,8 +84,9 @@ export default function Addresses() {
       setDeleting(true);
       setError(null);
       await deleteAddress(deleteTarget.id);
-      setAddresses((current) => current.filter((address) => address.id !== deleteTarget.id));
       setDeleteTarget(null);
+      // Refetch to update pagination
+      fetchAddresses();
     } catch (err) {
       setError(err.response?.data?.message || "Failed to delete address");
     } finally {
@@ -151,7 +185,7 @@ export default function Addresses() {
               <div>
                 <h2 className="text-[16px] font-semibold text-ink">All Addresses</h2>
                 <p className="mt-1 text-[12px] text-ink-soft">
-                  Total {addresses.length} registered addresses
+                  Total {pagination.total} registered addresses
                 </p>
               </div>
 
@@ -299,17 +333,15 @@ export default function Addresses() {
                           <span
                             className={`
                               inline-flex items-center rounded-full px-3 py-1 text-[10px] font-semibold
-                              ${
-                                isActive
-                                  ? "bg-green-50 text-green-600 border border-green-100"
-                                  : "bg-gray-100 text-gray-500 border border-gray-200"
+                              ${isActive
+                                ? "bg-green-50 text-green-600 border border-green-100"
+                                : "bg-gray-100 text-gray-500 border border-gray-200"
                               }
                             `}
                           >
                             <span
-                              className={`mr-1.5 h-1.5 w-1.5 rounded-full ${
-                                isActive ? "bg-green-500" : "bg-gray-400"
-                              }`}
+                              className={`mr-1.5 h-1.5 w-1.5 rounded-full ${isActive ? "bg-green-500" : "bg-gray-400"
+                                }`}
                             />
                             {isActive ? "Active" : "Inactive"}
                           </span>
@@ -354,9 +386,20 @@ export default function Addresses() {
           </div>
 
           <div className="border-t border-line px-5 py-4">
-            <p className="text-[11px] text-ink-soft">
-              Showing {filteredAddresses.length} of {addresses.length} addresses
+            <p className="text-[11px] text-ink-soft mb-4">
+              Showing {addresses.length > 0 ? (pagination.page - 1) * pagination.limit + 1 : 0}-{Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} addresses
             </p>
+
+            {pagination.totalPages > 1 && (
+              <Pagination
+                page={pagination.page}
+                totalPages={pagination.totalPages}
+                total={pagination.total}
+                pageSize={pagination.limit}
+                onPageChange={setPage}
+                disabled={loading}
+              />
+            )}
           </div>
         </div>
       </div>
