@@ -123,6 +123,9 @@ export default function Assignments() {
                     Officer
                   </th>
                   <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
+                    Collector Team & Progress
+                  </th>
+                  <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
                     Status
                   </th>
                   <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
@@ -165,6 +168,11 @@ export default function Assignments() {
                       </td>
                       <td className="px-5 py-4 text-[12px] text-ink">
                         {assignment.assignedTo?.name || "—"}
+                      </td>
+                      <td className="px-5 py-4">
+                        <span className="inline-flex items-center rounded-md bg-blue/10 px-2.5 py-1 text-[11px] font-semibold text-blue-deep font-mono">
+                          {formatProgress(assignment)}
+                        </span>
                       </td>
                       <td className="px-5 py-4">
                         <AssignmentStatusBadge status={assignment.status} />

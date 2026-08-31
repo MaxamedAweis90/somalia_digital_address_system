@@ -1,7 +1,8 @@
 import { AuthService } from "../service/auth.service.js";
 import { clearAuthCookie, sethAuthCookie } from "../utils/cookies.utils.js";
-import { verifyRecaptcha } from "../utils/recaptcha.utils.js";
-import { sendOtpEmail, sendLoginSuccessEmail } from "../utils/email.utils.js";
+// import { verifyRecaptcha } from "../utils/recaptcha.utils.js";
+// import { sendOtpEmail, sendLoginSuccessEmail } from "../utils/email.utils.js";
+import { generateToken } from "../utils/jwt.utils.js";
 import { getDeviceInfo } from "../utils/device.utils.js";
 import { generateToken } from "../utils/jwt.utils.js";
 
@@ -33,8 +34,11 @@ export const registerUser = async (req, res) => {
 // -----------------------------------------------------------------------
 export const loginUser = async (req, res) => {
   try {
-    const { email, password, recaptchaToken } = req.body || {};
+    const { email, password /*, recaptchaToken */ } = req.body || {};
 
+    /* -----------------------------------------------------------------
+       reCAPTCHA & OTP Bypassed for Development Mode
+    --------------------------------------------------------------------
     const isHuman = await verifyRecaptcha(recaptchaToken);
     if (!isHuman) {
       return res.status(400).json({
@@ -54,6 +58,21 @@ export const loginUser = async (req, res) => {
       message: "Logged in successfully",
       user: safeUser,
     });
+    ------------------------------------------------------------------ */
+
+    // Direct login verification in dev mode
+    const user = await AuthService.validateCredentials({ email, password });
+    const token = generateToken({ id: user.id, email: user.email, role: user.role });
+    sethAuthCookie(res, token);
+
+    const { password: _pw, ...safeUser } = user;
+
+    return res.status(200).json({
+      success: true,
+      message: "Logged in successfully",
+      user: safeUser,
+      token,
+    });
   } catch (error) {
     return res.status(400).json({
       success: false,
@@ -63,9 +82,7 @@ export const loginUser = async (req, res) => {
 };
 
 // -----------------------------------------------------------------------
-// POST /auth/verify-otp
-// Step 2: verify the code, create the real session, and notify the user
-// of the new sign-in (with device/browser/IP info) by email.
+// POST /auth/verify-otp (Development placeholder)
 // -----------------------------------------------------------------------
 export const verifyLoginOtp = async (req, res) => {
   try {
@@ -73,18 +90,6 @@ export const verifyLoginOtp = async (req, res) => {
 
     const { user, token } = await AuthService.verifyLoginOtp({ email, code });
     sethAuthCookie(res, token);
-
-    const { browser, os, device, ip } = getDeviceInfo(req);
-
-    // Fire-and-forget: don't block the login response on the notification email.
-    sendLoginSuccessEmail(user.email, {
-      name: user.name,
-      device,
-      os,
-      browser,
-      ip,
-      time: new Date().toLocaleString("en-GB", { timeZone: "Africa/Mogadishu" }),
-    }).catch((err) => console.error("Failed to send login-success email:", err));
 
     return res.status(200).json({
       success: true,
@@ -100,17 +105,12 @@ export const verifyLoginOtp = async (req, res) => {
 };
 
 // -----------------------------------------------------------------------
-// POST /auth/resend-otp
-// Rate-limited resend of a fresh OTP for a pending login.
+// POST /auth/resend-otp (Development placeholder)
 // -----------------------------------------------------------------------
 export const resendOtp = async (req, res) => {
   try {
     const { email } = req.body || {};
     const result = await AuthService.resendLoginOtp(email);
-
-    if (result.code) {
-      await sendOtpEmail(result.email, result.code, { name: result.name });
-    }
 
     return res.status(200).json({
       success: true,
