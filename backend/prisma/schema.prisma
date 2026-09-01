@@ -29,25 +29,41 @@ model User {
   @@map("user")
 }
 
+model Region {
+  id        String     @id @default(cuid())
+  name      String
+  code      String     @unique
+  status    Status     @default(ACTIVE)
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
+  districts District[]
+
+  @@index([code], map: "region_code_index")
+  @@map("regions")
+}
+
 model District {
   id        String    @id @default(cuid())
+  regionId  String?   @map("region_id")
   name      String
   code      String    @unique
   status    Status    @default(ACTIVE)
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
+  region    Region?   @relation(fields: [regionId], references: [id], onDelete: SetNull)
   addresses Address[]
   zones     Zone[]
 
   @@index([code], map: "district_code_index")
+  @@index([regionId], map: "district_region_index")
   @@map("districts")
 }
 
 model Zone {
-  id          String                   @id(map: "neighborhoods_pkey") @default(cuid())
+  id          String                   @id @default(cuid())
   districtId  String                   @map("district_id")
   name        String
-  code        String                   @unique(map: "neighborhoods_code_key")
+  code        String                   @unique
   status      Status                   @default(ACTIVE)
   createdAt   DateTime                 @default(now()) @map("created_at")
   updatedAt   DateTime                 @updatedAt @map("updated_at")
@@ -55,24 +71,24 @@ model Zone {
   addresses   Address[]
   assignments Assignment[]
   zoneBlocks  ZoneBlock[]
-  district    District                 @relation(fields: [districtId], references: [id], map: "neighborhoods_district_id_fkey")
+  district    District                 @relation(fields: [districtId], references: [id])
 
   @@index([code, districtId], map: "zone_code_and_district_index")
   @@map("zones")
 }
 
 model ZoneBlock {
-  id          String                  @id(map: "zones_pkey") @default(cuid())
+  id          String                  @id @default(cuid())
   zoneId      String                  @map("zone_id")
   name        String
-  code        String                  @unique(map: "zones_code_key")
+  code        String                  @unique
   status      Status                  @default(ACTIVE)
   geometry    Unsupported("geometry")
   createdAt   DateTime                @default(now()) @map("created_at")
   updatedAt   DateTime                @updatedAt @map("updated_at")
   addresses   Address[]
   assignments Assignment[]
-  zone        Zone                    @relation(fields: [zoneId], references: [id], map: "zones_neighborhood_id_fkey")
+  zone        Zone                    @relation(fields: [zoneId], references: [id])
 
   @@index([code, zoneId], map: "zone_block_code_and_zone_index")
   @@map("zone_blocks")
@@ -92,11 +108,28 @@ model Address {
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
   district    District  @relation(fields: [districtId], references: [id])
-  zone        Zone      @relation(fields: [zoneId], references: [id], map: "addresses_neighborhood_id_fkey")
-  zoneBlock   ZoneBlock @relation(fields: [zoneBlockId], references: [id], map: "addresses_zone_id_fkey")
+  zone        Zone      @relation(fields: [zoneId], references: [id])
+  zoneBlock   ZoneBlock @relation(fields: [zoneBlockId], references: [id])
 
   @@index([addressCode, districtId, zoneId, zoneBlockId], map: "address_code_and_location_index")
   @@map("addresses")
+}
+
+model AppSetting {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  label       String
+  value       String
+  description String?
+  category    String   @default("general")
+  type        String   @default("STRING")
+  isSystem    Boolean  @default(false) @map("is_system")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([key], map: "app_setting_key_index")
+  @@index([category], map: "app_setting_category_index")
+  @@map("app_settings")
 }
 
 model AuditLog {
@@ -145,12 +178,12 @@ model Assignment {
   officerReviewedById String?          @map("officer_reviewed_by_id")
   assignedBy          User             @relation("AssignmentCreator", fields: [assignedById], references: [id])
   assignedTo          User             @relation("AssignmentAssignee", fields: [assignedToId], references: [id])
-  zone                Zone             @relation(fields: [zoneId], references: [id], map: "assignments_neighborhood_id_fkey")
+  zone                Zone             @relation(fields: [zoneId], references: [id])
   officerReviewedBy   User?            @relation("AssignmentOfficerReviewer", fields: [officerReviewedById], references: [id])
   parent              Assignment?      @relation("AssignmentChildren", fields: [parentAssignmentId], references: [id], onDelete: Restrict)
   children            Assignment[]     @relation("AssignmentChildren")
   reviewedBy          User?            @relation("AssignmentReviewer", fields: [reviewedById], references: [id])
-  zoneBlock           ZoneBlock?       @relation(fields: [zoneBlockId], references: [id], onDelete: Restrict, map: "assignments_zone_id_fkey")
+  zoneBlock           ZoneBlock?       @relation(fields: [zoneBlockId], references: [id], onDelete: Restrict)
 
   @@index([assignedToId, status], map: "assignment_assignee_status_index")
   @@index([zoneId], map: "assignment_zone_index")
