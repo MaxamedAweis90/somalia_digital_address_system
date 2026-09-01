@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { createDataCollector } from "@/api/dataCollectorApi";
-import { getDataOfficers } from "@/api/dataOfficerApi";
+import { getDataOfficerOptions } from "@/api/dataOfficerApi";
+import { extractListFromResponse } from "@/utils/apiResponse";
 import DataCollectorForm from "./components/DataCollectorForm";
 
 export default function CreateDataCollectorPage() {
@@ -16,15 +17,8 @@ export default function CreateDataCollectorPage() {
     const fetchOfficers = async () => {
       try {
         setLoadingOfficers(true);
-        const res = await getDataOfficers();
-
-        const dataList =
-          res.data?.data?.officers ||
-          res.data?.officers ||
-          res.data?.data ||
-          (Array.isArray(res.data) ? res.data : []);
-
-        setOfficers(dataList);
+        const res = await getDataOfficerOptions();
+        setOfficers(extractListFromResponse(res));
       } catch {
         toast.error("Failed to load list of data officers. Please refresh.");
       } finally {

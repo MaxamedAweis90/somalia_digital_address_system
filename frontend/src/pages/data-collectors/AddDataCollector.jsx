@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { createDataCollector } from "@/api/dataCollectorApi";
-import { getDataOfficers } from "@/api/dataOfficerApi";
+import { getDataOfficerOptions } from "@/api/dataOfficerApi";
+import { extractListFromResponse } from "@/utils/apiResponse";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -26,8 +27,8 @@ export default function AddDataCollector() {
     const fetchOfficers = async () => {
       try {
         setLoadingOfficers(true);
-        const res = await getDataOfficers();
-        setOfficers(res.data.data || []);
+        const res = await getDataOfficerOptions();
+        setOfficers(extractListFromResponse(res));
       } catch {
         setServerError("Failed to load list of data officers. Please refresh.");
       } finally {

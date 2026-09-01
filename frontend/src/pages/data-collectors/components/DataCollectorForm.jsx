@@ -87,7 +87,8 @@ export default function DataCollectorForm({
   };
 
   // Ensure officers list only shows DATA_OFFICER users
-  const dataOfficers = officers.filter(
+  const officerList = Array.isArray(officers) ? officers : [];
+  const dataOfficers = officerList.filter(
     (off) => !off.role || off.role === "DATA_OFFICER"
   );
 

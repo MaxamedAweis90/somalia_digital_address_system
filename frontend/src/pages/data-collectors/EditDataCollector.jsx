@@ -5,7 +5,8 @@ import {
   getDataCollectorById,
   updateDataCollector,
 } from "@/api/dataCollectorApi";
-import { getDataOfficers } from "@/api/dataOfficerApi";
+import { getDataOfficerOptions } from "@/api/dataOfficerApi";
+import { extractListFromResponse } from "@/utils/apiResponse";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -35,11 +36,11 @@ export default function EditDataCollector() {
 
         const [collectorRes, officersRes] = await Promise.all([
           getDataCollectorById(id),
-          getDataOfficers(),
+          getDataOfficerOptions(),
         ]);
 
         const collector = collectorRes.data.data;
-        const officersList = officersRes.data.data || [];
+        const officersList = extractListFromResponse(officersRes);
 
         setOfficers(officersList);
         setFormData({

@@ -5,6 +5,8 @@ import "@geoman-io/leaflet-geoman-free";
 import "@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css";
 import "leaflet/dist/leaflet.css";
 import "@/lib/leafletSetup";
+import MapLifecycleGuard from "@/components/map/MapLifecycleGuard";
+import { safeFitBounds } from "@/lib/mapUtils";
 import {
   DEFAULT_ZOOM,
   MOGADISHU_CENTER,
@@ -55,7 +57,7 @@ function FitToGeometries({ geometries }) {
     });
 
     if (group.getLayers().length > 0) {
-      map.fitBounds(group.getBounds(), { padding: [24, 24] });
+      safeFitBounds(map, group.getBounds(), { padding: [24, 24] });
     }
   }, [geometries, map]);
 
@@ -148,7 +150,7 @@ function MapDrawHandler({ geometry, onChange, editable }) {
     });
 
     if (group.getLayers().length > 0) {
-      map.fitBounds(group.getBounds(), { padding: [24, 24] });
+      safeFitBounds(map, group.getBounds(), { padding: [24, 24] });
     }
 
     loadedRef.current = true;
@@ -178,6 +180,7 @@ export default function ZoneMapEditor({
           scrollWheelZoom
         >
           <TileLayer attribution={OSM_ATTRIBUTION} url={OSM_TILE_URL} />
+          <MapLifecycleGuard />
           <BoundaryLayer geometry={boundaryGeometry} />
           <FitToGeometries geometries={[boundaryGeometry, geometry]} />
           <MapDrawHandler

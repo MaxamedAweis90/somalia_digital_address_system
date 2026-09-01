@@ -6,7 +6,8 @@ import {
   getDataCollectorById,
   updateDataCollector,
 } from "@/api/dataCollectorApi";
-import { getDataOfficers } from "@/api/dataOfficerApi";
+import { getDataOfficerOptions } from "@/api/dataOfficerApi";
+import { extractListFromResponse } from "@/utils/apiResponse";
 import DataCollectorForm from "./components/DataCollectorForm";
 
 export default function EditDataCollectorPage() {
@@ -37,13 +38,8 @@ export default function EditDataCollectorPage() {
     const fetchOfficers = async () => {
       try {
         setLoadingOfficers(true);
-        const res = await getDataOfficers();
-        const dataList =
-          res.data?.data?.officers ||
-          res.data?.officers ||
-          res.data?.data ||
-          (Array.isArray(res.data) ? res.data : []);
-        setOfficers(dataList);
+        const res = await getDataOfficerOptions();
+        setOfficers(extractListFromResponse(res));
       } catch {
         toast.error("Failed to load data officers.");
       } finally {
