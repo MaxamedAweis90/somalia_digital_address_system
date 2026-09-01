@@ -1,0 +1,42 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: sdas_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is required}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - sdas_pgdata:/var/lib/postgresql/data
+
+  backend:
+    image: "docker.io/${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/sdas-backend:${IMAGE_TAG:-latest}"
+    container_name: sdas_backend
+    restart: always
+    environment:
+      DATABASE_URL: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public"
+      PORT: 5000
+      NODE_ENV: ${NODE_ENV:-production}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      FRONTEND_URL: ${FRONTEND_URL:?FRONTEND_URL is required}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    image: "docker.io/${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/sdas-frontend:${IMAGE_TAG:-latest}"
+    container_name: sdas_frontend
+    restart: always
+    ports:
+      - "127.0.0.1:8080:80"
+    depends_on:
+      - backend
+
+volumes:
+  sdas_pgdata:
