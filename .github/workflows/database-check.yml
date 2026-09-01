@@ -1,0 +1,58 @@
+name: Database checks
+
+on:
+  workflow_call:
+
+jobs:
+  test-database:
+    name: Test backend with PostGIS
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_USER: myuser
+          POSTGRES_PASSWORD: mypassword
+          POSTGRES_DB: mydatabase
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U myuser -d mydatabase"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://myuser:mypassword@localhost:5432/mydatabase?schema=public
+      DIRECT_URL: postgresql://myuser:mypassword@localhost:5432/mydatabase?schema=public
+      JWT_SECRET: ci-only-test-secret
+      NODE_ENV: test
+      FRONTEND_URL: http://localhost:5173
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install backend dependencies
+        working-directory: ./backend
+        run: npm ci
+
+      - name: Generate Prisma Client
+        working-directory: ./backend
+        run: npx prisma generate
+
+      - name: Prepare test database
+        working-directory: ./backend
+        run: npx prisma db push --accept-data-loss
+
+      - name: Seed test database
+        working-directory: ./backend
+        run: npm run db:seed
+
+      - name: Run backend integration tests
+        working-directory: ./backend
+        run: npm run test:zone-workflow
