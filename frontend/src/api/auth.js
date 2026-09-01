@@ -1,7 +1,13 @@
 import api from "./axios";
 
-export const login = (email, password) =>
-  api.post("/auth/login", { email, password });
+export const login = (email, password, recaptchaToken) =>
+  api.post("/auth/login", { email, password, recaptchaToken });
+
+export const verifyOtp = (email, code) =>
+  api.post("/auth/verify-otp", { email, code });
+
+export const resendOtp = (email) =>
+  api.post("/auth/resend-otp", { email });
 
 export const logout = () => api.post("/auth/logout");
 

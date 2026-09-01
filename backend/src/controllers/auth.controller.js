@@ -1,8 +1,8 @@
 import { AuthService } from "../service/auth.service.js";
 import { AuditLogService } from "../service/auditLog.service.js";
 import { clearAuthCookie, sethAuthCookie } from "../utils/cookies.utils.js";
-// import { verifyRecaptcha } from "../utils/recaptcha.utils.js";
-// import { sendOtpEmail, sendLoginSuccessEmail } from "../utils/email.utils.js";
+import { verifyRecaptcha } from "../utils/recaptcha.utils.js";
+import { sendOtpEmail, sendLoginSuccessEmail } from "../utils/email.utils.js";
 import { generateToken, verifyToken } from "../utils/jwt.utils.js";
 import { getDeviceInfo } from "../utils/device.utils.js";
 
@@ -41,15 +41,13 @@ export const registerUser = async (req, res) => {
 };
 
 // -----------------------------------------------------------------------
-// POST /auth/login
+// POST /auth/login (Step 1: Validate credentials + reCAPTCHA -> Send OTP)
 // -----------------------------------------------------------------------
 export const loginUser = async (req, res) => {
   try {
-    const { email, password /*, recaptchaToken */ } = req.body || {};
+    const { email, password, recaptchaToken } = req.body || {};
 
-    /* -----------------------------------------------------------------
-       reCAPTCHA & OTP Bypassed for Development Mode
-    --------------------------------------------------------------------
+    // 1. Verify reCAPTCHA
     const isHuman = await verifyRecaptcha(recaptchaToken);
     if (!isHuman) {
       return res.status(400).json({
@@ -58,33 +56,56 @@ export const loginUser = async (req, res) => {
       });
     }
 
+    // 2. Validate email & password credentials
     const user = await AuthService.validateCredentials({ email, password });
-    const token = generateToken({ id: user.id, email: user.email, role: user.role });
-    sethAuthCookie(res, token);
 
-    const { password: _pw, ...safeUser } = user;
+    // 3. Create 6-digit OTP code and save in DB
+    const otpCode = await AuthService.createLoginOtp(user.id);
 
-    return res.status(200).json({
-      success: true,
-      message: "Logged in successfully",
-      user: safeUser,
-    });
-    ------------------------------------------------------------------ */
-
-    // Direct login verification in dev mode
-    const user = await AuthService.validateCredentials({ email, password });
-    const token = generateToken({
-      id: user.id,
-      email: user.email,
-      role: user.role,
-    });
-    sethAuthCookie(res, token);
-
-    const { password: _pw, ...safeUser } = user;
+    // 4. Send OTP email (and log to console for dev mode access)
+    await sendOtpEmail(user.email, otpCode, { name: user.name });
 
     await AuditLogService.logSafe({
       userId: user.id,
-      action: `User logged in successfully (${user.email}) with role ${user.role}`,
+      action: `User initiated login and requested OTP code (${user.email})`,
+      actionType: "UPDATE",
+      entityId: user.id,
+    });
+
+    return res.status(200).json({
+      success: true,
+      requireOtp: true,
+      email: user.email,
+      message: "Verification code sent to your email.",
+    });
+  } catch (error) {
+    return res.status(400).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// -----------------------------------------------------------------------
+// POST /auth/verify-otp (Step 2: Verify OTP code -> Issue session)
+// -----------------------------------------------------------------------
+export const verifyLoginOtp = async (req, res) => {
+  try {
+    const { email, code } = req.body || {};
+
+    const { user, token } = await AuthService.verifyLoginOtp({ email, code });
+    sethAuthCookie(res, token);
+
+    const deviceInfo = getDeviceInfo(req);
+    await sendLoginSuccessEmail(user.email, {
+      name: user.name,
+      ...deviceInfo,
+      time: new Date().toLocaleString(),
+    });
+
+    await AuditLogService.logSafe({
+      userId: user.id,
+      action: `User verified OTP and logged in (${user.email}) with role ${user.role}`,
       actionType: "UPDATE",
       entityId: user.id,
     });
@@ -92,7 +113,7 @@ export const loginUser = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "Logged in successfully",
-      user: safeUser,
+      user,
       token,
     });
   } catch (error) {
@@ -104,42 +125,16 @@ export const loginUser = async (req, res) => {
 };
 
 // -----------------------------------------------------------------------
-// POST /auth/verify-otp (Development placeholder)
-// -----------------------------------------------------------------------
-export const verifyLoginOtp = async (req, res) => {
-  try {
-    const { email, code } = req.body || {};
-
-    const { user, token } = await AuthService.verifyLoginOtp({ email, code });
-    sethAuthCookie(res, token);
-
-    await AuditLogService.logSafe({
-      userId: user.id,
-      action: `User verified OTP and logged in (${user.email})`,
-      actionType: "UPDATE",
-      entityId: user.id,
-    });
-
-    return res.status(200).json({
-      success: true,
-      message: "Logged in successfully",
-      user,
-    });
-  } catch (error) {
-    return res.status(400).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
-
-// -----------------------------------------------------------------------
-// POST /auth/resend-otp (Development placeholder)
+// POST /auth/resend-otp
 // -----------------------------------------------------------------------
 export const resendOtp = async (req, res) => {
   try {
     const { email } = req.body || {};
     const result = await AuthService.resendLoginOtp(email);
+
+    if (result.code && result.email) {
+      await sendOtpEmail(result.email, result.code, { name: result.name });
+    }
 
     return res.status(200).json({
       success: true,

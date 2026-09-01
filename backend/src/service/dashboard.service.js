@@ -53,7 +53,6 @@ function buildActivityFromZone(zone) {
 export const DashboardService = {
   getSummary: async () => {
     const [
-      regionCount,
       districtCount,
       zoneCount,
       zoneBlockCount,
@@ -62,7 +61,6 @@ export const DashboardService = {
       recentZoneBlocks,
       recentZones,
     ] = await Promise.all([
-      prisma.region.count(),
       prisma.district.count(),
       prisma.zone.count(),
       prisma.zoneBlock.count(),
@@ -94,7 +92,6 @@ export const DashboardService = {
 
     return {
       counts: {
-        regions: regionCount,
         districts: districtCount,
         zones: zoneCount,
         zoneBlocks: zoneBlockCount,

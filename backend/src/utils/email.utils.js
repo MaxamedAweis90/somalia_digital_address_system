@@ -82,6 +82,12 @@ export const sendOtpEmail = async (toEmail, otpCode, { name } = {}) => {
 
 export const sendLoginSuccessEmail = async (toEmail, { name, device, os, browser, ip, time } = {}) => {
   if (!process.env.SMTP_USER || !process.env.SMTP_HOST) {
+    console.log(`\n=================================================`);
+    console.log(`🔒 [AUTH SUCCESS] Login Alert Email for ${toEmail}`);
+    console.log(`User: ${name || "User"}`);
+    console.log(`Device: ${device} | OS: ${os} | Browser: ${browser}`);
+    console.log(`IP: ${ip} | Time: ${time}`);
+    console.log(`=================================================\n`);
     return;
   }
 

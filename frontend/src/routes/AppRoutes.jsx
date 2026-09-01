@@ -47,6 +47,7 @@ import AddAssignment from "@/pages/assignments/AddAssignment";
 import AssignmentDetail from "@/pages/assignments/AssignmentDetail";
 import AuditLogsPage from "@/pages/admin/AuditLogsPage";
 import Reports from "@/pages/admin/Reports";
+import SearchAddress from "@/pages/addresses/SearchAddress";
 
 export default function AppRoutes() {
   return (
@@ -106,15 +107,7 @@ export default function AppRoutes() {
         <Route path="addresses/edit/:id" element={<EditAddress />} />
 
         {/* Other routes */}
-        <Route
-          path="search"
-          element={
-            <PlaceholderPage
-              title="Address Lookup & Search"
-              description="Query and inspect registered digital addresses and geographic coordinates."
-            />
-          }
-        />
+        <Route path="search" element={<SearchAddress />} />
         <Route path="data-officers" element={<DataOfficers />} />
         <Route path="data-officers/add" element={<AddDataOfficer />} />
         <Route path="data-officers/edit/:id" element={<EditDataOfficer />} />

@@ -24,6 +24,7 @@ model User {
   auditLogs                  AuditLog[]
   supervisor                 User?        @relation("UserSupervision", fields: [supervisorId], references: [id])
   supervisees                User[]       @relation("UserSupervision")
+  loginOtps                  LoginOtp[]
 
   @@index([supervisorId], map: "user_supervisor_index")
   @@map("user")
@@ -44,10 +45,10 @@ model District {
 }
 
 model Zone {
-  id          String                   @id(map: "neighborhoods_pkey") @default(cuid())
+  id          String                   @id @default(cuid())
   districtId  String                   @map("district_id")
   name        String
-  code        String                   @unique(map: "neighborhoods_code_key")
+  code        String                   @unique
   status      Status                   @default(ACTIVE)
   createdAt   DateTime                 @default(now()) @map("created_at")
   updatedAt   DateTime                 @updatedAt @map("updated_at")
@@ -55,24 +56,24 @@ model Zone {
   addresses   Address[]
   assignments Assignment[]
   zoneBlocks  ZoneBlock[]
-  district    District                 @relation(fields: [districtId], references: [id], map: "neighborhoods_district_id_fkey")
+  district    District                 @relation(fields: [districtId], references: [id])
 
   @@index([code, districtId], map: "zone_code_and_district_index")
   @@map("zones")
 }
 
 model ZoneBlock {
-  id          String                  @id(map: "zones_pkey") @default(cuid())
+  id          String                  @id @default(cuid())
   zoneId      String                  @map("zone_id")
   name        String
-  code        String                  @unique(map: "zones_code_key")
+  code        String                  @unique
   status      Status                  @default(ACTIVE)
   geometry    Unsupported("geometry")
   createdAt   DateTime                @default(now()) @map("created_at")
   updatedAt   DateTime                @updatedAt @map("updated_at")
   addresses   Address[]
   assignments Assignment[]
-  zone        Zone                    @relation(fields: [zoneId], references: [id], map: "zones_neighborhood_id_fkey")
+  zone        Zone                    @relation(fields: [zoneId], references: [id])
 
   @@index([code, zoneId], map: "zone_block_code_and_zone_index")
   @@map("zone_blocks")
@@ -92,8 +93,8 @@ model Address {
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
   district    District  @relation(fields: [districtId], references: [id])
-  zone        Zone      @relation(fields: [zoneId], references: [id], map: "addresses_neighborhood_id_fkey")
-  zoneBlock   ZoneBlock @relation(fields: [zoneBlockId], references: [id], map: "addresses_zone_id_fkey")
+  zone        Zone      @relation(fields: [zoneId], references: [id])
+  zoneBlock   ZoneBlock @relation(fields: [zoneBlockId], references: [id])
 
   @@index([addressCode, districtId, zoneId, zoneBlockId], map: "address_code_and_location_index")
   @@map("addresses")
@@ -109,6 +110,21 @@ model AuditLog {
   user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("audit_logs")
+}
+
+model LoginOtp {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  codeHash  String   @map("code_hash")
+  attempts  Int      @default(0)
+  consumed  Boolean  @default(false)
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, consumed], map: "otp_user_consumed_index")
+  @@map("login_otps")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -145,12 +161,12 @@ model Assignment {
   officerReviewedById String?          @map("officer_reviewed_by_id")
   assignedBy          User             @relation("AssignmentCreator", fields: [assignedById], references: [id])
   assignedTo          User             @relation("AssignmentAssignee", fields: [assignedToId], references: [id])
-  zone                Zone             @relation(fields: [zoneId], references: [id], map: "assignments_neighborhood_id_fkey")
+  zone                Zone             @relation(fields: [zoneId], references: [id])
   officerReviewedBy   User?            @relation("AssignmentOfficerReviewer", fields: [officerReviewedById], references: [id])
   parent              Assignment?      @relation("AssignmentChildren", fields: [parentAssignmentId], references: [id], onDelete: Restrict)
   children            Assignment[]     @relation("AssignmentChildren")
   reviewedBy          User?            @relation("AssignmentReviewer", fields: [reviewedById], references: [id])
-  zoneBlock           ZoneBlock?       @relation(fields: [zoneBlockId], references: [id], onDelete: Restrict, map: "assignments_zone_id_fkey")
+  zoneBlock           ZoneBlock?       @relation(fields: [zoneBlockId], references: [id], onDelete: Restrict)
 
   @@index([assignedToId, status], map: "assignment_assignee_status_index")
   @@index([zoneId], map: "assignment_zone_index")
