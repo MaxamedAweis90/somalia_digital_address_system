@@ -121,7 +121,7 @@ export default function EditDataOfficer() {
       }
 
       await updateDataOfficer(id, payload);
-      navigate("/admin/data-officers");
+      navigate("/admin/staff");
     } catch (error) {
       setServerError(
         error.response?.data?.message ||
@@ -162,10 +162,10 @@ export default function EditDataOfficer() {
           </span>
           <span className="text-gray-400">›</span>
           <span
-            onClick={() => navigate("/admin/data-officers")}
+            onClick={() => navigate("/admin/staff")}
             className="hover:text-blue cursor-pointer"
           >
-            Data Officers
+            Staff
           </span>
           <span className="text-gray-400">›</span>
           <span className="text-ink font-semibold">Edit Data Officer</span>
@@ -323,7 +323,7 @@ export default function EditDataOfficer() {
             <div className="flex items-center justify-end gap-3 px-5 py-4 bg-[#FBFBFC] border-t border-line">
               <button
                 type="button"
-                onClick={() => navigate("/admin/data-officers")}
+                onClick={() => navigate("/admin/staff")}
                 disabled={saving}
                 className="h-[36px] px-4 rounded-lg border border-line bg-white text-[12px] font-semibold text-ink-soft hover:bg-bg transition-all cursor-pointer"
               >

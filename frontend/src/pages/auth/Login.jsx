@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { toast } from "react-toastify";
 import { useAuth } from "@/context/AuthContext";
 import somaliaFlag from "@/assets/images.jpg";
 import sdasLogo from "@/assets/logo/sdas_logo.png";
@@ -22,12 +21,10 @@ export default function Login() {
 
     try {
       const user = await login(email, password);
-      toast.success("Signed in successfully");
       navigate(getHomePath(user.role), { replace: true });
     } catch (err) {
       const message = err.response?.data?.message || "Login failed. Please try again.";
       setError(message);
-      toast.error(message);
     } finally {
       setIsLoading(false);
     }

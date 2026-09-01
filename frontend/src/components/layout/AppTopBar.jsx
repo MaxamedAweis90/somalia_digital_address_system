@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Bell, HelpCircle, ChevronDown, LogOut } from "lucide-react";
+import { Search, Bell, HelpCircle, ChevronDown, LogOut, Menu } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
 export default function AppTopBar({
@@ -8,6 +8,7 @@ export default function AppTopBar({
   onSearchChange,
   roleLabel,
   user,
+  onMenuClick,
 }) {
   const navigate = useNavigate();
   const { logout } = useAuth();
@@ -49,9 +50,20 @@ export default function AppTopBar({
   };
 
   return (
-    <header className="flex h-16 shrink-0 items-center justify-between border-b border-line bg-white px-6 lg:px-8">
-      <div className="flex items-center gap-4">
-        <div className="relative w-56 sm:w-72">
+    <header className="flex h-14 sm:h-16 shrink-0 items-center justify-between gap-2 border-b border-line bg-white px-3 sm:px-6 lg:px-8">
+      <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-4">
+        {onMenuClick && (
+          <button
+            type="button"
+            onClick={onMenuClick}
+            aria-label="Open menu"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-ink-soft hover:bg-bg hover:text-ink transition cursor-pointer lg:hidden"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
+        )}
+
+        <div className="relative hidden min-w-0 flex-1 max-w-72 sm:block">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-soft" />
           <input
             type="text"
@@ -80,7 +92,7 @@ export default function AppTopBar({
         </div>
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex shrink-0 items-center gap-1.5 sm:gap-4">
         <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full bg-brand-light border border-blue/20 px-3 py-1 text-[11px] font-semibold text-brand">
           <span className="w-1.5 h-1.5 rounded-full bg-brand" />
           {roleLabel}
@@ -89,7 +101,7 @@ export default function AppTopBar({
         <button
           type="button"
           aria-label="Notifications"
-          className="flex h-9 w-9 items-center justify-center rounded-lg text-ink-soft hover:bg-bg hover:text-ink transition cursor-pointer"
+          className="hidden h-9 w-9 items-center justify-center rounded-lg text-ink-soft hover:bg-bg hover:text-ink transition cursor-pointer sm:flex"
         >
           <Bell className="h-4 w-4" />
         </button>
@@ -97,18 +109,18 @@ export default function AppTopBar({
         <button
           type="button"
           aria-label="Help"
-          className="flex h-9 w-9 items-center justify-center rounded-lg text-ink-soft hover:bg-bg hover:text-ink transition cursor-pointer"
+          className="hidden h-9 w-9 items-center justify-center rounded-lg text-ink-soft hover:bg-bg hover:text-ink transition cursor-pointer sm:flex"
         >
           <HelpCircle className="h-4 w-4" />
         </button>
 
-        <div className="relative border-l border-line pl-3" ref={profileRef}>
+        <div className="relative border-l border-line pl-2 sm:pl-3" ref={profileRef}>
           <button
             type="button"
             aria-expanded={profileOpen}
             aria-haspopup="menu"
             onClick={() => setProfileOpen((current) => !current)}
-            className="flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-left transition hover:bg-bg cursor-pointer"
+            className="flex items-center gap-2.5 rounded-lg px-1.5 sm:px-2 py-1.5 text-left transition hover:bg-bg cursor-pointer"
           >
             <div className="hidden sm:block">
               <p className="text-[13px] font-semibold text-ink leading-tight">
@@ -130,7 +142,7 @@ export default function AppTopBar({
           {profileOpen && (
             <div
               role="menu"
-              className="absolute right-0 top-full z-50 mt-2 w-64 overflow-hidden rounded-xl border border-line bg-white shadow-lg"
+              className="absolute right-0 top-full z-50 mt-2 w-[min(16rem,calc(100vw-1.5rem))] overflow-hidden rounded-xl border border-line bg-white shadow-lg"
             >
               <div className="border-b border-line bg-[#FBFCFE] px-4 py-3">
                 <p className="text-[12px] font-semibold text-ink">{user?.name || "User"}</p>

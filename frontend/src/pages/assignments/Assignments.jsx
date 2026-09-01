@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
-import { getAssignments } from "@/api/assignmentApi";
+import { deleteAssignment, getAssignments } from "@/api/assignmentApi";
 import AssignmentStatusBadge, {
   AssignmentTypeBadge,
   formatAssignmentLocation,
   getAssignmentDraftCount,
 } from "@/components/assignments/AssignmentStatusBadge";
 import Breadcrumb from "@/components/ui/Breadcrumb";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import PageHeader from "@/components/ui/PageHeader";
 
 function formatProgress(assignment) {
@@ -21,12 +22,19 @@ function formatProgress(assignment) {
   return `${children.length}/${expected} delegated · ${approved} approved · ${submitted} submitted`;
 }
 
+function canRevokeAssignment(assignment) {
+  return assignment?.status !== "APPROVED";
+}
+
 export default function Assignments() {
   const navigate = useNavigate();
   const [assignments, setAssignments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [statusFilter, setStatusFilter] = useState("All");
+  const [revokeTarget, setRevokeTarget] = useState(null);
+  const [revoking, setRevoking] = useState(false);
+  const [revokeError, setRevokeError] = useState(null);
 
   const fetchAssignments = async () => {
     try {
@@ -50,8 +58,46 @@ export default function Assignments() {
     return assignments.filter((item) => item.status === statusFilter);
   }, [assignments, statusFilter]);
 
+  const confirmRevoke = async () => {
+    if (!revokeTarget) return;
+
+    try {
+      setRevoking(true);
+      setRevokeError(null);
+      await deleteAssignment(revokeTarget.id);
+      setRevokeTarget(null);
+      await fetchAssignments();
+    } catch (err) {
+      setRevokeError(err.response?.data?.message || "Failed to revoke assignment");
+    } finally {
+      setRevoking(false);
+    }
+  };
+
   return (
     <div className="min-h-full bg-bg font-sans">
+      <ConfirmDialog
+        open={Boolean(revokeTarget)}
+        title="Revoke Assignment"
+        message={
+          revokeTarget
+            ? `Revoke the assignment for ${formatAssignmentLocation(revokeTarget)}? This removes the officer assignment and all related collector tasks. Published registry data is not affected.`
+            : ""
+        }
+        confirmLabel="Revoke"
+        loading={revoking}
+        loadingLabel="Revoking..."
+        variant="danger"
+        error={revokeError}
+        onConfirm={confirmRevoke}
+        onCancel={() => {
+          if (!revoking) {
+            setRevokeTarget(null);
+            setRevokeError(null);
+          }
+        }}
+      />
+
       <div className="px-4 sm:px-6 lg:px-5 pt-5 pb-10 space-y-6">
         <Breadcrumb
           items={[
@@ -104,6 +150,7 @@ export default function Assignments() {
               <option value="All">All statuses</option>
               <option value="ASSIGNED">Assigned</option>
               <option value="IN_PROGRESS">In Progress</option>
+              <option value="READY_FOR_REVIEW">Ready for Review</option>
               <option value="SUBMITTED">Submitted</option>
               <option value="APPROVED">Approved</option>
               <option value="REJECTED">Rejected</option>
@@ -151,8 +198,7 @@ export default function Assignments() {
                   filteredAssignments.map((assignment) => (
                     <tr
                       key={assignment.id}
-                      onClick={() => navigate(`/admin/assignments/${assignment.id}`)}
-                      className="border-b border-line last:border-b-0 hover:bg-[#FBFCFE] transition-colors cursor-pointer"
+                      className="border-b border-line last:border-b-0 hover:bg-[#FBFCFE] transition-colors"
                     >
                       <td className="px-5 py-4">
                         <AssignmentTypeBadge type={assignment.type} />
@@ -190,14 +236,23 @@ export default function Assignments() {
                         <div className="flex items-center justify-end gap-2">
                           <button
                             type="button"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              navigate(`/admin/assignments/${assignment.id}`);
-                            }}
+                            onClick={() => navigate(`/admin/assignments/${assignment.id}`)}
                             className="h-[32px] rounded-md border border-line bg-white px-3 text-[11px] font-semibold text-ink transition-all hover:bg-bg cursor-pointer"
                           >
                             View
                           </button>
+                          {canRevokeAssignment(assignment) && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setRevokeError(null);
+                                setRevokeTarget(assignment);
+                              }}
+                              className="h-[32px] rounded-md border border-red-200 bg-white px-3 text-[11px] font-semibold text-red-600 transition-all hover:bg-red-50 cursor-pointer"
+                            >
+                              Revoke
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>

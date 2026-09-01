@@ -28,7 +28,7 @@ export default function EditDataCollectorPage() {
         setCollector(dataObj);
       } catch {
         toast.error("Failed to load data collector details.");
-        navigate("/admin/data-collectors");
+        navigate("/admin/staff?role=collector");
       } finally {
         setLoading(false);
       }
@@ -72,7 +72,7 @@ export default function EditDataCollectorPage() {
       await updateDataCollector(id, payload);
 
       toast.success("Data collector updated successfully.");
-      navigate("/admin/data-collectors");
+      navigate("/admin/staff?role=collector");
     } catch (err) {
       const msg =
         err.response?.data?.message ||
@@ -113,10 +113,10 @@ export default function EditDataCollectorPage() {
           </span>
           <span className="text-gray-400">›</span>
           <span
-            onClick={() => navigate("/admin/data-collectors")}
+            onClick={() => navigate("/admin/staff?role=collector")}
             className="hover:text-blue cursor-pointer"
           >
-            Data Collectors
+            Staff
           </span>
           <span className="text-gray-400">›</span>
           <span className="text-ink font-semibold">Edit Data Collector</span>
@@ -148,7 +148,7 @@ export default function EditDataCollectorPage() {
               loadingOfficers={loadingOfficers}
               isEdit={true}
               onSubmit={handleSubmit}
-              onCancel={() => navigate("/admin/data-collectors")}
+              onCancel={() => navigate("/admin/staff?role=collector")}
               submitting={submitting}
             />
           </div>

@@ -243,3 +243,32 @@ export const rejectAssignment = async (req, res) => {
     });
   }
 };
+
+export const deleteAssignment = async (req, res) => {
+  try {
+    const result = await AssignmentService.deleteAssignment(req.params.id);
+
+    await AuditLogService.logSafe({
+      userId: req.user.id,
+      action: `Super Admin revoked Assignment ${req.params.id} and ${result.childCount} collector task(s)`,
+      actionType: "DELETE",
+      entityId: req.params.id,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Assignment revoked successfully",
+      data: result,
+    });
+  } catch (error) {
+    const status = error.message.includes("not found")
+      ? 404
+      : error.message.includes("cannot be revoked")
+        ? 400
+        : 400;
+    return res.status(status).json({
+      success: false,
+      message: getErrorMessage(error),
+    });
+  }
+};
