@@ -49,7 +49,7 @@ export default function CreateDataCollectorPage() {
       await createDataCollector(payload);
 
       toast.success("Data collector created successfully.");
-      navigate("/admin/data-collectors");
+      navigate("/admin/staff?role=collector");
     } catch (err) {
       const msg =
         err.response?.data?.message ||
@@ -72,10 +72,10 @@ export default function CreateDataCollectorPage() {
           </span>
           <span className="text-gray-400">›</span>
           <span
-            onClick={() => navigate("/admin/data-collectors")}
+            onClick={() => navigate("/admin/staff?role=collector")}
             className="hover:text-blue cursor-pointer"
           >
-            Data Collectors
+            Staff
           </span>
           <span className="text-gray-400">›</span>
           <span className="text-ink font-semibold">Add Data Collector</span>
@@ -106,7 +106,7 @@ export default function CreateDataCollectorPage() {
               loadingOfficers={loadingOfficers}
               isEdit={false}
               onSubmit={handleSubmit}
-              onCancel={() => navigate("/admin/data-collectors")}
+              onCancel={() => navigate("/admin/staff?role=collector")}
               submitting={submitting}
             />
           </div>

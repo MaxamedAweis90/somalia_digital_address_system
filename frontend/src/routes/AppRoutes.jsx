@@ -38,10 +38,9 @@ import Addresses from "@/pages/addresses/Addresses";
 import AddAddress from "@/pages/addresses/AddAddress";
 import EditAddress from "@/pages/addresses/EditAddress";
 import ViewAddress from "@/pages/addresses/ViewAddress";
-import DataOfficers from "@/pages/data-officers/DataOfficers";
+import Staff from "@/pages/staff/Staff";
 import AddDataOfficer from "@/pages/data-officers/AddDataOfficer";
 import EditDataOfficer from "@/pages/data-officers/EditDataOfficer";
-import DataCollectorsPage from "@/pages/data-collectors/DataCollectorsPage";
 import CreateDataCollectorPage from "@/pages/data-collectors/CreateDataCollectorPage";
 import EditDataCollectorPage from "@/pages/data-collectors/EditDataCollectorPage";
 import DataCollectorDetailsPage from "@/pages/data-collectors/DataCollectorDetailsPage";
@@ -119,10 +118,14 @@ export default function AppRoutes() {
             />
           }
         />
-        <Route path="data-officers" element={<DataOfficers />} />
+        <Route path="staff" element={<Staff />} />
+        <Route path="data-officers" element={<Navigate to="/admin/staff" replace />} />
         <Route path="data-officers/add" element={<AddDataOfficer />} />
         <Route path="data-officers/edit/:id" element={<EditDataOfficer />} />
-        <Route path="data-collectors" element={<DataCollectorsPage />} />
+        <Route
+          path="data-collectors"
+          element={<Navigate to="/admin/staff?role=collector" replace />}
+        />
         <Route
           path="data-collectors/create"
           element={<CreateDataCollectorPage />}

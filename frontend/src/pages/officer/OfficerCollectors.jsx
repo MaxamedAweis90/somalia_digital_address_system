@@ -41,22 +41,24 @@ export default function OfficerCollectors() {
           {loading ? (
             <div className="py-12 text-center"><Loader2 className="mx-auto h-5 w-5 animate-spin text-blue" /></div>
           ) : (
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="border-b border-line bg-[#FBFCFE]">
-                  <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase text-ink-soft">Name</th>
-                  <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase text-ink-soft">Email</th>
-                </tr>
-              </thead>
-              <tbody>
-                {collectors.map((c) => (
-                  <tr key={c.id} className="border-b border-line">
-                    <td className="px-5 py-4 text-[12px] font-medium">{c.name}</td>
-                    <td className="px-5 py-4 text-[12px] text-ink-soft">{c.email}</td>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[480px] border-collapse">
+                <thead>
+                  <tr className="border-b border-line bg-[#FBFCFE]">
+                    <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase text-ink-soft">Name</th>
+                    <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase text-ink-soft">Email</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {collectors.map((c) => (
+                    <tr key={c.id} className="border-b border-line">
+                      <td className="px-5 py-4 text-[12px] font-medium">{c.name}</td>
+                      <td className="px-5 py-4 text-[12px] text-ink-soft">{c.email}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       </div>

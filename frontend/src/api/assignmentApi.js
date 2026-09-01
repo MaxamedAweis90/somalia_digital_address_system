@@ -20,3 +20,5 @@ export const approveAssignment = (id) => api.post(`/admin/assignments/${id}/appr
 
 export const rejectAssignment = (id, rejectionReason) =>
   api.post(`/admin/assignments/${id}/reject`, { rejectionReason });
+
+export const deleteAssignment = (id) => api.delete(`/admin/assignments/${id}`);

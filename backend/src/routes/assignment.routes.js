@@ -4,6 +4,7 @@ import {
   approveAssignment,
   createAssignment,
   createChildAssignment,
+  deleteAssignment,
   getAssignmentById,
   getAssignments,
   rejectAssignment,
@@ -30,5 +31,7 @@ AssignmentRouter.get(
 AssignmentRouter.post("/:id/approve", authorize("SYS_ADMIN"), approveAssignment);
 
 AssignmentRouter.post("/:id/reject", authorize("SYS_ADMIN"), rejectAssignment);
+
+AssignmentRouter.delete("/:id", authorize("SYS_ADMIN"), deleteAssignment);
 
 export default AssignmentRouter;

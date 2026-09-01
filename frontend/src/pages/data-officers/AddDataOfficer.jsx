@@ -82,7 +82,7 @@ export default function AddDataOfficer() {
         password: formData.password,
       });
 
-      navigate("/admin/data-officers");
+      navigate("/admin/staff");
     } catch (error) {
       setServerError(
         error.response?.data?.message ||
@@ -105,10 +105,10 @@ export default function AddDataOfficer() {
           </span>
           <span className="text-gray-400">›</span>
           <span
-            onClick={() => navigate("/admin/data-officers")}
+            onClick={() => navigate("/admin/staff")}
             className="hover:text-blue cursor-pointer"
           >
-            Data Officers
+            Staff
           </span>
           <span className="text-gray-400">›</span>
           <span className="text-ink font-semibold">Add Data Officer</span>
@@ -236,7 +236,7 @@ export default function AddDataOfficer() {
             <div className="flex items-center justify-end gap-3 px-5 py-4 bg-[#FBFBFC] border-t border-line">
               <button
                 type="button"
-                onClick={() => navigate("/admin/data-officers")}
+                onClick={() => navigate("/admin/staff")}
                 disabled={loading}
                 className="h-[36px] px-4 rounded-lg border border-line bg-white text-[12px] font-semibold text-ink-soft hover:bg-bg transition-all cursor-pointer"
               >

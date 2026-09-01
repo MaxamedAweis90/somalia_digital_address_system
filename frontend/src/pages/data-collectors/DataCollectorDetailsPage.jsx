@@ -35,7 +35,7 @@ export default function DataCollectorDetailsPage() {
         setCollector(dataObj);
       } catch {
         toast.error("Failed to load collector details.");
-        navigate("/admin/data-collectors");
+        navigate("/admin/staff?role=collector");
       } finally {
         setLoading(false);
       }
@@ -78,7 +78,7 @@ export default function DataCollectorDetailsPage() {
         open={showDeleteDialog}
         collector={collector}
         onClose={() => setShowDeleteDialog(false)}
-        onDeleted={() => navigate("/admin/data-collectors")}
+        onDeleted={() => navigate("/admin/staff?role=collector")}
       />
 
       <div className="px-4 sm:px-6 lg:px-5 pt-5 pb-10">
@@ -91,10 +91,10 @@ export default function DataCollectorDetailsPage() {
           </span>
           <span className="text-gray-400">›</span>
           <span
-            onClick={() => navigate("/admin/data-collectors")}
+            onClick={() => navigate("/admin/staff?role=collector")}
             className="hover:text-blue cursor-pointer"
           >
-            Data Collectors
+            Staff
           </span>
           <span className="text-gray-400">›</span>
           <span className="text-ink font-semibold">{collector.name}</span>
@@ -103,7 +103,7 @@ export default function DataCollectorDetailsPage() {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
           <div className="flex items-center gap-3">
             <button
-              onClick={() => navigate("/admin/data-collectors")}
+              onClick={() => navigate("/admin/staff?role=collector")}
               className="h-9 w-9 rounded-lg border border-line bg-white flex items-center justify-center text-ink-soft hover:bg-slate-50 cursor-pointer shrink-0"
               title="Back to collectors"
             >

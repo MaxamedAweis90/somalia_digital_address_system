@@ -361,7 +361,7 @@ export const AddressService = {
         }
       }
 
-      return created;
+      return created.map(serializeAddress);
     });
   },
 
@@ -434,7 +434,7 @@ export const AddressService = {
     });
 
     return {
-      data: addresses,
+      data: addresses.map(serializeAddress),
       pagination: {
         total,
         page: parsedPage,

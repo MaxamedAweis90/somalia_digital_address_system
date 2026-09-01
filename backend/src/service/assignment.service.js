@@ -857,4 +857,34 @@ export const AssignmentService = {
 
     return formatAssignment(updated);
   },
+
+  deleteAssignment: async (id) => {
+    const assignment = await prisma.assignment.findUnique({
+      where: { id },
+      include: {
+        children: { select: { id: true, status: true } },
+      },
+    });
+    if (!assignment) throw new Error("Assignment not found");
+    assertAdminParentAccess(assignment);
+
+    if (assignment.status === "APPROVED") {
+      throw new Error(
+        "Approved assignments cannot be revoked because their work has already been published"
+      );
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.assignment.deleteMany({
+        where: { parentAssignmentId: id },
+      });
+      await tx.assignment.delete({ where: { id } });
+    });
+
+    return {
+      id,
+      status: assignment.status,
+      childCount: assignment.children?.length || 0,
+    };
+  },
 };
