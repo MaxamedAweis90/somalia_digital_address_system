@@ -172,6 +172,7 @@ model Assignment {
   zoneBlockId         String?          @map("zone_block_id")
   parentAssignmentId  String?          @map("parent_assignment_id")
   tier                AssignmentTier   @default(PARENT)
+  expectedCollectorCount Int?          @map("expected_collector_count")
   scope               Json?
   mergeOrder          Int?             @map("merge_order")
   officerReviewedAt   DateTime?        @map("officer_reviewed_at")
