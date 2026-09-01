@@ -1,7 +1,8 @@
 {
   "scripts": {
+    "start": "npm --prefix backend start",
+    "build": "npm --prefix backend run build",
     "dev": "npm --prefix frontend run dev",
-    "build": "npm --prefix frontend run build",
     "lint": "npm --prefix frontend run lint",
     "test:e2e": "npm --prefix frontend run test:e2e",
     "test:e2e:headed": "npm --prefix frontend run test:e2e:headed"
