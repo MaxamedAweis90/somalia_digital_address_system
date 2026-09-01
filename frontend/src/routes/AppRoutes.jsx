@@ -16,7 +16,6 @@ import CollectorAssignments from "@/pages/collector/CollectorAssignments";
 import OfficerReviewQueue from "@/pages/officer/OfficerReviewQueue";
 import OfficerCollectorReviewQueue from "@/pages/officer/OfficerCollectorReviewQueue";
 import OfficerCollectors from "@/pages/officer/OfficerCollectors";
-import PlaceholderPage from "@/pages/admin/PlaceholderPage";
 
 // Region, District, Zone & Zone Block pages
 import Regions from "@/pages/regions/Regions";
@@ -49,6 +48,7 @@ import Assignments from "@/pages/assignments/Assignments";
 import AddAssignment from "@/pages/assignments/AddAssignment";
 import AssignmentDetail from "@/pages/assignments/AssignmentDetail";
 import AuditLogsPage from "@/pages/admin/AuditLogsPage";
+import RegistrySearch from "@/pages/search/RegistrySearch";
 
 export default function AppRoutes() {
   return (
@@ -109,15 +109,7 @@ export default function AppRoutes() {
         <Route path="addresses/edit/:id" element={<EditAddress />} />
 
         {/* Other routes */}
-        <Route
-          path="search"
-          element={
-            <PlaceholderPage
-              title="Address Lookup & Search"
-              description="Query and inspect registered digital addresses and geographic coordinates."
-            />
-          }
-        />
+        <Route path="search" element={<RegistrySearch />} />
         <Route path="staff" element={<Staff />} />
         <Route path="data-officers" element={<Navigate to="/admin/staff" replace />} />
         <Route path="data-officers/add" element={<AddDataOfficer />} />

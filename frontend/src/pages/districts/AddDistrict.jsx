@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { createDistrict } from "@/api/districtApi";
-import { getRegions } from "@/api/regionApi";
+import { getRegionOptions } from "@/api/regionApi";
+import { extractListFromResponse } from "@/utils/apiResponse";
 
 const AddDistrict = () => {
   const navigate = useNavigate();
@@ -26,9 +27,9 @@ const AddDistrict = () => {
   const [serverError, setServerError] = useState(null);
 
   useEffect(() => {
-    getRegions()
+    getRegionOptions()
       .then((res) => {
-        const data = res.data.data || [];
+        const data = extractListFromResponse(res);
         setRegions(data);
         if (data.length > 0) {
           setFormData((prev) => ({ ...prev, regionId: data[0].id }));

@@ -10,6 +10,7 @@ export default function PortalShell({
   navItems = [],
   footerNavItems = [],
   roleLabel,
+  searchPath = null,
 }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -21,6 +22,12 @@ export default function PortalShell({
   useEffect(() => {
     setMobileOpen(false);
   }, [location.pathname]);
+
+  useEffect(() => {
+    if (!searchPath || !location.pathname.startsWith(searchPath)) return;
+    const params = new URLSearchParams(location.search);
+    setSearchQuery(params.get("q") || "");
+  }, [location.pathname, location.search, searchPath]);
 
   useEffect(() => {
     if (!mobileOpen) return undefined;
@@ -173,6 +180,7 @@ export default function PortalShell({
           roleLabel={roleLabel}
           user={user}
           onMenuClick={() => setMobileOpen(true)}
+          searchPath={searchPath}
         />
 
         <main className="flex-1 overflow-y-auto bg-bg">

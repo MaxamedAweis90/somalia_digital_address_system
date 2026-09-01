@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { createAssignment } from "@/api/assignmentApi";
-import { getDistricts } from "@/api/districtApi";
-import { getZones } from "@/api/zoneApi";
-import { getDataOfficers } from "@/api/dataOfficerApi";
+import { getDistrictOptions } from "@/api/districtApi";
+import { getZoneOptions } from "@/api/zoneApi";
+import { getDataOfficerOptions } from "@/api/dataOfficerApi";
+import { extractListFromResponse } from "@/utils/apiResponse";
 import Breadcrumb from "@/components/ui/Breadcrumb";
 import PageHeader from "@/components/ui/PageHeader";
 
@@ -26,10 +27,10 @@ export default function AddAssignment() {
   const [serverError, setServerError] = useState(null);
 
   useEffect(() => {
-    Promise.all([getDistricts(), getDataOfficers()])
+    Promise.all([getDistrictOptions(), getDataOfficerOptions()])
       .then(([districtRes, officerRes]) => {
-        const districtData = districtRes.data.data || [];
-        const officerData = officerRes.data.data || [];
+        const districtData = extractListFromResponse(districtRes);
+        const officerData = extractListFromResponse(officerRes);
         setDistricts(districtData);
         setOfficers(officerData);
         setFormData((prev) => ({
@@ -49,9 +50,9 @@ export default function AddAssignment() {
       return;
     }
 
-    getZones(formData.districtId)
+    getZoneOptions(formData.districtId)
       .then((res) => {
-        const data = res.data.data || [];
+        const data = extractListFromResponse(res);
         setZones(data);
         setFormData((prev) => ({
           ...prev,

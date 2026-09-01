@@ -6,6 +6,10 @@ import api from "./axios";
  */
 export const getZones = (params) => api.get("/admin/zones", { params });
 
+/** Fetch up to 100 zones for form dropdowns */
+export const getZoneOptions = (districtId) =>
+  getZones({ districtId, page: 1, limit: 100 });
+
 export const getZoneById = (id) => api.get(`/admin/zones/${id}`);
 
 export const createZone = (data) => api.post("/admin/zones", data);

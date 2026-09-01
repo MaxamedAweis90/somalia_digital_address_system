@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { createZone } from "@/api/zoneApi";
-import { getDistricts } from "@/api/districtApi";
+import { getDistrictOptions } from "@/api/districtApi";
+import { extractListFromResponse } from "@/utils/apiResponse";
 import ZoneMapEditor from "@/components/zones/ZoneMapEditor";
 
 export default function AddZone() {
@@ -22,9 +23,9 @@ export default function AddZone() {
   const [geometry, setGeometry] = useState(null);
 
   useEffect(() => {
-    getDistricts()
+    getDistrictOptions()
       .then((res) => {
-        const data = res.data.data || [];
+        const data = extractListFromResponse(res);
         setDistricts(data);
         if (data.length > 0) {
           setFormData((prev) => ({ ...prev, districtId: data[0].id }));

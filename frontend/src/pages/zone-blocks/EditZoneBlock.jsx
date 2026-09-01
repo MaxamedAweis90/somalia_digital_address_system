@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { getZoneBlockById, updateZoneBlock } from "@/api/zoneBlockApi";
-import { getDistricts } from "@/api/districtApi";
-import { getZones, getZoneById } from "@/api/zoneApi";
+import { getDistrictOptions } from "@/api/districtApi";
+import { extractListFromResponse } from "@/utils/apiResponse";
+import { getZoneOptions, getZoneById } from "@/api/zoneApi";
 import ZoneMapEditor from "@/components/zone-blocks/ZoneMapEditor";
 import { isValidPolygonGeometry } from "@/utils/geojson";
 import { Loader2 } from "lucide-react";
@@ -46,11 +47,11 @@ export default function EditZoneBlock() {
 
         const [zoneBlockRes, districtsRes] = await Promise.all([
           getZoneBlockById(id),
-          getDistricts(),
+          getDistrictOptions(),
         ]);
 
         const zoneBlock = zoneBlockRes.data.data;
-        const districtList = districtsRes.data.data || [];
+        const districtList = extractListFromResponse(districtsRes);
         setDistricts(districtList);
 
         const districtId =
@@ -60,8 +61,8 @@ export default function EditZoneBlock() {
 
         let zoneList = [];
         if (districtId) {
-          const zonesRes = await getZones(districtId);
-          zoneList = zonesRes.data.data || [];
+          const zonesRes = await getZoneOptions(districtId);
+          zoneList = extractListFromResponse(zonesRes);
         }
         setZones(zoneList);
 
@@ -90,9 +91,9 @@ export default function EditZoneBlock() {
     if (loadingPage || !formData.districtId) return;
 
     setLoadingZones(true);
-    getZones(formData.districtId)
+    getZoneOptions(formData.districtId)
       .then((res) => {
-        const data = res.data.data || [];
+        const data = extractListFromResponse(res);
         setZones(data);
 
         setFormData((prev) => {

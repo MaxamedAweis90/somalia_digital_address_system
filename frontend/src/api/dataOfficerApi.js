@@ -7,6 +7,10 @@ import api from "./axios";
 export const getDataOfficers = (params) =>
   api.get("/admin/data-officers", { params });
 
+/** Fetch up to 100 data officers for form dropdowns */
+export const getDataOfficerOptions = () =>
+  getDataOfficers({ page: 1, limit: 100 });
+
 export const getDataOfficerById = (id) => api.get(`/admin/data-officers/${id}`);
 
 export const createDataOfficer = (data) =>

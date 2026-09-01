@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { getDistrictById, updateDistrict } from "@/api/districtApi";
-import { getRegions } from "@/api/regionApi";
+import { getRegionOptions } from "@/api/regionApi";
+import { extractListFromResponse } from "@/utils/apiResponse";
 import { Loader2 } from "lucide-react";
 
 const EditDistrict = () => {
@@ -34,11 +35,11 @@ const EditDistrict = () => {
 
         const [distRes, regRes] = await Promise.all([
           getDistrictById(id),
-          getRegions(),
+          getRegionOptions(),
         ]);
 
         const dist = distRes.data.data;
-        const regList = regRes.data.data || [];
+        const regList = extractListFromResponse(regRes);
 
         setRegions(regList);
         setFormData({

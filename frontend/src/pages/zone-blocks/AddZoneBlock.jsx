@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { createZoneBlock } from "@/api/zoneBlockApi";
-import { getDistricts } from "@/api/districtApi";
-import { getZones, getZoneById } from "@/api/zoneApi";
+import { getDistrictOptions } from "@/api/districtApi";
+import { extractListFromResponse } from "@/utils/apiResponse";
+import { getZoneById, getZoneOptions } from "@/api/zoneApi";
 import ZoneMapEditor from "@/components/zone-blocks/ZoneMapEditor";
 import { isValidPolygonGeometry } from "@/utils/geojson";
 
@@ -36,9 +37,9 @@ export default function AddZoneBlock() {
   const [serverError, setServerError] = useState(null);
 
   useEffect(() => {
-    getDistricts()
+    getDistrictOptions()
       .then((res) => {
-        const data = res.data.data || [];
+        const data = extractListFromResponse(res);
         setDistricts(data);
         if (data.length > 0) {
           setFormData((prev) => ({ ...prev, districtId: data[0].id }));
@@ -55,9 +56,9 @@ export default function AddZoneBlock() {
     }
 
     setLoadingZones(true);
-    getZones(formData.districtId)
+    getZoneOptions(formData.districtId)
       .then((res) => {
-        const data = res.data.data || [];
+        const data = extractListFromResponse(res);
         setZones(data);
         setFormData((prev) => ({
           ...prev,

@@ -2,9 +2,10 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { getAddressById, previewAddressCode, updateAddress } from "@/api/addressApi";
-import { getDistricts } from "@/api/districtApi";
-import { getZones } from "@/api/zoneApi";
+import { getDistrictOptions } from "@/api/districtApi";
+import { getZoneOptions } from "@/api/zoneApi";
 import { getZoneBlocks } from "@/api/zoneBlockApi";
+import { extractListFromResponse } from "@/utils/apiResponse";
 import LocationMapPicker from "@/components/addresses/LocationMapPicker";
 import { parseLocation } from "@/utils/location";
 
@@ -42,24 +43,24 @@ export default function EditAddress() {
         setLoadingPage(true);
         const [addressRes, districtsRes] = await Promise.all([
           getAddressById(id),
-          getDistricts(),
+          getDistrictOptions(),
         ]);
 
         const address = addressRes.data.data;
-        const districtList = districtsRes.data.data || [];
+        const districtList = extractListFromResponse(districtsRes);
         setDistricts(districtList);
 
         let zoneList = [];
         if (address.districtId) {
-          const zonesRes = await getZones(address.districtId);
-          zoneList = zonesRes.data.data || [];
+          const zonesRes = await getZoneOptions(address.districtId);
+          zoneList = extractListFromResponse(zonesRes);
         }
         setZones(zoneList);
 
         let zoneBlockList = [];
         if (address.zoneId) {
           const zoneBlocksRes = await getZoneBlocks(address.zoneId);
-          zoneBlockList = zoneBlocksRes.data.data || [];
+          zoneBlockList = extractListFromResponse(zoneBlocksRes);
         }
         setZoneBlocks(zoneBlockList);
 
@@ -89,9 +90,9 @@ export default function EditAddress() {
     if (loadingPage || !formData.districtId) return;
 
     setLoadingZones(true);
-    getZones(formData.districtId)
+    getZoneOptions(formData.districtId)
       .then((res) => {
-        const data = res.data.data || [];
+        const data = extractListFromResponse(res);
         setZones(data);
         setFormData((prev) => {
           const stillValid = data.some((z) => z.id === prev.zoneId);
@@ -110,7 +111,7 @@ export default function EditAddress() {
     setLoadingZoneBlocks(true);
     getZoneBlocks(formData.zoneId)
       .then((res) => {
-        const data = res.data.data || [];
+        const data = extractListFromResponse(res);
         setZoneBlocks(data);
         setFormData((prev) => {
           const stillValid = data.some((block) => block.id === prev.zoneBlockId);

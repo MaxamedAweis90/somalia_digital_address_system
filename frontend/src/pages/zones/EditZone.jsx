@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { getZoneById, updateZone } from "@/api/zoneApi";
-import { getDistricts } from "@/api/districtApi";
+import { getDistrictOptions } from "@/api/districtApi";
+import { extractListFromResponse } from "@/utils/apiResponse";
 import ZoneMapEditor from "@/components/zones/ZoneMapEditor";
 import { Loader2 } from "lucide-react";
 
@@ -36,11 +37,11 @@ export default function EditZone() {
 
         const [zoneRes, distRes] = await Promise.all([
           getZoneById(id),
-          getDistricts(),
+          getDistrictOptions(),
         ]);
 
         const zone = zoneRes.data.data;
-        const distList = distRes.data.data || [];
+        const distList = extractListFromResponse(distRes);
 
         setDistricts(distList);
         setFormData({

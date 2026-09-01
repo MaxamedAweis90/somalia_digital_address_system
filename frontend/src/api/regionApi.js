@@ -6,6 +6,9 @@ import api from "./axios";
  */
 export const getRegions = (params) => api.get("/admin/regions", { params });
 
+/** Fetch up to 100 regions for form dropdowns */
+export const getRegionOptions = () => getRegions({ page: 1, limit: 100 });
+
 export const getRegionById = (id) => api.get(`/admin/regions/${id}`);
 
 export const createRegion = (data) => api.post("/admin/regions", data);

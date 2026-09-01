@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { createAddress, previewAddressCode } from "@/api/addressApi";
-import { getDistricts } from "@/api/districtApi";
-import { getZones } from "@/api/zoneApi";
+import { getDistrictOptions } from "@/api/districtApi";
+import { getZoneOptions } from "@/api/zoneApi";
 import { getZoneBlocks } from "@/api/zoneBlockApi";
+import { extractListFromResponse } from "@/utils/apiResponse";
 import LocationMapPicker from "@/components/addresses/LocationMapPicker";
 
 export default function AddAddress() {
@@ -33,9 +34,9 @@ export default function AddAddress() {
   const [serverError, setServerError] = useState(null);
 
   useEffect(() => {
-    getDistricts()
+    getDistrictOptions()
       .then((res) => {
-        const data = res.data.data || [];
+        const data = extractListFromResponse(res);
         setDistricts(data);
         if (data.length > 0) {
           setFormData((prev) => ({ ...prev, districtId: data[0].id }));
@@ -52,9 +53,9 @@ export default function AddAddress() {
     }
 
     setLoadingZones(true);
-    getZones(formData.districtId)
+    getZoneOptions(formData.districtId)
       .then((res) => {
-        const data = res.data.data || [];
+        const data = extractListFromResponse(res);
         setZones(data);
         setFormData((prev) => ({
           ...prev,
@@ -74,7 +75,7 @@ export default function AddAddress() {
     setLoadingZoneBlocks(true);
     getZoneBlocks(formData.zoneId)
       .then((res) => {
-        const data = res.data.data || [];
+        const data = extractListFromResponse(res);
         setZoneBlocks(data);
         setFormData((prev) => ({
           ...prev,

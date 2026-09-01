@@ -36,6 +36,7 @@ export default function SysAdminLayout() {
       navItems={navItems}
       footerNavItems={footerNavItems}
       roleLabel="SYS_ADMIN"
+      searchPath="/admin/search"
     />
   );
 }
