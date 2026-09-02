@@ -80,6 +80,22 @@ export function getAssignmentDraftCount(assignment) {
   return assignment.payload?.zoneBlocks?.length || 0;
 }
 
+export function getSubmittedCoordinateCount(assignment) {
+  if (assignment?.type !== "REGISTER_ADDRESSES") {
+    return 0;
+  }
+
+  const addresses = assignment.payload?.addresses || [];
+
+  return addresses.filter(
+    (address) =>
+      address?.latitude != null &&
+      address?.longitude != null &&
+      Number.isFinite(Number(address.latitude)) &&
+      Number.isFinite(Number(address.longitude))
+  ).length;
+}
+
 export function getAssignmentDraftLabel(assignment) {
   return assignment?.type === "REGISTER_ADDRESSES" ? "Draft Addresses" : "Draft Zone Blocks";
 }

@@ -35,7 +35,11 @@ export function MapBoundaryLayer({
   return null;
 }
 
-export function FitMapToGeometries({ geometries = [], position = null }) {
+export function FitMapToGeometries({
+  geometries = [],
+  position = null,
+  positions = [],
+}) {
   const map = useMap();
 
   useEffect(() => {
@@ -47,14 +51,24 @@ export function FitMapToGeometries({ geometries = [], position = null }) {
       });
     });
 
-    if (position?.latitude != null && position?.longitude != null) {
-      group.addLayer(L.marker([position.latitude, position.longitude]));
-    }
+    const fitPositions = [
+      ...(position?.latitude != null && position?.longitude != null ? [position] : []),
+      ...positions.filter(
+        (item) => item?.latitude != null && item?.longitude != null
+      ),
+    ];
+
+    fitPositions.forEach((item) => {
+      group.addLayer(L.marker([item.latitude, item.longitude]));
+    });
 
     if (group.getLayers().length > 0) {
-      map.fitBounds(group.getBounds(), { padding: [24, 24], maxZoom: 16 });
+      map.whenReady(() => {
+        map.fitBounds(group.getBounds(), { padding: [24, 24], maxZoom: 16 });
+        map.invalidateSize();
+      });
     }
-  }, [geometries, position, map]);
+  }, [geometries, position, positions, map]);
 
   return null;
 }

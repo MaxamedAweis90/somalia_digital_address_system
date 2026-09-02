@@ -1,3 +1,20 @@
+export function formatCoordinates(latitude, longitude, { missingLabel = "—" } = {}) {
+  if (latitude == null || longitude == null) {
+    return missingLabel;
+  }
+
+  return `${Number(latitude).toFixed(6)}, ${Number(longitude).toFixed(6)}`;
+}
+
+export function hasValidCoordinates(latitude, longitude) {
+  return (
+    latitude != null &&
+    longitude != null &&
+    Number.isFinite(Number(latitude)) &&
+    Number.isFinite(Number(longitude))
+  );
+}
+
 export function isValidPolygonGeometry(geometry) {
   if (!geometry || geometry.type !== "Polygon") {
     return false;

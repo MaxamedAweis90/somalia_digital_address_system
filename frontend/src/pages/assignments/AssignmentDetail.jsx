@@ -120,8 +120,8 @@ export default function AssignmentDetail() {
             workflowMode === "collector"
               ? "Complete your assigned field work and submit to your data officer."
               : workflowMode === "officer-review"
-                ? "Review the collector's submission."
-                : "Review the merged submission from the data officer."
+                ? "Review the collector's submitted addresses and GPS coordinates."
+                : "Review the merged submission and GPS coordinates from the data officer."
           }
           actions={
             <div className="flex items-center gap-2">

@@ -12,6 +12,7 @@ import { getZoneBlocks } from "@/api/zoneBlockApi";
 import AssignmentStatusBadge, {
   formatAssignmentLocation,
   getAssignmentDraftCount,
+  getSubmittedCoordinateCount,
 } from "@/components/assignments/AssignmentStatusBadge";
 import Breadcrumb from "@/components/ui/Breadcrumb";
 import PageHeader from "@/components/ui/PageHeader";
@@ -314,6 +315,7 @@ export default function OfficerParentDetail() {
                   <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase text-ink-soft">Collector</th>
                   <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase text-ink-soft">Status</th>
                   <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase text-ink-soft">Draft Items</th>
+                  <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase text-ink-soft">GPS Pins</th>
                   <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase text-ink-soft">Actions</th>
                 </tr>
               </thead>
@@ -330,6 +332,11 @@ export default function OfficerParentDetail() {
                       <td className="px-5 py-4 text-[12px] font-medium text-ink">{child.assignedTo?.name}</td>
                       <td className="px-5 py-4"><AssignmentStatusBadge status={child.status} /></td>
                       <td className="px-5 py-4 text-[12px]">{getAssignmentDraftCount(child)}</td>
+                      <td className="px-5 py-4 text-[12px] font-mono text-ink-soft">
+                        {assignment.type === "REGISTER_ADDRESSES"
+                          ? `${getSubmittedCoordinateCount(child)} / ${getAssignmentDraftCount(child)}`
+                          : "—"}
+                      </td>
                       <td className="px-5 py-4">
                         <div className="flex gap-2">
                           <button
@@ -350,7 +357,7 @@ export default function OfficerParentDetail() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={5} className="px-5 py-10 text-center text-[12px] text-ink-soft">
+                    <td colSpan={6} className="px-5 py-10 text-center text-[12px] text-ink-soft">
                       No collector tasks yet. Delegate work to begin field collection.
                     </td>
                   </tr>

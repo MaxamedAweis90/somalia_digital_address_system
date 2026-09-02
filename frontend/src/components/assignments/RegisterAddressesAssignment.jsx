@@ -24,6 +24,7 @@ import AssignmentStatusBadge, {
 } from "@/components/assignments/AssignmentStatusBadge";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { AssignmentWorkSteps } from "@/components/assignments/OfficerWorkflowGuide";
+import { formatCoordinates, hasValidCoordinates } from "@/utils/geojson";
 
 function createEmptyAddress() {
   return {
@@ -42,6 +43,7 @@ export default function RegisterAddressesAssignment({
 }) {
   const [assignment, setAssignment] = useState(null);
   const [zoneBlockGeometry, setZoneBlockGeometry] = useState(null);
+  const [zoneBlockGeometries, setZoneBlockGeometries] = useState([]);
   const [zoneGeometry, setZoneGeometry] = useState(null);
   const [draftAddresses, setDraftAddresses] = useState([]);
   const [selectedClientId, setSelectedClientId] = useState(null);
@@ -65,6 +67,8 @@ export default function RegisterAddressesAssignment({
   const canReview =
     (workflowMode === "admin" && assignment?.status === "SUBMITTED") ||
     (workflowMode === "officer-review" && assignment?.status === "SUBMITTED");
+
+  const isReviewView = !canEdit;
 
   const selectedAddress =
     draftAddresses.find((address) => address.clientId === selectedClientId) || null;
@@ -107,9 +111,32 @@ export default function RegisterAddressesAssignment({
           getZoneById(data.zoneId),
         ]);
 
-        setZoneBlockGeometry(zoneBlockRes.data.data?.geometry || null);
+        const zoneBlock = zoneBlockRes.data.data;
+        setZoneBlockGeometry(zoneBlock?.geometry || null);
+        setZoneBlockGeometries(zoneBlock ? [zoneBlock] : []);
         setZoneGeometry(zoneRes.data.data?.geometry || null);
         await loadDacPreview(data.zoneBlockId);
+      } else if (data.zoneId) {
+        const zoneRes = await getZoneById(data.zoneId);
+        setZoneGeometry(zoneRes.data.data?.geometry || null);
+        setZoneBlockGeometry(null);
+
+        const blockIds = [
+          ...new Set(addresses.map((address) => address.zoneBlockId).filter(Boolean)),
+        ];
+
+        if (blockIds.length) {
+          const blockResponses = await Promise.all(
+            blockIds.map((blockId) => getZoneBlockById(blockId))
+          );
+          const blocks = blockResponses
+            .map((res) => res.data.data)
+            .filter(Boolean);
+          setZoneBlockGeometries(blocks);
+          setZoneBlockGeometry(blocks[0]?.geometry || null);
+        } else {
+          setZoneBlockGeometries([]);
+        }
       }
     } catch (err) {
       setError(err.response?.data?.message || "Failed to load assignment");
@@ -385,11 +412,13 @@ export default function RegisterAddressesAssignment({
           <div className="rounded-xl border border-line bg-white p-5 shadow-card-sm">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <h2 className="text-[15px] font-semibold text-ink">Draft Addresses</h2>
+                <h2 className="text-[15px] font-semibold text-ink">
+                  {isReviewView ? "Submitted Addresses" : "Draft Addresses"}
+                </h2>
                 <p className="mt-1 text-[12px] text-ink-soft">
                   {canEdit
                     ? "Add addresses and place each pin inside the zone."
-                    : "Submitted address drafts awaiting review."}
+                    : "Review each submitted address and its GPS coordinates on the map."}
                 </p>
               </div>
               {canEdit && (
@@ -424,6 +453,11 @@ export default function RegisterAddressesAssignment({
                       <p className="text-[11px] text-ink-soft font-mono">
                         {previewCodes[index] || "DAC preview pending"}
                       </p>
+                      {hasValidCoordinates(address.latitude, address.longitude) && (
+                        <p className="mt-0.5 text-[10px] font-mono text-ink-soft">
+                          {formatCoordinates(address.latitude, address.longitude)}
+                        </p>
+                      )}
                     </div>
                     {canEdit && (
                       <span
@@ -488,6 +522,22 @@ export default function RegisterAddressesAssignment({
                     />
                   </div>
                   <div className="rounded-lg bg-bg border border-line px-3 py-2 text-[12px]">
+                    <p className="text-ink-soft">GPS Coordinates</p>
+                    <p className="font-mono font-semibold text-ink">
+                      {formatCoordinates(
+                        selectedAddress.latitude,
+                        selectedAddress.longitude,
+                        { missingLabel: "No coordinates submitted" }
+                      )}
+                    </p>
+                    {hasValidCoordinates(selectedAddress.latitude, selectedAddress.longitude) && (
+                      <p className="mt-1 text-[11px] text-ink-soft">
+                        Lat {Number(selectedAddress.latitude).toFixed(6)} · Lng{" "}
+                        {Number(selectedAddress.longitude).toFixed(6)}
+                      </p>
+                    )}
+                  </div>
+                  <div className="rounded-lg bg-bg border border-line px-3 py-2 text-[12px]">
                     <p className="text-ink-soft">DAC Preview</p>
                     <p className="font-mono font-semibold text-ink">
                       {previewCodes[draftAddresses.findIndex((item) => item.clientId === selectedClientId)] ||
@@ -498,12 +548,24 @@ export default function RegisterAddressesAssignment({
               </div>
 
               <div className="rounded-xl border border-line bg-white p-5 shadow-card-sm">
+                <div className="mb-4">
+                  <h2 className="text-[15px] font-semibold text-ink">
+                    {isReviewView ? "Submitted Address Map" : "Address Map"}
+                  </h2>
+                  <p className="mt-1 text-[12px] text-ink-soft">
+                    {isReviewView
+                      ? "All submitted pins are shown by latitude and longitude."
+                      : "Place each address pin inside the zone block boundary."}
+                  </p>
+                </div>
                 <AddressDraftMap
                   zoneBlockGeometry={zoneBlockGeometry}
+                  zoneBlockGeometries={zoneBlockGeometries}
                   zoneGeometry={zoneGeometry}
                   addresses={draftAddresses}
                   selectedClientId={selectedClientId}
                   onPinChange={(coords) => updateSelectedAddress(coords)}
+                  onSelectAddress={setSelectedClientId}
                   editable={canEdit}
                 />
               </div>

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { getCollectorReviewQueue } from "@/api/officerApi";
-import { getAssignmentDraftCount } from "@/components/assignments/AssignmentStatusBadge";
+import { getAssignmentDraftCount, getSubmittedCoordinateCount } from "@/components/assignments/AssignmentStatusBadge";
 import Breadcrumb from "@/components/ui/Breadcrumb";
 import PageHeader from "@/components/ui/PageHeader";
 
@@ -67,6 +67,9 @@ export default function OfficerCollectorReviewQueue() {
                     Addresses
                   </th>
                   <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase text-ink-soft">
+                    GPS Pins
+                  </th>
+                  <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase text-ink-soft">
                     Submitted
                   </th>
                   <th className="px-5 py-4 text-right text-[11px] font-semibold uppercase text-ink-soft">
@@ -77,7 +80,7 @@ export default function OfficerCollectorReviewQueue() {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={6} className="py-12 text-center">
+                    <td colSpan={7} className="py-12 text-center">
                       <Loader2 className="mx-auto h-5 w-5 animate-spin text-blue" />
                     </td>
                   </tr>
@@ -109,6 +112,10 @@ export default function OfficerCollectorReviewQueue() {
                       <td className="px-5 py-4 text-[12px] font-semibold text-ink">
                         {getAssignmentDraftCount(assignment)}
                       </td>
+                      <td className="px-5 py-4 text-[12px] font-mono text-ink-soft">
+                        {getSubmittedCoordinateCount(assignment)} /{" "}
+                        {getAssignmentDraftCount(assignment)}
+                      </td>
                       <td className="px-5 py-4 text-[12px] text-ink-soft">
                         {assignment.submittedAt
                           ? new Date(assignment.submittedAt).toLocaleDateString()
@@ -127,7 +134,7 @@ export default function OfficerCollectorReviewQueue() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={6} className="py-12 text-center text-[12px] text-ink-soft">
+                    <td colSpan={7} className="py-12 text-center text-[12px] text-ink-soft">
                       No collector submissions are waiting for review.
                     </td>
                   </tr>
