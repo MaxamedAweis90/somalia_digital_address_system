@@ -214,6 +214,65 @@ async function upsertDistrict(code, data) {
   });
 }
 
+const DISTRICT_BOUNDARY_URL =
+  "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/SOM/ADM2/geoBoundaries-SOM-ADM2_simplified.geojson";
+
+function normalizeDistrictName(name) {
+  return name.toUpperCase().replace(/[^A-Z0-9]/g, "");
+}
+
+function matchDistrictFeature(features, districtName) {
+  const normalized = normalizeDistrictName(districtName);
+  const exact = features.find(
+    (feature) => normalizeDistrictName(feature.properties.shapeName) === normalized
+  );
+  if (exact) return exact;
+
+  const firstToken = districtName.split(/[\s(]/)[0].toUpperCase();
+  return features.find((feature) => {
+    const shapeName = feature.properties.shapeName.toUpperCase();
+    return shapeName.startsWith(firstToken) || firstToken.startsWith(shapeName.slice(0, 4));
+  });
+}
+
+async function importDistrictBoundaries() {
+  console.log("🗺️ Importing official Somalia district boundaries...");
+
+  const response = await fetch(DISTRICT_BOUNDARY_URL);
+  if (!response.ok) {
+    throw new Error(`Failed to download district boundaries (${response.status})`);
+  }
+
+  const geojson = await response.json();
+  const features = geojson.features || [];
+  const districts = await prisma.district.findMany({
+    select: { id: true, name: true, code: true },
+  });
+
+  let matched = 0;
+  const unmatched = [];
+
+  for (const district of districts) {
+    const feature = matchDistrictFeature(features, district.name);
+    if (!feature) {
+      unmatched.push(district.name);
+      continue;
+    }
+
+    await prisma.$executeRaw`
+      UPDATE districts
+      SET geometry = ST_SetSRID(ST_GeomFromGeoJSON(${JSON.stringify(feature.geometry)}), 4326)
+      WHERE id = ${district.id}
+    `;
+    matched += 1;
+  }
+
+  console.log(`✅ District boundaries imported for ${matched}/${districts.length} districts.`);
+  if (unmatched.length) {
+    console.log(`⚠️ No boundary match for: ${unmatched.join(", ")}`);
+  }
+}
+
 async function main() {
   console.log("🌱 Seeding database with Admin users and official Somali regions...");
 
@@ -284,6 +343,7 @@ async function main() {
   console.log(`✅ ${regionCount} official Somali regions successfully seeded.`);
   console.log(`✅ ${districtCount} districts successfully seeded.`);
 
+  await withRetry(() => importDistrictBoundaries());
 }
 
 main()

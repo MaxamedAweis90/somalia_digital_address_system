@@ -538,8 +538,10 @@ export default function Reports() {
           </div>
 
           <Pagination
-            currentPage={assignmentLifecycle.pagination.page}
+            page={assignmentLifecycle.pagination.page}
             totalPages={assignmentLifecycle.pagination.totalPages}
+            total={assignmentLifecycle.pagination.totalCount}
+            pageSize={assignmentLifecycle.pagination.limit}
             onPageChange={(page) => setAssignmentPage(page)}
           />
         </div>

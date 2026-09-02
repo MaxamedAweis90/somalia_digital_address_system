@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { getZoneById, updateZone } from "@/api/zoneApi";
-import { getDistricts } from "@/api/districtApi";
+import { getDistrictOptions, getDistrictGeometry } from "@/api/districtApi";
 import ZoneMapEditor from "@/components/zones/ZoneMapEditor";
+import { isPolygonWithinGeometry } from "@/utils/geojson";
 import { Loader2 } from "lucide-react";
 
 export default function EditZone() {
@@ -17,6 +18,8 @@ export default function EditZone() {
   });
 
   const [districts, setDistricts] = useState([]);
+  const [districtGeometry, setDistrictGeometry] = useState(null);
+  const [districtLabel, setDistrictLabel] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [serverError, setServerError] = useState(null);
@@ -26,6 +29,7 @@ export default function EditZone() {
     name: "",
     code: "",
     districtId: "",
+    geometry: "",
   });
 
   useEffect(() => {
@@ -34,13 +38,12 @@ export default function EditZone() {
         setLoading(true);
         setServerError(null);
 
-        const [zoneRes, distRes] = await Promise.all([
+        const [zoneRes, distList] = await Promise.all([
           getZoneById(id),
-          getDistricts(),
+          getDistrictOptions(),
         ]);
 
         const zone = zoneRes.data.data;
-        const distList = distRes.data.data || [];
 
         setDistricts(distList);
         setFormData({
@@ -63,6 +66,32 @@ export default function EditZone() {
     }
   }, [id]);
 
+  useEffect(() => {
+    if (!formData.districtId) {
+      setDistrictGeometry(null);
+      setDistrictLabel("");
+      return;
+    }
+
+    getDistrictGeometry(formData.districtId)
+      .then(({ geometry, name }) => {
+        setDistrictGeometry(geometry);
+        setDistrictLabel(name);
+      })
+      .catch(() => {
+        setDistrictGeometry(null);
+        setDistrictLabel("");
+      });
+  }, [formData.districtId]);
+
+  useEffect(() => {
+    if (!geometry || !districtGeometry) return;
+
+    if (!isPolygonWithinGeometry(geometry, districtGeometry)) {
+      setGeometry(null);
+    }
+  }, [formData.districtId, districtGeometry]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -74,7 +103,7 @@ export default function EditZone() {
   };
 
   const validateForm = () => {
-    const newErrors = { name: "", code: "", districtId: "" };
+    const newErrors = { name: "", code: "", districtId: "", geometry: "" };
     let isValid = true;
 
     if (!formData.name.trim()) {
@@ -92,6 +121,15 @@ export default function EditZone() {
 
     if (!formData.districtId) {
       newErrors.districtId = "Please select a parent district";
+      isValid = false;
+    }
+
+    if (
+      geometry &&
+      districtGeometry &&
+      !isPolygonWithinGeometry(geometry, districtGeometry)
+    ) {
+      newErrors.geometry = "Zone boundary must stay inside the selected district boundary";
       isValid = false;
     }
 
@@ -167,13 +205,13 @@ export default function EditZone() {
 
         {/* Server Error */}
         {serverError && (
-          <div className="mb-6 max-w-[635px] rounded-lg bg-red-50 p-4 border border-red-200 text-red-700 text-sm">
+          <div className="mb-6 rounded-lg bg-red-50 p-4 border border-red-200 text-red-700 text-sm">
             {serverError}
           </div>
         )}
 
         {/* MAIN CARD */}
-        <div className="w-full max-w-[900px] bg-white border border-line rounded-xl shadow-card-sm overflow-hidden">
+        <div className="w-full bg-white border border-line rounded-xl shadow-card-sm overflow-hidden">
           <div className="px-5 py-5 border-b border-line">
             <h2 className="text-[18px] font-semibold text-ink">
               Zone Details
@@ -337,13 +375,23 @@ export default function EditZone() {
                   Zone Boundary
                 </label>
                 <p className="mb-3 text-[12px] text-ink-soft">
-                  Optional official boundary polygon used to validate zone block assignments.
+                  Draw the zone inside the selected district boundary shown on the map.
                 </p>
+                {districtLabel && (
+                  <p className="mb-2 text-[12px] font-medium text-ink">
+                    District: <span className="font-semibold">{districtLabel}</span>
+                  </p>
+                )}
                 <ZoneMapEditor
                   geometry={geometry}
                   onChange={setGeometry}
                   height="420px"
+                  boundaryGeometry={districtGeometry}
+                  boundaryLabel="District boundary"
                 />
+                {errors.geometry && (
+                  <p className="mt-1.5 text-[11px] text-red-500">{errors.geometry}</p>
+                )}
               </div>
 
               {/* STATUS TOGGLE */}

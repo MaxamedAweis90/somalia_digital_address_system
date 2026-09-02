@@ -2,11 +2,12 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { getAddressById, previewAddressCode, updateAddress } from "@/api/addressApi";
-import { getDistricts } from "@/api/districtApi";
-import { getZones } from "@/api/zoneApi";
-import { getZoneBlocks } from "@/api/zoneBlockApi";
+import { getDistrictOptions } from "@/api/districtApi";
+import { getZoneOptions, getZoneById } from "@/api/zoneApi";
+import { getZoneBlockOptions, getZoneBlockById } from "@/api/zoneBlockApi";
 import LocationMapPicker from "@/components/addresses/LocationMapPicker";
 import { parseLocation } from "@/utils/location";
+import { isPointInGeometry } from "@/utils/geojson";
 
 export default function EditAddress() {
   const { id } = useParams();
@@ -26,6 +27,8 @@ export default function EditAddress() {
   const [districts, setDistricts] = useState([]);
   const [zones, setZones] = useState([]);
   const [zoneBlocks, setZoneBlocks] = useState([]);
+  const [zoneBlockGeometry, setZoneBlockGeometry] = useState(null);
+  const [zoneGeometry, setZoneGeometry] = useState(null);
   const [dacPreview, setDacPreview] = useState("");
   const [initialZoneBlockId, setInitialZoneBlockId] = useState("");
   const [loadingPage, setLoadingPage] = useState(true);
@@ -40,26 +43,23 @@ export default function EditAddress() {
     const load = async () => {
       try {
         setLoadingPage(true);
-        const [addressRes, districtsRes] = await Promise.all([
+        const [addressRes, districtList] = await Promise.all([
           getAddressById(id),
-          getDistricts(),
+          getDistrictOptions(),
         ]);
 
         const address = addressRes.data.data;
-        const districtList = districtsRes.data.data || [];
         setDistricts(districtList);
 
         let zoneList = [];
         if (address.districtId) {
-          const zonesRes = await getZones(address.districtId);
-          zoneList = zonesRes.data.data || [];
+          zoneList = await getZoneOptions(address.districtId);
         }
         setZones(zoneList);
 
         let zoneBlockList = [];
         if (address.zoneId) {
-          const zoneBlocksRes = await getZoneBlocks(address.zoneId);
-          zoneBlockList = zoneBlocksRes.data.data || [];
+          zoneBlockList = await getZoneBlockOptions(address.zoneId);
         }
         setZoneBlocks(zoneBlockList);
 
@@ -89,9 +89,8 @@ export default function EditAddress() {
     if (loadingPage || !formData.districtId) return;
 
     setLoadingZones(true);
-    getZones(formData.districtId)
-      .then((res) => {
-        const data = res.data.data || [];
+    getZoneOptions(formData.districtId)
+      .then((data) => {
         setZones(data);
         setFormData((prev) => {
           const stillValid = data.some((z) => z.id === prev.zoneId);
@@ -108,9 +107,8 @@ export default function EditAddress() {
     if (loadingPage || !formData.zoneId) return;
 
     setLoadingZoneBlocks(true);
-    getZoneBlocks(formData.zoneId)
-      .then((res) => {
-        const data = res.data.data || [];
+    getZoneBlockOptions(formData.zoneId)
+      .then((data) => {
         setZoneBlocks(data);
         setFormData((prev) => {
           const stillValid = data.some((block) => block.id === prev.zoneBlockId);
@@ -122,6 +120,36 @@ export default function EditAddress() {
       })
       .finally(() => setLoadingZoneBlocks(false));
   }, [formData.zoneId, loadingPage]);
+
+  useEffect(() => {
+    if (!formData.zoneId) {
+      setZoneGeometry(null);
+      return;
+    }
+
+    getZoneById(formData.zoneId)
+      .then((res) => setZoneGeometry(res.data.data?.geometry || null))
+      .catch(() => setZoneGeometry(null));
+  }, [formData.zoneId]);
+
+  useEffect(() => {
+    if (!formData.zoneBlockId) {
+      setZoneBlockGeometry(null);
+      return;
+    }
+
+    getZoneBlockById(formData.zoneBlockId)
+      .then((res) => setZoneBlockGeometry(res.data.data?.geometry || null))
+      .catch(() => setZoneBlockGeometry(null));
+  }, [formData.zoneBlockId]);
+
+  useEffect(() => {
+    if (!position || !zoneBlockGeometry) return;
+
+    if (!isPointInGeometry(zoneBlockGeometry, position.latitude, position.longitude)) {
+      setPosition(null);
+    }
+  }, [formData.zoneBlockId, zoneBlockGeometry]);
 
   useEffect(() => {
     if (!formData.zoneBlockId) return;
@@ -160,6 +188,12 @@ export default function EditAddress() {
     }
     if (!position) {
       newErrors.location = "Place a GPS pin on the map";
+      isValid = false;
+    } else if (
+      zoneBlockGeometry &&
+      !isPointInGeometry(zoneBlockGeometry, position.latitude, position.longitude)
+    ) {
+      newErrors.location = "GPS pin must be inside the selected zone block boundary";
       isValid = false;
     }
 
@@ -232,12 +266,12 @@ export default function EditAddress() {
         </div>
 
         {serverError && (
-          <div className="mb-6 max-w-[900px] rounded-lg bg-red-50 p-4 border border-red-200 text-red-700 text-sm">
+          <div className="mb-6 rounded-lg bg-red-50 p-4 border border-red-200 text-red-700 text-sm">
             {serverError}
           </div>
         )}
 
-        <div className="w-full max-w-[900px] bg-white border border-line rounded-xl shadow-card-sm overflow-hidden">
+        <div className="w-full bg-white border border-line rounded-xl shadow-card-sm overflow-hidden">
           <form onSubmit={handleSubmit}>
             <div className="px-5 pt-5 pb-4 space-y-4">
               <div className="rounded-lg border border-blue-100 bg-blue-50/60 px-4 py-3">
@@ -348,7 +382,15 @@ export default function EditAddress() {
 
               <div>
                 <label className="block text-[12px] font-semibold text-ink mb-2">GPS Location</label>
-                <LocationMapPicker position={position} onChange={setPosition} />
+                <LocationMapPicker
+                  position={position}
+                  onChange={setPosition}
+                  zoneBlockGeometry={zoneBlockGeometry}
+                  zoneGeometry={zoneGeometry}
+                  zoneBlockLabel={
+                    zoneBlocks.find((block) => block.id === formData.zoneBlockId)?.name || null
+                  }
+                />
                 {errors.location && <p className="mt-1.5 text-[11px] text-red-500">{errors.location}</p>}
               </div>
 

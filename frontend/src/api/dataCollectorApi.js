@@ -1,4 +1,5 @@
 import api from "./axios";
+import { extractListFromResponse } from "@/utils/apiResponse";
 
 /**
  * Fetch data collectors with optional pagination and search
@@ -6,6 +7,12 @@ import api from "./axios";
  */
 export const getDataCollectors = (params) =>
   api.get("/admin/data-collectors", { params });
+
+/** Flat collector list for selects */
+export async function getDataCollectorOptions(params = {}) {
+  const res = await getDataCollectors({ limit: 100, ...params });
+  return extractListFromResponse(res);
+}
 
 export const getDataCollectorById = (id) =>
   api.get(`/admin/data-collectors/${id}`);

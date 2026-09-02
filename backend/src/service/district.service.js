@@ -118,27 +118,51 @@ export const DistrictService = {
       throw new Error("District ID is required");
     }
 
-    const district = await prisma.district.findUnique({
-      where: { id: id.trim() },
-      select: {
-        ...districtSelect,
-        zones: {
-          select: {
-            id: true,
-            name: true,
-            code: true,
-            status: true,
-          },
-          orderBy: { name: "asc" },
-        },
-      },
-    });
+    const rows = await prisma.$queryRaw`
+      SELECT
+        d.id,
+        d.region_id AS "regionId",
+        d.name,
+        d.code,
+        d.status,
+        d.created_at AS "createdAt",
+        d.updated_at AS "updatedAt",
+        CASE
+          WHEN d.geometry IS NULL THEN NULL
+          ELSE ST_AsGeoJSON(d.geometry)::json
+        END AS geometry,
+        json_build_object(
+          'id', r.id,
+          'name', r.name,
+          'code', r.code
+        ) AS region,
+        COALESCE(
+          (
+            SELECT json_agg(
+              json_build_object(
+                'id', z.id,
+                'name', z.name,
+                'code', z.code,
+                'status', z.status
+              )
+              ORDER BY z.name ASC
+            )
+            FROM zones z
+            WHERE z.district_id = d.id
+          ),
+          '[]'::json
+        ) AS zones
+      FROM districts d
+      LEFT JOIN regions r ON r.id = d.region_id
+      WHERE d.id = ${id.trim()}
+      LIMIT 1
+    `;
 
-    if (!district) {
+    if (!rows.length) {
       throw new Error("District not found");
     }
 
-    return district;
+    return rows[0];
   },
 
   updateDistrict: async (id, { regionId, name, code, status }) => {

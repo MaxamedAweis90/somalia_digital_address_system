@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { createAddress, previewAddressCode } from "@/api/addressApi";
-import { getDistricts } from "@/api/districtApi";
-import { getZones } from "@/api/zoneApi";
-import { getZoneBlocks } from "@/api/zoneBlockApi";
+import { getDistrictOptions } from "@/api/districtApi";
+import { getZoneOptions, getZoneById } from "@/api/zoneApi";
+import { getZoneBlockOptions, getZoneBlockById } from "@/api/zoneBlockApi";
 import LocationMapPicker from "@/components/addresses/LocationMapPicker";
+import { isPointInGeometry } from "@/utils/geojson";
 
 export default function AddAddress() {
   const navigate = useNavigate();
@@ -22,6 +23,8 @@ export default function AddAddress() {
   const [districts, setDistricts] = useState([]);
   const [zones, setZones] = useState([]);
   const [zoneBlocks, setZoneBlocks] = useState([]);
+  const [zoneBlockGeometry, setZoneBlockGeometry] = useState(null);
+  const [zoneGeometry, setZoneGeometry] = useState(null);
   const [dacPreview, setDacPreview] = useState("");
   const [loadingDistricts, setLoadingDistricts] = useState(true);
   const [loadingZones, setLoadingZones] = useState(false);
@@ -33,9 +36,8 @@ export default function AddAddress() {
   const [serverError, setServerError] = useState(null);
 
   useEffect(() => {
-    getDistricts()
-      .then((res) => {
-        const data = res.data.data || [];
+    getDistrictOptions()
+      .then((data) => {
         setDistricts(data);
         if (data.length > 0) {
           setFormData((prev) => ({ ...prev, districtId: data[0].id }));
@@ -52,9 +54,8 @@ export default function AddAddress() {
     }
 
     setLoadingZones(true);
-    getZones(formData.districtId)
-      .then((res) => {
-        const data = res.data.data || [];
+    getZoneOptions(formData.districtId)
+      .then((data) => {
         setZones(data);
         setFormData((prev) => ({
           ...prev,
@@ -72,9 +73,8 @@ export default function AddAddress() {
     }
 
     setLoadingZoneBlocks(true);
-    getZoneBlocks(formData.zoneId)
-      .then((res) => {
-        const data = res.data.data || [];
+    getZoneBlockOptions(formData.zoneId)
+      .then((data) => {
         setZoneBlocks(data);
         setFormData((prev) => ({
           ...prev,
@@ -84,6 +84,36 @@ export default function AddAddress() {
       .catch(console.error)
       .finally(() => setLoadingZoneBlocks(false));
   }, [formData.zoneId]);
+
+  useEffect(() => {
+    if (!formData.zoneId) {
+      setZoneGeometry(null);
+      return;
+    }
+
+    getZoneById(formData.zoneId)
+      .then((res) => setZoneGeometry(res.data.data?.geometry || null))
+      .catch(() => setZoneGeometry(null));
+  }, [formData.zoneId]);
+
+  useEffect(() => {
+    if (!formData.zoneBlockId) {
+      setZoneBlockGeometry(null);
+      return;
+    }
+
+    getZoneBlockById(formData.zoneBlockId)
+      .then((res) => setZoneBlockGeometry(res.data.data?.geometry || null))
+      .catch(() => setZoneBlockGeometry(null));
+  }, [formData.zoneBlockId]);
+
+  useEffect(() => {
+    if (!position || !zoneBlockGeometry) return;
+
+    if (!isPointInGeometry(zoneBlockGeometry, position.latitude, position.longitude)) {
+      setPosition(null);
+    }
+  }, [formData.zoneBlockId, zoneBlockGeometry]);
 
   useEffect(() => {
     if (!formData.zoneBlockId) {
@@ -132,6 +162,12 @@ export default function AddAddress() {
     }
     if (!position) {
       newErrors.location = "Place a GPS pin on the map";
+      isValid = false;
+    } else if (
+      zoneBlockGeometry &&
+      !isPointInGeometry(zoneBlockGeometry, position.latitude, position.longitude)
+    ) {
+      newErrors.location = "GPS pin must be inside the selected zone block boundary";
       isValid = false;
     }
 
@@ -192,12 +228,12 @@ export default function AddAddress() {
         </div>
 
         {serverError && (
-          <div className="mb-6 max-w-[900px] rounded-lg bg-red-50 p-4 border border-red-200 text-red-700 text-sm">
+          <div className="mb-6 rounded-lg bg-red-50 p-4 border border-red-200 text-red-700 text-sm">
             {serverError}
           </div>
         )}
 
-        <div className="w-full max-w-[900px] bg-white border border-line rounded-xl shadow-card-sm overflow-hidden">
+        <div className="w-full bg-white border border-line rounded-xl shadow-card-sm overflow-hidden">
           <div className="px-5 py-5 border-b border-line">
             <h2 className="text-[18px] font-semibold text-ink">Address Details</h2>
             <p className="mt-1 text-[13px] text-ink-soft">
@@ -324,7 +360,15 @@ export default function AddAddress() {
                 <label className="block text-[12px] font-semibold text-ink mb-2">
                   GPS Location <span className="text-red-500">*</span>
                 </label>
-                <LocationMapPicker position={position} onChange={setPosition} />
+                <LocationMapPicker
+                  position={position}
+                  onChange={setPosition}
+                  zoneBlockGeometry={zoneBlockGeometry}
+                  zoneGeometry={zoneGeometry}
+                  zoneBlockLabel={
+                    zoneBlocks.find((block) => block.id === formData.zoneBlockId)?.name || null
+                  }
+                />
                 {position && (
                   <p className="mt-2 text-[11px] text-ink-soft font-mono">
                     {position.latitude}, {position.longitude}

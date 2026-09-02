@@ -49,6 +49,7 @@ import Assignments from "@/pages/assignments/Assignments";
 import AddAssignment from "@/pages/assignments/AddAssignment";
 import AssignmentDetail from "@/pages/assignments/AssignmentDetail";
 import AuditLogsPage from "@/pages/admin/AuditLogsPage";
+import Reports from "@/pages/admin/Reports";
 
 export default function AppRoutes() {
   return (
@@ -149,6 +150,7 @@ export default function AppRoutes() {
         <Route path="assignments" element={<Assignments />} />
         <Route path="assignments/add" element={<AddAssignment />} />
         <Route path="assignments/:id" element={<AssignmentDetail />} />
+        <Route path="reports" element={<Reports />} />
         <Route path="audit-logs" element={<AuditLogsPage />} />
         <Route path="settings" element={<Settings />} />
       </Route>

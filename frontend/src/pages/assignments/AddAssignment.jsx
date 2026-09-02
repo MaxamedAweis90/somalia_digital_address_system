@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { createAssignment } from "@/api/assignmentApi";
-import { getDistricts } from "@/api/districtApi";
-import { getZones } from "@/api/zoneApi";
-import { getDataOfficers } from "@/api/dataOfficerApi";
+import { getDistrictOptions } from "@/api/districtApi";
+import { getZoneOptions } from "@/api/zoneApi";
+import { getDataOfficerOptions } from "@/api/dataOfficerApi";
 import Breadcrumb from "@/components/ui/Breadcrumb";
 import PageHeader from "@/components/ui/PageHeader";
 
@@ -26,10 +26,8 @@ export default function AddAssignment() {
   const [serverError, setServerError] = useState(null);
 
   useEffect(() => {
-    Promise.all([getDistricts(), getDataOfficers()])
-      .then(([districtRes, officerRes]) => {
-        const districtData = districtRes.data.data || [];
-        const officerData = officerRes.data.data || [];
+    Promise.all([getDistrictOptions(), getDataOfficerOptions()])
+      .then(([districtData, officerData]) => {
         setDistricts(districtData);
         setOfficers(officerData);
         setFormData((prev) => ({
@@ -49,9 +47,8 @@ export default function AddAssignment() {
       return;
     }
 
-    getZones(formData.districtId)
-      .then((res) => {
-        const data = res.data.data || [];
+    getZoneOptions(formData.districtId)
+      .then((data) => {
         setZones(data);
         setFormData((prev) => ({
           ...prev,
@@ -139,7 +136,7 @@ export default function AddAssignment() {
 
         <form
           onSubmit={handleSubmit}
-          className="max-w-2xl rounded-xl border border-line bg-white p-6 shadow-card-sm space-y-5"
+          className="w-full rounded-xl border border-line bg-white p-6 shadow-card-sm space-y-5"
         >
           <div>
             <label className="block text-[12px] font-semibold text-ink mb-1.5">

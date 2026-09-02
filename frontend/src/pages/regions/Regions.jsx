@@ -151,7 +151,7 @@ export default function Regions() {
             </p>
           </div>
 
-          {isAdmin && (
+          {/* {isAdmin && (
             <button
               onClick={() => navigate("add")}
               className="
@@ -173,7 +173,7 @@ export default function Regions() {
             >
               + Add Region
             </button>
-          )}
+          )} */}
         </div>
 
         {/* Error Notice */}

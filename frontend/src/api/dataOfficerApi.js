@@ -1,4 +1,5 @@
 import api from "./axios";
+import { extractListFromResponse } from "@/utils/apiResponse";
 
 /**
  * Fetch data officers with optional pagination and filtering
@@ -6,6 +7,12 @@ import api from "./axios";
  */
 export const getDataOfficers = (params) =>
   api.get("/admin/data-officers", { params });
+
+/** Flat officer list for selects */
+export async function getDataOfficerOptions(params = {}) {
+  const res = await getDataOfficers({ limit: 100, ...params });
+  return extractListFromResponse(res);
+}
 
 export const getDataOfficerById = (id) => api.get(`/admin/data-officers/${id}`);
 

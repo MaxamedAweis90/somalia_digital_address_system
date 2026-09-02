@@ -10,6 +10,7 @@ import {
   Users,
   Globe,
   ClipboardList,
+  BarChart3,
 } from "lucide-react";
 
 const navItems = [
@@ -21,6 +22,7 @@ const navItems = [
   { to: "/admin/addresses", label: "Addresses", icon: MapPin },
   { to: "/admin/assignments", label: "Assignments", icon: ClipboardList },
   { to: "/admin/staff", label: "Staff", icon: Users, matchPrefixes: ["/admin/data-officers", "/admin/data-collectors"] },
+  { to: "/admin/reports", label: "Reports", icon: BarChart3 },
   { to: "/admin/audit-logs", label: "Audit Logs", icon: ShieldCheck },
 ];
 

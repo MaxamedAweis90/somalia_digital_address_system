@@ -1,6 +1,5 @@
-import { useEffect, useRef } from "react";
-import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from "react-leaflet";
-import L from "leaflet";
+import { useRef, useState } from "react";
+import { MapContainer, Marker, TileLayer, useMapEvents } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import "@/lib/leafletSetup";
 import {
@@ -9,76 +8,42 @@ import {
   OSM_ATTRIBUTION,
   OSM_TILE_URL,
 } from "@/lib/leafletSetup";
+import { isPointInGeometry } from "@/utils/geojson";
+import { FitMapToGeometries, MapBoundaryLayer } from "@/components/maps/BoundaryMapLayers";
 
-function BoundaryLayer({ geometry, color = "#2563eb", fillOpacity = 0.12, dashArray = null }) {
-  const map = useMap();
-
-  useEffect(() => {
-    if (!geometry) return undefined;
-
-    const layer = L.geoJSON(
-      { type: "Feature", geometry },
-      {
-        style: {
-          color,
-          weight: 2,
-          fillOpacity,
-          dashArray: dashArray || undefined,
-        },
-      }
-    );
-
-    layer.addTo(map);
-
-    return () => {
-      map.removeLayer(layer);
-    };
-  }, [geometry, map, color, fillOpacity, dashArray]);
-
-  return null;
-}
-
-function FitToLayers({ zoneBlockGeometry, zoneGeometry, addresses }) {
-  const map = useMap();
-
-  useEffect(() => {
-    const group = L.featureGroup();
-
-    [zoneGeometry, zoneBlockGeometry].filter(Boolean).forEach((geometry) => {
-      L.geoJSON({ type: "Feature", geometry }).eachLayer((layer) => {
-        group.addLayer(layer);
-      });
-    });
-
-    (addresses || [])
-      .filter((address) => address.latitude != null && address.longitude != null)
-      .forEach((address) => {
-        group.addLayer(L.marker([address.latitude, address.longitude]));
-      });
-
-    if (group.getLayers().length > 0) {
-      map.fitBounds(group.getBounds(), { padding: [24, 24] });
-    }
-  }, [zoneBlockGeometry, zoneGeometry, addresses, map]);
-
-  return null;
-}
-
-function MapClickHandler({ editable, onMapClick }) {
+function MapClickHandler({ editable, onMapClick, boundaryGeometry, onBoundaryViolation }) {
   useMapEvents({
     click(event) {
       if (!editable) return;
-      onMapClick({
+
+      const coords = {
         latitude: Number(event.latlng.lat.toFixed(6)),
         longitude: Number(event.latlng.lng.toFixed(6)),
-      });
+      };
+
+      if (
+        boundaryGeometry &&
+        !isPointInGeometry(boundaryGeometry, coords.latitude, coords.longitude)
+      ) {
+        onBoundaryViolation?.("Place the pin inside the highlighted zone block boundary.");
+        return;
+      }
+
+      onMapClick(coords);
     },
   });
 
   return null;
 }
 
-function DraggableMarker({ address, editable, selected, onDrag }) {
+function DraggableMarker({
+  address,
+  editable,
+  selected,
+  onDrag,
+  boundaryGeometry,
+  onBoundaryViolation,
+}) {
   const markerRef = useRef(null);
 
   if (address.latitude == null || address.longitude == null) {
@@ -97,10 +62,23 @@ function DraggableMarker({ address, editable, selected, onDrag }) {
                 const marker = markerRef.current;
                 if (!marker) return;
                 const { lat, lng } = marker.getLatLng();
-                onDrag({
+                const coords = {
                   latitude: Number(lat.toFixed(6)),
                   longitude: Number(lng.toFixed(6)),
-                });
+                };
+
+                if (
+                  boundaryGeometry &&
+                  !isPointInGeometry(boundaryGeometry, coords.latitude, coords.longitude)
+                ) {
+                  marker.setLatLng([address.latitude, address.longitude]);
+                  onBoundaryViolation?.(
+                    "Drag the pin inside the highlighted zone block boundary."
+                  );
+                  return;
+                }
+
+                onDrag(coords);
               },
             }
           : undefined
@@ -118,7 +96,13 @@ export default function AddressDraftMap({
   editable = true,
   height = "520px",
 }) {
+  const [boundaryMessage, setBoundaryMessage] = useState(null);
   const selectedAddress = addresses.find((item) => item.clientId === selectedClientId);
+
+  const handlePinChange = (coords) => {
+    setBoundaryMessage(null);
+    onPinChange(coords);
+  };
 
   return (
     <div className="space-y-2">
@@ -133,22 +117,30 @@ export default function AddressDraftMap({
           scrollWheelZoom
         >
           <TileLayer attribution={OSM_ATTRIBUTION} url={OSM_TILE_URL} />
-          <BoundaryLayer
+          <MapBoundaryLayer
             geometry={zoneGeometry}
             color="#64748b"
             fillOpacity={0.06}
             dashArray="6 4"
           />
-          <BoundaryLayer geometry={zoneBlockGeometry} color="#2563eb" fillOpacity={0.14} />
-          <FitToLayers
-            zoneBlockGeometry={zoneBlockGeometry}
-            zoneGeometry={zoneGeometry}
-            addresses={addresses}
+          <MapBoundaryLayer geometry={zoneBlockGeometry} color="#2563eb" fillOpacity={0.14} />
+          <FitMapToGeometries
+            geometries={[zoneGeometry, zoneBlockGeometry]}
+            position={
+              selectedAddress?.latitude != null && selectedAddress?.longitude != null
+                ? {
+                    latitude: selectedAddress.latitude,
+                    longitude: selectedAddress.longitude,
+                  }
+                : null
+            }
           />
           {editable && (
             <MapClickHandler
               editable={editable && Boolean(selectedClientId)}
-              onMapClick={onPinChange}
+              onMapClick={handlePinChange}
+              boundaryGeometry={zoneBlockGeometry}
+              onBoundaryViolation={setBoundaryMessage}
             />
           )}
           {addresses.map((address) => (
@@ -157,7 +149,9 @@ export default function AddressDraftMap({
               address={address}
               editable={editable}
               selected={address.clientId === selectedClientId}
-              onDrag={onPinChange}
+              onDrag={handlePinChange}
+              boundaryGeometry={zoneBlockGeometry}
+              onBoundaryViolation={setBoundaryMessage}
             />
           ))}
         </MapContainer>
@@ -177,7 +171,7 @@ export default function AddressDraftMap({
         <span>
           {editable
             ? selectedClientId
-              ? "Click the map or drag the marker to set GPS for the selected address."
+              ? "Click inside the blue zone block boundary or drag the marker to set GPS."
               : "Select an address from the list to place its pin."
             : "Draft address pin locations."}
         </span>
@@ -187,6 +181,10 @@ export default function AddressDraftMap({
           </span>
         )}
       </div>
+
+      {boundaryMessage && (
+        <p className="text-[11px] text-red-600 font-medium">{boundaryMessage}</p>
+      )}
     </div>
   );
 }

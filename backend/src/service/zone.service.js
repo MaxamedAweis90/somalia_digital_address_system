@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { prisma } from "../db.js";
 import { validatePolygonGeometry } from "../utils/geojson.utils.js";
 import { validateStatus } from "../utils/validation.utils.js";
+import { assertPolygonWithinDistrictIfBounded } from "../utils/geo.validation.utils.js";
 
 const zoneFromSql = Prisma.sql`
   FROM zones z
@@ -68,6 +69,7 @@ export const ZoneService = {
 
     if (geometry !== undefined && geometry !== null) {
       validatePolygonGeometry(geometry);
+      await assertPolygonWithinDistrictIfBounded({ geometry, districtId });
     }
 
     const id = randomUUID();
@@ -212,14 +214,13 @@ export const ZoneService = {
   },
 
   updateZone: async (id, { districtId, name, code, status, geometry }) => {
-    const existing = await prisma.zone.findUnique({
-      where: { id },
-      select: { id: true },
-    });
+    const existing = await fetchZoneById(id);
 
     if (!existing) {
       throw new Error("Zone not found");
     }
+
+    const effectiveDistrictId = districtId ?? existing.districtId;
 
     if (districtId) {
       await assertDistrictExists(districtId);
@@ -229,6 +230,10 @@ export const ZoneService = {
 
     if (geometry !== undefined && geometry !== null) {
       validatePolygonGeometry(geometry);
+      await assertPolygonWithinDistrictIfBounded({
+        geometry,
+        districtId: effectiveDistrictId,
+      });
     }
 
     const updates = [];

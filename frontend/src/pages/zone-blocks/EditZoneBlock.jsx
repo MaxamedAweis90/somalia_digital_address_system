@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { getZoneBlockById, updateZoneBlock } from "@/api/zoneBlockApi";
-import { getDistricts } from "@/api/districtApi";
-import { getZones, getZoneById } from "@/api/zoneApi";
+import { getDistrictOptions } from "@/api/districtApi";
+import { getZoneOptions, getZoneById } from "@/api/zoneApi";
 import ZoneMapEditor from "@/components/zone-blocks/ZoneMapEditor";
 import { isValidPolygonGeometry } from "@/utils/geojson";
 import { Loader2 } from "lucide-react";
@@ -44,13 +44,12 @@ export default function EditZoneBlock() {
         setLoadingPage(true);
         setServerError(null);
 
-        const [zoneBlockRes, districtsRes] = await Promise.all([
+        const [zoneBlockRes, districtList] = await Promise.all([
           getZoneBlockById(id),
-          getDistricts(),
+          getDistrictOptions(),
         ]);
 
         const zoneBlock = zoneBlockRes.data.data;
-        const districtList = districtsRes.data.data || [];
         setDistricts(districtList);
 
         const districtId =
@@ -60,8 +59,7 @@ export default function EditZoneBlock() {
 
         let zoneList = [];
         if (districtId) {
-          const zonesRes = await getZones(districtId);
-          zoneList = zonesRes.data.data || [];
+          zoneList = await getZoneOptions(districtId);
         }
         setZones(zoneList);
 
@@ -90,9 +88,8 @@ export default function EditZoneBlock() {
     if (loadingPage || !formData.districtId) return;
 
     setLoadingZones(true);
-    getZones(formData.districtId)
-      .then((res) => {
-        const data = res.data.data || [];
+    getZoneOptions(formData.districtId)
+      .then((data) => {
         setZones(data);
 
         setFormData((prev) => {
@@ -245,12 +242,12 @@ export default function EditZoneBlock() {
         </div>
 
         {serverError && (
-          <div className="mb-6 max-w-[900px] rounded-lg bg-red-50 p-4 border border-red-200 text-red-700 text-sm">
+          <div className="mb-6 rounded-lg bg-red-50 p-4 border border-red-200 text-red-700 text-sm">
             {serverError}
           </div>
         )}
 
-        <div className="w-full max-w-[900px] bg-white border border-line rounded-xl shadow-card-sm overflow-hidden">
+        <div className="w-full bg-white border border-line rounded-xl shadow-card-sm overflow-hidden">
           <div className="px-5 py-5 border-b border-line">
             <h2 className="text-[18px] font-semibold text-ink">Zone Block Details</h2>
             <p className="mt-1 text-[13px] text-ink-soft">

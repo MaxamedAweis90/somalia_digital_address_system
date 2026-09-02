@@ -4,6 +4,7 @@ import { buildDac, MAX_HOUSE_NUMBER } from "../utils/dac.utils.js";
 import { formatLocation, parseLocation } from "../utils/location.utils.js";
 import { getSettingValue } from "../utils/settings.utils.js";
 import { validateStatus } from "../utils/validation.utils.js";
+import { assertPointWithinZoneBlockIfBounded } from "../utils/geo.validation.utils.js";
 
 const addressSelect = {
   id: true,
@@ -203,6 +204,17 @@ export const AddressService = {
         ? formatLocation(latitude, longitude)
         : formatLocation(...Object.values(parseLocation(location)));
 
+    const resolvedLatitude =
+      latitude ?? parseLocation(normalizedLocation).latitude;
+    const resolvedLongitude =
+      longitude ?? parseLocation(normalizedLocation).longitude;
+
+    await assertPointWithinZoneBlockIfBounded({
+      latitude: resolvedLatitude,
+      longitude: resolvedLongitude,
+      zoneBlockId,
+    });
+
     const houseNumber = await getNextHouseNumber(zoneBlockId);
     const pad = await getHouseNumberPad();
     const addressCode = buildDac(
@@ -221,8 +233,8 @@ export const AddressService = {
       zoneBlockId,
       streetName,
       description,
-      latitude: latitude ?? parseLocation(normalizedLocation).latitude,
-      longitude: longitude ?? parseLocation(normalizedLocation).longitude,
+      latitude: resolvedLatitude,
+      longitude: resolvedLongitude,
       status,
       houseNumber,
       addressCode,
@@ -543,9 +555,20 @@ export const AddressService = {
     }
 
     if (latitude !== undefined && longitude !== undefined) {
+      await assertPointWithinZoneBlockIfBounded({
+        latitude,
+        longitude,
+        zoneBlockId: nextZoneBlockId,
+      });
       data.location = formatLocation(latitude, longitude);
     } else if (location !== undefined) {
-      data.location = formatLocation(...Object.values(parseLocation(location)));
+      const parsed = parseLocation(location);
+      await assertPointWithinZoneBlockIfBounded({
+        latitude: parsed.latitude,
+        longitude: parsed.longitude,
+        zoneBlockId: nextZoneBlockId,
+      });
+      data.location = formatLocation(...Object.values(parsed));
     }
 
     const address = await prisma.address.update({

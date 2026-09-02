@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MapContainer, TileLayer, useMap } from "react-leaflet";
 import L from "leaflet";
 import "@geoman-io/leaflet-geoman-free";
@@ -11,6 +11,26 @@ import {
   OSM_ATTRIBUTION,
   OSM_TILE_URL,
 } from "@/lib/leafletSetup";
+import { isPolygonWithinGeometry } from "@/utils/geojson";
+
+const BOUNDARY_VIOLATION_MESSAGE =
+  "Zone block boundary must stay inside the parent zone boundary.";
+
+const PM_CONTROLS = {
+  position: "topright",
+  drawCircle: false,
+  drawCircleMarker: false,
+  drawPolyline: false,
+  drawRectangle: true,
+  drawPolygon: true,
+  drawMarker: false,
+  drawText: false,
+  cutPolygon: false,
+  rotateMode: false,
+  editMode: true,
+  dragMode: false,
+  removalMode: true,
+};
 
 function BoundaryLayer({ geometry, color = "#64748b", fillOpacity = 0.08 }) {
   const map = useMap();
@@ -55,100 +75,162 @@ function FitToGeometries({ geometries }) {
     });
 
     if (group.getLayers().length > 0) {
-      map.fitBounds(group.getBounds(), { padding: [24, 24] });
+      map.whenReady(() => {
+        map.fitBounds(group.getBounds(), { padding: [24, 24] });
+        map.invalidateSize();
+      });
     }
   }, [geometries, map]);
 
   return null;
 }
 
-function MapDrawHandler({ geometry, onChange, editable }) {
+function InvalidateMapSize({ trigger }) {
+  const map = useMap();
+
+  useEffect(() => {
+    map.whenReady(() => {
+      requestAnimationFrame(() => {
+        map.invalidateSize();
+      });
+    });
+  }, [map, trigger]);
+
+  return null;
+}
+
+function mountGeometryLayer(map, layerRef, geometry, editable) {
+  if (layerRef.current) {
+    map.removeLayer(layerRef.current);
+    layerRef.current = null;
+  }
+
+  if (!geometry) {
+    return;
+  }
+
+  L.geoJSON({ type: "Feature", geometry }).eachLayer((layer) => {
+    layer.addTo(map);
+    layerRef.current = layer;
+    if (editable) {
+      layer.pm.enable();
+    }
+  });
+}
+
+function MapDrawHandler({
+  geometry,
+  onChange,
+  editable,
+  boundaryGeometry,
+  onBoundaryViolation,
+}) {
   const map = useMap();
   const layerRef = useRef(null);
   const loadedRef = useRef(false);
+  const lastValidGeometryRef = useRef(geometry);
+
+  useEffect(() => {
+    lastValidGeometryRef.current = geometry;
+  }, [geometry]);
+
+  useEffect(() => {
+    loadedRef.current = false;
+    mountGeometryLayer(map, layerRef, null, editable);
+  }, [boundaryGeometry, map, editable]);
 
   useEffect(() => {
     if (!editable) return undefined;
 
-    map.pm.addControls({
-      position: "topright",
-      drawCircle: false,
-      drawCircleMarker: false,
-      drawPolyline: false,
-      drawRectangle: true,
-      drawPolygon: true,
-      drawMarker: false,
-      drawText: false,
-      cutPolygon: false,
-      rotateMode: false,
-      editMode: true,
-      dragMode: false,
-      removalMode: true,
+    let disposed = false;
+
+    const setupControls = () => {
+      if (disposed || !map?.pm) return;
+
+      map.pm.addControls(PM_CONTROLS);
+
+      const applyLayer = (layer) => {
+        const nextGeometry = layer.toGeoJSON().geometry;
+
+        if (
+          boundaryGeometry &&
+          !isPolygonWithinGeometry(nextGeometry, boundaryGeometry)
+        ) {
+          onBoundaryViolation?.(BOUNDARY_VIOLATION_MESSAGE);
+          map.removeLayer(layer);
+          mountGeometryLayer(
+            map,
+            layerRef,
+            lastValidGeometryRef.current,
+            editable
+          );
+          return;
+        }
+
+        if (layerRef.current && layerRef.current !== layer) {
+          map.removeLayer(layerRef.current);
+        }
+
+        layerRef.current = layer;
+
+        if (editable) {
+          layer.pm.enable();
+        }
+
+        lastValidGeometryRef.current = nextGeometry;
+        onChange(nextGeometry);
+      };
+
+      const onCreate = (event) => {
+        applyLayer(event.layer);
+      };
+
+      const onEdit = (event) => {
+        applyLayer(event.layer);
+      };
+
+      const onRemove = () => {
+        layerRef.current = null;
+        lastValidGeometryRef.current = null;
+        onChange(null);
+      };
+
+      map.on("pm:create", onCreate);
+      map.on("pm:edit", onEdit);
+      map.on("pm:remove", onRemove);
+
+      requestAnimationFrame(() => {
+        map.invalidateSize();
+      });
+
+      return () => {
+        map.off("pm:create", onCreate);
+        map.off("pm:edit", onEdit);
+        map.off("pm:remove", onRemove);
+        map.pm.removeControls();
+      };
+    };
+
+    let teardown = () => {};
+
+    map.whenReady(() => {
+      teardown = setupControls() || (() => {});
     });
 
-    const setGeometryFromLayer = (layer) => {
-      const feature = layer.toGeoJSON();
-      onChange(feature.geometry);
-    };
-
-    const replaceLayer = (layer) => {
-      if (layerRef.current && layerRef.current !== layer) {
-        map.removeLayer(layerRef.current);
-      }
-
-      layerRef.current = layer;
-
-      if (editable) {
-        layer.pm.enable();
-      }
-
-      setGeometryFromLayer(layer);
-    };
-
-    const onCreate = (event) => {
-      replaceLayer(event.layer);
-    };
-
-    const onEdit = (event) => {
-      setGeometryFromLayer(event.layer);
-    };
-
-    const onRemove = () => {
-      layerRef.current = null;
-      onChange(null);
-    };
-
-    map.on("pm:create", onCreate);
-    map.on("pm:edit", onEdit);
-    map.on("pm:remove", onRemove);
-
     return () => {
-      map.off("pm:create", onCreate);
-      map.off("pm:edit", onEdit);
-      map.off("pm:remove", onRemove);
-      map.pm.removeControls();
+      disposed = true;
+      teardown();
     };
-  }, [map, onChange, editable]);
+  }, [map, onChange, editable, boundaryGeometry, onBoundaryViolation]);
 
   useEffect(() => {
     if (!geometry || loadedRef.current) return;
 
-    const group = L.geoJSON({
-      type: "Feature",
-      geometry,
-    });
+    mountGeometryLayer(map, layerRef, geometry, editable);
+    lastValidGeometryRef.current = geometry;
 
-    group.eachLayer((layer) => {
-      layer.addTo(map);
-      layerRef.current = layer;
-
-      if (editable) {
-        layer.pm.enable();
-      }
-    });
-
-    if (group.getLayers().length > 0) {
-      map.fitBounds(group.getBounds(), { padding: [24, 24] });
+    if (layerRef.current) {
+      map.fitBounds(layerRef.current.getBounds(), { padding: [24, 24] });
     }
 
     loadedRef.current = true;
@@ -163,12 +245,19 @@ export default function ZoneMapEditor({
   editable = true,
   height = "420px",
   boundaryGeometry = null,
-  boundaryLabel = "Zone boundary",
+  boundaryLabel = "Parent zone boundary",
 }) {
+  const [boundaryMessage, setBoundaryMessage] = useState(null);
+
+  const handleGeometryChange = (nextGeometry) => {
+    setBoundaryMessage(null);
+    onChange(nextGeometry);
+  };
+
   return (
     <div className="space-y-2">
       <div
-        className="rounded-lg overflow-hidden border border-line shadow-xs"
+        className="rounded-lg border border-line shadow-xs relative z-0"
         style={{ height }}
       >
         <MapContainer
@@ -180,10 +269,13 @@ export default function ZoneMapEditor({
           <TileLayer attribution={OSM_ATTRIBUTION} url={OSM_TILE_URL} />
           <BoundaryLayer geometry={boundaryGeometry} />
           <FitToGeometries geometries={[boundaryGeometry, geometry]} />
+          <InvalidateMapSize trigger={boundaryGeometry} />
           <MapDrawHandler
             geometry={geometry}
-            onChange={onChange}
+            onChange={handleGeometryChange}
             editable={editable}
+            boundaryGeometry={boundaryGeometry}
+            onBoundaryViolation={setBoundaryMessage}
           />
         </MapContainer>
       </div>
@@ -191,7 +283,9 @@ export default function ZoneMapEditor({
       <div className="flex flex-wrap items-center gap-4 text-[11px] text-ink-soft">
         <p>
           {editable
-            ? "Use the map tools to draw a zone block boundary polygon inside the parent zone."
+            ? boundaryGeometry
+              ? "Use the map tools to draw a zone block boundary inside the dashed parent zone outline."
+              : "Use the map tools to draw a zone block boundary polygon. Select a zone with a boundary to constrain drawing."
             : "Zone block boundary preview."}
         </p>
         {boundaryGeometry && (
@@ -201,6 +295,10 @@ export default function ZoneMapEditor({
           </span>
         )}
       </div>
+
+      {boundaryMessage && (
+        <p className="text-[11px] text-red-600 font-medium">{boundaryMessage}</p>
+      )}
     </div>
   );
 }

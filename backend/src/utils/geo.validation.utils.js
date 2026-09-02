@@ -15,6 +15,17 @@ export async function zoneHasGeometry(zoneId) {
   return Boolean(rows[0]?.hasGeometry);
 }
 
+export async function districtHasGeometry(districtId) {
+  const rows = await prisma.$queryRaw`
+    SELECT (d.geometry IS NOT NULL) AS "hasGeometry"
+    FROM districts d
+    WHERE d.id = ${districtId}
+    LIMIT 1
+  `;
+
+  return Boolean(rows[0]?.hasGeometry);
+}
+
 export async function isPolygonWithinZone(geometry, zoneId) {
   const hasGeometry = await zoneHasGeometry(zoneId);
   if (!hasGeometry) {
@@ -32,6 +43,41 @@ export async function isPolygonWithinZone(geometry, zoneId) {
   `;
 
   return Boolean(rows[0]?.isWithin);
+}
+
+export async function isPolygonWithinDistrict(geometry, districtId) {
+  const hasGeometry = await districtHasGeometry(districtId);
+  if (!hasGeometry) {
+    return true;
+  }
+
+  const rows = await prisma.$queryRaw`
+    SELECT ST_Within(
+      ST_SetSRID(ST_GeomFromGeoJSON(${toGeoJson(geometry)}), 4326),
+      d.geometry
+    ) AS "isWithin"
+    FROM districts d
+    WHERE d.id = ${districtId}
+    LIMIT 1
+  `;
+
+  return Boolean(rows[0]?.isWithin);
+}
+
+export async function assertPolygonWithinDistrictIfBounded({ geometry, districtId }) {
+  if (!geometry) {
+    return;
+  }
+
+  const hasGeometry = await districtHasGeometry(districtId);
+  if (!hasGeometry) {
+    return;
+  }
+
+  const within = await isPolygonWithinDistrict(geometry, districtId);
+  if (!within) {
+    throw new Error("Zone boundary must stay inside the selected district boundary");
+  }
 }
 
 export async function polygonsOverlap(geometryA, geometryB) {
@@ -60,6 +106,33 @@ export async function isPointWithinZoneBlock({ latitude, longitude, zoneBlockId 
   `;
 
   return Boolean(rows[0]?.isWithin);
+}
+
+export async function zoneBlockHasGeometry(zoneBlockId) {
+  const rows = await prisma.$queryRaw`
+    SELECT (zb.geometry IS NOT NULL) AS "hasGeometry"
+    FROM zone_blocks zb
+    WHERE zb.id = ${zoneBlockId}
+    LIMIT 1
+  `;
+
+  return Boolean(rows[0]?.hasGeometry);
+}
+
+export async function assertPointWithinZoneBlockIfBounded({
+  latitude,
+  longitude,
+  zoneBlockId,
+}) {
+  const hasGeometry = await zoneBlockHasGeometry(zoneBlockId);
+  if (!hasGeometry) {
+    return;
+  }
+
+  const within = await isPointWithinZoneBlock({ latitude, longitude, zoneBlockId });
+  if (!within) {
+    throw new Error("GPS location must be inside the selected zone block boundary");
+  }
 }
 
 export async function assertZoneBlocksWithinZone(zoneBlocks, zoneId) {

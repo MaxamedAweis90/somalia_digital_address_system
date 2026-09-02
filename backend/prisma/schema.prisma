@@ -43,14 +43,15 @@ model Region {
 }
 
 model District {
-  id        String    @id @default(cuid())
-  regionId  String?   @map("region_id")
+  id        String                   @id @default(cuid())
+  regionId  String?                  @map("region_id")
   name      String
-  code      String    @unique
-  status    Status    @default(ACTIVE)
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
-  region    Region?   @relation(fields: [regionId], references: [id], onDelete: SetNull)
+  code      String                   @unique
+  status    Status                   @default(ACTIVE)
+  geometry  Unsupported("geometry")?
+  createdAt DateTime                 @default(now()) @map("created_at")
+  updatedAt DateTime                 @updatedAt @map("updated_at")
+  region    Region?                  @relation(fields: [regionId], references: [id], onDelete: SetNull)
   addresses Address[]
   zones     Zone[]
 

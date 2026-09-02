@@ -167,7 +167,7 @@ const AddDistrict = () => {
 
         {/* Server Error */}
         {serverError && (
-          <div className="mb-6 max-w-[635px] rounded-lg bg-red-50 p-4 border border-red-200 text-red-700 text-sm">
+          <div className="mb-6 rounded-lg bg-red-50 p-4 border border-red-200 text-red-700 text-sm">
             {serverError}
           </div>
         )}
@@ -178,7 +178,6 @@ const AddDistrict = () => {
         <div
           className="
             w-full
-            max-w-[635px]
             bg-white
             border
             border-line

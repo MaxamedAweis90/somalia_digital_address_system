@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { createZoneBlock } from "@/api/zoneBlockApi";
-import { getDistricts } from "@/api/districtApi";
-import { getZones, getZoneById } from "@/api/zoneApi";
+import { getDistrictOptions } from "@/api/districtApi";
+import { getZoneOptions, getZoneById } from "@/api/zoneApi";
 import ZoneMapEditor from "@/components/zone-blocks/ZoneMapEditor";
-import { isValidPolygonGeometry } from "@/utils/geojson";
+import { isPolygonWithinGeometry, isValidPolygonGeometry } from "@/utils/geojson";
 
 export default function AddZoneBlock() {
   const navigate = useNavigate();
@@ -34,11 +34,12 @@ export default function AddZoneBlock() {
 
   const [loading, setLoading] = useState(false);
   const [serverError, setServerError] = useState(null);
+  const [mapKey, setMapKey] = useState(0);
+  const [loadingZoneBoundary, setLoadingZoneBoundary] = useState(false);
 
   useEffect(() => {
-    getDistricts()
-      .then((res) => {
-        const data = res.data.data || [];
+    getDistrictOptions()
+      .then((data) => {
         setDistricts(data);
         if (data.length > 0) {
           setFormData((prev) => ({ ...prev, districtId: data[0].id }));
@@ -51,18 +52,19 @@ export default function AddZoneBlock() {
     if (!formData.districtId) {
       setZones([]);
       setZoneBoundary(null);
+      setGeometry(null);
       return;
     }
 
     setLoadingZones(true);
-    getZones(formData.districtId)
-      .then((res) => {
-        const data = res.data.data || [];
+    getZoneOptions(formData.districtId)
+      .then((data) => {
         setZones(data);
         setFormData((prev) => ({
           ...prev,
           zoneId: data[0]?.id || "",
         }));
+        setGeometry(null);
       })
       .catch(() => setZones([]))
       .finally(() => setLoadingZones(false));
@@ -71,13 +73,29 @@ export default function AddZoneBlock() {
   useEffect(() => {
     if (!formData.zoneId) {
       setZoneBoundary(null);
+      setGeometry(null);
       return;
     }
 
+    setLoadingZoneBoundary(true);
     getZoneById(formData.zoneId)
-      .then((res) => setZoneBoundary(res.data.data?.geometry || null))
-      .catch(() => setZoneBoundary(null));
+      .then((res) => {
+        setZoneBoundary(res.data.data?.geometry || null);
+        setGeometry(null);
+        setMapKey((key) => key + 1);
+      })
+      .catch(() => {
+        setZoneBoundary(null);
+        setGeometry(null);
+        setMapKey((key) => key + 1);
+      })
+      .finally(() => setLoadingZoneBoundary(false));
   }, [formData.zoneId]);
+
+  const handleGeometryChange = useCallback((nextGeometry) => {
+    setGeometry(nextGeometry);
+    setErrors((prev) => ({ ...prev, geometry: "" }));
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -107,6 +125,12 @@ export default function AddZoneBlock() {
     }
     if (!isValidPolygonGeometry(geometry)) {
       newErrors.geometry = "Draw a zone block boundary inside the parent zone";
+      isValid = false;
+    } else if (
+      zoneBoundary &&
+      !isPolygonWithinGeometry(geometry, zoneBoundary)
+    ) {
+      newErrors.geometry = "Zone block boundary must stay inside the parent zone boundary";
       isValid = false;
     }
 
@@ -149,12 +173,12 @@ export default function AddZoneBlock() {
         </div>
 
         {serverError && (
-          <div className="mb-6 max-w-[900px] rounded-lg bg-red-50 p-4 border border-red-200 text-red-700 text-sm">
+          <div className="mb-6 rounded-lg bg-red-50 p-4 border border-red-200 text-red-700 text-sm">
             {serverError}
           </div>
         )}
 
-        <div className="w-full max-w-[900px] bg-white border border-line rounded-xl shadow-card-sm overflow-hidden">
+        <div className="w-full bg-white border border-line rounded-xl shadow-card-sm overflow-hidden">
           <form onSubmit={handleSubmit}>
             <div className="px-5 pt-5 pb-4 space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -206,12 +230,23 @@ export default function AddZoneBlock() {
 
               <div>
                 <label className="block text-[12px] font-semibold text-ink mb-2">Zone Block Boundary *</label>
-                <ZoneMapEditor
-                  geometry={geometry}
-                  onChange={setGeometry}
-                  boundaryGeometry={zoneBoundary}
-                  boundaryLabel="Parent zone boundary"
-                />
+                {!formData.zoneId ? (
+                  <p className="rounded-lg border border-dashed border-line bg-bg px-4 py-8 text-center text-[12px] text-ink-soft">
+                    Select a parent zone to enable the map drawing tools.
+                  </p>
+                ) : loadingZoneBoundary ? (
+                  <p className="rounded-lg border border-line bg-bg px-4 py-8 text-center text-[12px] text-ink-soft">
+                    Loading parent zone boundary...
+                  </p>
+                ) : (
+                  <ZoneMapEditor
+                    key={mapKey}
+                    geometry={geometry}
+                    onChange={handleGeometryChange}
+                    boundaryGeometry={zoneBoundary}
+                    boundaryLabel="Parent zone boundary"
+                  />
+                )}
                 {errors.geometry && <p className="mt-1 text-[11px] text-red-500">{errors.geometry}</p>}
               </div>
             </div>
